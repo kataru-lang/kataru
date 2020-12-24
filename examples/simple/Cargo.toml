@@ -1,0 +1,15 @@
+[package]
+authors = ["Josiah Putman <joshikatsu@gmail.com>"]
+edition = "2018"
+name = "simple"
+version = "0.1.0"
+
+[dependencies]
+colored = "2.0.0"
+kataru = {path = "../.."}
+serde_yaml = "0.8.4"
+
+[build-dependencies]
+colored = "2.0.0"
+kataru = {path = "../.."}
+serde_yaml = "0.8.4"
