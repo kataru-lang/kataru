@@ -1,0 +1,41 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Kataru Config",
+    "description": "YAML schema for Kataru config file.",
+    "type": "object",
+    "properties": {
+        "line": {
+            "type": "number",
+            "description": "The current line number."
+        },
+        "characters": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "object",
+                "properties": {
+                    "description": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "description"
+                ]
+            }
+        },
+        "state": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "number"
+            }
+        },
+        "passage": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "line",
+        "characters",
+        "state",
+        "passage"
+    ]
+}

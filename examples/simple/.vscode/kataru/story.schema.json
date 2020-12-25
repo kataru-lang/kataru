@@ -1,0 +1,72 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Kataru Story",
+    "description": "YAML schema for Kataru story file.",
+    "type": "object",
+    "additionalProperties": {
+        "type": "array",
+        "items": {
+            "$ref": "#/definitions/line"
+        }
+    },
+    "definitions": {
+        "line": {
+            "oneOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "set": {
+                            "type": "object"
+                        }
+                    },
+                    "required": [
+                        "set"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "choices": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "required": [
+                        "choices"
+                    ]
+                },
+                {
+                    "type": "object",
+                    "patternProperties": {
+                        "^(?!if ).+": {
+                            "type": "string"
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "patternProperties": {
+                        "^if [a-zA-Z0-9]* (>|>=|<|<=|==)* [a-zA-Z0-9]*": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/line"
+                            }
+                        },
+                        "^else": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/line"
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}

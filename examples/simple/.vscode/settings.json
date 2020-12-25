@@ -1,0 +1,6 @@
+{
+    "yaml.schemas": {
+        ".vscode/kataru/config.schema.json": ["/config.yml"],
+        ".vscode/kataru/story.schema.json": ["/story/*.yml"]
+    }
+}

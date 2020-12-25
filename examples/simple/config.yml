@@ -3,7 +3,6 @@ state:
   stealth: 0
 line: 0
 passage: Start
-
 characters:
   Person1:
     description: Main character.
