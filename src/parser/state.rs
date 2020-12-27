@@ -1,5 +1,4 @@
-use super::{Operator, Parsable, Value};
-use crate::structs::Map;
+use super::{Map, Operator, Parsable, Value};
 use crate::ValidationError;
 
 pub trait StateUpdatable {

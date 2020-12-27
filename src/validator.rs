@@ -1,7 +1,7 @@
 use crate::parser::{
-    Branches, Comparator, Conditional, Operator, Parsable, State, StateMod, Value,
+    Branches, Choices, Comparator, Conditional, Config, Line, Map, Operator, Parsable, Passage,
+    State, StateMod, Story, Value,
 };
-use crate::structs::{Choices, Config, Line, Map, Passage, Story};
 use crate::ValidationError;
 use html_parser::Dom;
 

@@ -1,5 +1,4 @@
-use crate::parser::{Branchable, StateUpdatable};
-use crate::structs::{Config, Line, Passage, Story};
+use crate::parser::{Branchable, Config, Line, Passage, StateUpdatable, Story};
 use crate::vars::replace_vars;
 
 pub struct Runner<'r> {

@@ -1,23 +1,6 @@
-pub use crate::parser::{Branches, State};
+use super::{Branches, Map, Parsable, State};
+use crate::ValidationError;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
-
-pub type Map<K, V> = BTreeMap<K, V>;
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct CharacterData {
-    pub description: String,
-}
-
-pub type Characters = Map<String, CharacterData>;
-
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct Config {
-    pub passage: String,
-    pub line: usize,
-    pub state: State,
-    pub characters: Characters,
-}
 
 pub type Dialogue = Map<String, String>;
 
@@ -53,3 +36,12 @@ pub enum Line {
 pub type Passage = Vec<Line>;
 
 pub type Story = Map<String, Passage>;
+
+impl Parsable<'_> for Story {
+    fn parse(text: &str) -> Result<Self, ValidationError> {
+        match serde_yaml::from_str(text) {
+            Ok(story) => Ok(story),
+            Err(e) => Err(verror!("{}", e)),
+        }
+    }
+}

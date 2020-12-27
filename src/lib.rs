@@ -5,12 +5,10 @@ extern crate lazy_static;
 mod error;
 mod parser;
 mod runner;
-mod structs;
 mod validator;
 mod vars;
 
 pub use error::ValidationError;
-pub use parser::{Parsable, State, Value};
+pub use parser::{Config, Dialogue, Line, Parsable, Passage, State, Story, Value};
 pub use runner::Runner;
-pub use structs::{Config, Dialogue, Line, Passage, Story};
 pub use validator::validate;
