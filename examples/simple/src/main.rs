@@ -36,10 +36,8 @@ fn print_validation(config: &Config, story: &Story) {
 fn main() {
     // Load the story.
     println!("{}", "Loading story...".bold().cyan());
-    let story_str = include_str!("../story/passages/start.yml");
-    let config_str = include_str!("../story/config.yml");
-    let story: Story = serde_yaml::from_str(&story_str).unwrap();
-    let mut config: Config = serde_yaml::from_str(&config_str).unwrap();
+    let story: Story = Story::parse(include_str!("../story/passages/start.yml")).unwrap();
+    let mut config: Config = Config::parse(include_str!("../story/config.yml")).unwrap();
 
     #[cfg(debug_assertions)]
     print_validation(&config, &story);
