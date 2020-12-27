@@ -402,7 +402,6 @@ version = "0.1.0"
 dependencies = [
  "colored",
  "kataru",
- "serde_yaml",
 ]
 
 [[package]]

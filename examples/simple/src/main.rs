@@ -36,7 +36,7 @@ fn print_validation(config: &Config, story: &Story) {
 fn main() {
     // Load the story.
     println!("{}", "Loading story...".bold().cyan());
-    let story: Story = Story::parse(include_str!("../story/passages/start.yml")).unwrap();
+    let story: Story = Story::parse(include_str!("../story/.passages.yml")).unwrap();
     let mut config: Config = Config::parse(include_str!("../story/config.yml")).unwrap();
 
     #[cfg(debug_assertions)]

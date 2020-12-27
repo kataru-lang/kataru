@@ -5,11 +5,11 @@ name = "kataru"
 version = "0.1.0"
 
 [dependencies]
+colored = "2.0.0"
 html_parser = "0.5.0"
+lazy_static = "1.4.0"
 linear-map = {version = "1.2.0", features = ["serde_impl"]}
+regex = "1.4.2"
 serde = {version = "1.0.117", features = ["derive"]}
 serde_yaml = "0.8.4"
 yaml-rust = "0.4.4"
-colored = "2.0.0"
-regex = "1.4.2"
-lazy_static = "1.4.0"

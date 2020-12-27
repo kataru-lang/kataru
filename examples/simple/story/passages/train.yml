@@ -1,0 +1,26 @@
+Train:
+  - if strength < 3:
+      - |
+        *training noises*
+      - set:
+          strength +=: 1
+      - You trained and got stronger. You now have a strength score of ${strength}.
+    else:
+      - You've already trained too much!
+  - What would you like to do now?
+  - choices:
+      continue training: Train
+      try to fight: TryToFight
+
+TryToFight:
+  - You fight and fight and fight...
+  - if strength > 2:
+      - And you finally defeat the monster!
+      - Congrats!
+      - goto: End
+    else:
+      - But you weren't strong enough!
+      - Should you try again?
+      - choices:
+          try again: TryToFight
+          train: Train

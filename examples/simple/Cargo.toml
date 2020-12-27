@@ -9,6 +9,4 @@ colored = "2.0.0"
 kataru = {path = "../.."}
 
 [build-dependencies]
-colored = "2.0.0"
 kataru = {path = "../.."}
-serde_yaml = "0.8.4"
