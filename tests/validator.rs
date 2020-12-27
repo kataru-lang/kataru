@@ -2,9 +2,9 @@ use kataru::*;
 
 #[test]
 fn test_validate() {
-    let config_str = include_str!("../examples/simple/story/config.yml");
-    let story_str = include_str!("../examples/simple/story/passages/start.yml");
-    let config: Config = serde_yaml::from_str(&config_str).unwrap();
-    let story: Story = serde_yaml::from_str(&story_str).unwrap();
+    let config: Config =
+        Config::parse(include_str!("../examples/simple/story/config.yml")).unwrap();
+    let story: Story =
+        Story::parse(include_str!("../examples/simple/story/passages/start.yml")).unwrap();
     validate(&config, &story).unwrap();
 }
