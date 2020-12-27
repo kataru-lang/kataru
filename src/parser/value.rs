@@ -1,5 +1,6 @@
 use crate::ValidationError;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use std::ops::{AddAssign, SubAssign};
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Deserialize, Serialize)]
@@ -9,6 +10,17 @@ pub enum Value {
     String(String),
     Number(f64),
     Bool(bool),
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::None => write!(f, "None"),
+            Self::String(v) => write!(f, "{}", v),
+            Self::Number(v) => write!(f, "{}", v),
+            Self::Bool(v) => write!(f, "{}", v),
+        }
+    }
 }
 
 impl AddAssign<&Self> for Value {

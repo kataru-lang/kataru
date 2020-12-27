@@ -1,12 +1,14 @@
 use crate::parser::{Branchable, StateUpdatable};
-use crate::{Config, Line, Passage, Story};
+use crate::structs::{Config, Line, Passage, Story};
+use crate::vars::replace_vars;
 
 pub struct Runner<'r> {
     pub config: &'r mut Config,
     pub story: &'r Story,
     pub line: usize,
     pub passage: &'r Passage,
-    pub lines: Vec<&'r Line>,
+    lines: Vec<&'r Line>,
+    breaks: Vec<usize>,
 }
 
 impl<'r> Runner<'r> {
@@ -19,33 +21,67 @@ impl<'r> Runner<'r> {
             line: 0,
             lines: vec![],
             passage,
+            breaks: vec![],
         };
         runner.load_lines(passage);
+        runner.init_breaks();
         runner
     }
 
+    /// Initialize the line break stack.
+    /// Loop through each line in the flattened array until current line
+    /// number is reached.
+    /// Each time a branch is detected, push the end of the branch on the break stack.
+    fn init_breaks(&mut self) {
+        println!("Initializing breaks");
+        for (line_num, line) in self.lines.iter().enumerate() {
+            if line_num >= self.config.line {
+                break;
+            }
+            match line {
+                Line::Break => {
+                    self.breaks.pop();
+                    println!("init breaks line {}: {:?}", line_num, self.breaks);
+                }
+                Line::Branches(branches) => {
+                    self.breaks.push(line_num + branches.len());
+                    println!("init breaks line {}: {:?}", line_num, self.breaks);
+                }
+                _ => (),
+            }
+        }
+    }
+
+    /// Loads lines into a single flat array of references.
     fn load_lines(&mut self, lines: &'r [Line]) {
         for line in lines {
             match line {
                 Line::Branches(branches) => {
                     self.lines.push(&line);
                     for (_expression, branch_lines) in branches {
-                        self.load_lines(branch_lines)
+                        self.load_lines(branch_lines);
+                        self.lines.push(&Line::Break);
                     }
                 }
                 _ => self.lines.push(&line),
             }
         }
     }
+
+    /// Goto a given `passage_name`.
     fn goto(&mut self, passage_name: &str) {
         self.config.passage = passage_name.to_string();
         self.config.line = 0;
         self.passage = &self.story[&self.config.passage];
         self.lines = vec![];
+        self.breaks = vec![];
         self.load_lines(self.passage);
     }
 
-    fn handle_line(&mut self, input: &str, line: &'r Line) -> &'r Line {
+    /// Processes a line.
+    /// Returning &Line::Continue signals to `next()` that another line should be processed
+    /// before returning a line to the user.
+    fn process_line(&mut self, input: &str, line: &'r Line) -> &'r Line {
         match line {
             // When a choice is encountered, it should first be returned for display.
             // Second time its encountered,
@@ -66,10 +102,21 @@ impl<'r> Runner<'r> {
             }
             Line::Branches(branches) => {
                 branches.take(&mut self.config).unwrap();
+                self.breaks.push(self.config.line + branches.len());
+                println!("breaks: {:?}", self.breaks);
                 &Line::Continue
             }
             Line::Goto(goto) => {
                 self.goto(&goto.goto);
+                &Line::Continue
+            }
+            Line::Break => {
+                let last_break = self.breaks.pop();
+                println!("breaks: {:?}", self.breaks);
+                self.config.line = match last_break {
+                    Some(line_num) => line_num,
+                    None => 0,
+                };
                 &Line::Continue
             }
             _ => {
@@ -79,25 +126,38 @@ impl<'r> Runner<'r> {
             }
         }
     }
-    // Processes input from the previous line, and returns the next line.
-    // Say the line 0 is a choice.
-    // First call of next returns the choice, and line should stay at 0.
-    // Don't progress until a valid choice is made.
-    // Then we call next("decision")
-    //
-    // Say the first line is a branch.
-    // Evaluate the branch, modify the line and jump to the appropriate line number.
-    // Then return next.
-    pub fn next(&mut self, input: &str) -> Option<&Line> {
-        let mut result = &Line::Continue;
-        let mut curr_input = input;
-        while result == &Line::Continue {
-            if self.config.line >= self.lines.len() {
-                return None;
-            }
-            result = self.handle_line(curr_input, self.lines[self.config.line]);
-            curr_input = "";
+
+    /// If the current configuration points to a valid line, processes the line.
+    fn process(&mut self, input: &str) -> Option<&'r Line> {
+        if self.config.line >= self.lines.len() {
+            None
+        } else {
+            Some(self.process_line(input, self.lines[self.config.line]))
         }
-        Some(result)
+    }
+
+    /// Gets the next dialogue line from the story based on the user's input.
+    /// Internally, a single call to `next()` may result in multiple lines being processed,
+    /// i.e. when a choice is being made.
+    pub fn next(&mut self, input: &str) -> Option<Line> {
+        let mut line = self.process(input)?;
+        while line == &Line::Continue {
+            line = self.process("")?;
+        }
+
+        // Copy the current line so we can modify it for variable replacement.
+        let mut cloned_line: Line = line.clone();
+        match &mut cloned_line {
+            Line::Dialogue(dialogue) => {
+                for (_character, text) in dialogue.iter_mut() {
+                    *text = replace_vars(text, &self.config.state);
+                }
+            }
+            Line::Text(text) => {
+                *text = replace_vars(text, &self.config.state);
+            }
+            _ => (),
+        };
+        Some(cloned_line)
     }
 }

@@ -1,0 +1,10 @@
+state:
+  strength: 0
+  charisma: 0
+line: 0
+passage: Start
+characters:
+  Alice:
+    description: A character named Alice.
+  Bob:
+    description: A character named Bob.

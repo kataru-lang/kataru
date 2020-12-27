@@ -14,22 +14,27 @@
                 "type": "object",
                 "properties": {
                     "description": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "The description of the character."
                     }
                 },
                 "required": [
                     "description"
-                ]
-            }
+                ],
+                "description": "A character name."
+            },
+            "description": "A mapping of characters that will appear in the story."
         },
         "state": {
             "type": "object",
             "additionalProperties": {
                 "type": "number"
-            }
+            },
+            "description": "A mapping of variable names to their current values."
         },
         "passage": {
-            "type": "string"
+            "type": "string",
+            "description": "The current passage name."
         }
     },
     "required": [
@@ -37,5 +42,6 @@
         "characters",
         "state",
         "passage"
-    ]
+    ],
+    "additionalProperties": false
 }

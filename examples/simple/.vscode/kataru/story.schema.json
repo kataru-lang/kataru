@@ -7,24 +7,29 @@
         "type": "array",
         "items": {
             "$ref": "#/definitions/line"
-        }
+        },
+        "description": "A passage of dialogue containing an array of lines."
     },
     "definitions": {
         "line": {
+            "description": "A dialogue line.",
             "oneOf": [
                 {
-                    "type": "string"
+                    "type": "string",
+                    "description": "A dialogue line."
                 },
                 {
                     "type": "object",
                     "properties": {
                         "set": {
-                            "type": "object"
+                            "type": "object",
+                            "description": "Set command to set a variable."
                         }
                     },
                     "required": [
                         "set"
-                    ]
+                    ],
+                    "description": "A set command to set a variable to the given value."
                 },
                 {
                     "type": "object",
@@ -32,19 +37,23 @@
                         "choices": {
                             "type": "object",
                             "additionalProperties": {
-                                "type": "string"
-                            }
+                                "type": "string",
+                                "description": "A choice option, mapping to a passage name."
+                            },
+                            "description": "Map of dialogue choices to the passages they lead to."
                         }
                     },
                     "required": [
                         "choices"
-                    ]
+                    ],
+                    "description": "A map of choices that the player can make. Each choice must map to a passage name."
                 },
                 {
                     "type": "object",
                     "patternProperties": {
                         "^(?!if ).+": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "A line of dialogue. The key must be a character name."
                         }
                     }
                 },
@@ -56,13 +65,15 @@
                             "type": "array",
                             "items": {
                                 "$ref": "#/definitions/line"
-                            }
+                            },
+                            "description": "An `if` statement. Expected to be of the form `if VAR COMPARATOR VALUE:`."
                         },
                         "^else": {
                             "type": "array",
                             "items": {
                                 "$ref": "#/definitions/line"
-                            }
+                            },
+                            "description": "The `else` block following an if statement."
                         }
                     }
                 }

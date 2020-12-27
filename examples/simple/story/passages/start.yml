@@ -1,0 +1,54 @@
+Start:
+  - |
+    Welcome to Kataru!
+    「カタル」へようこそ！
+    Kataru is a dialogue engine build compeltely on top of YAML with a focus on ease of implementation and simplicity of writing.
+    This is an example of a multi-line narration line.
+  - Alice: Hello, my name is Alice. This is how you write a dialogue line in Kataru!
+  - Bob: Hi Alice, I'm Bob. Here is another line of dialogue. Isn't it nice how all character names are validated upon parsing?
+  - Alice: It sure is, Bob!
+  - Bob: Get ready though, soon you'll have to make a choice. Will you continue reading, or stop here?
+  - choices:
+      continue: ContinueReading
+      stop: End
+
+ContinueReading:
+  - Alice: I'm so glad you chose to keep reading! Just for that, I'll go ahead and increase your charisma for you :)
+  - set:
+      charisma +=: 1
+  - |
+    Your charisma: ${charisma}
+  - Bob: Uh oh, I think I hear a monster approaching! Reader, do you want to try fighting it?
+  - choices:
+      fight: TryToFight
+      train: Train
+
+Train:
+  - if strength < 3:
+      - |
+        *training noises*
+      - set:
+          strength +=: 1
+      - You trained and got stronger. You now have a strength score of ${strength}.
+    else:
+      - You've already trained too much!
+  - What would you like to do now?
+  - choices:
+      continue training: Train
+      try to fight: TryToFight
+
+TryToFight:
+  - You fight and fight and fight...
+  - if strength > 2:
+      - And you finally defeat the monster!
+      - Congrats!
+      - goto: End
+    else:
+      - But you weren't strong enough!
+      - Should you try again?
+      - choices:
+          try again: TryToFight
+          train: Train
+
+End:
+  - The end. Thanks for playing!

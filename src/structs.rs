@@ -1,4 +1,4 @@
-use crate::parser::{Branches, State};
+pub use crate::parser::{Branches, State};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -46,6 +46,7 @@ pub enum Line {
     SetCmd(SetCmd),
     Dialogue(Dialogue),
     Continue,
+    Break,
     InvalidChoice,
 }
 
