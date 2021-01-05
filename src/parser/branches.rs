@@ -31,7 +31,6 @@ impl Branchable for Branches {
         let mut length = 0;
         for (_expression, lines) in self {
             length += flattened_len(lines) + 1;
-            println!("   length: {}", length);
         }
         length
     }

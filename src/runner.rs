@@ -32,7 +32,6 @@ impl<'r> Runner<'r> {
     /// number is reached.
     /// Each time a branch is detected, push the end of the branch on the break stack.
     fn init_breaks(&mut self) {
-        println!("Initializing breaks");
         for (line_num, line) in self.lines.iter().enumerate() {
             if line_num >= self.config.line {
                 break;
@@ -40,11 +39,9 @@ impl<'r> Runner<'r> {
             match line {
                 Line::Break => {
                     self.breaks.pop();
-                    println!("init breaks line {}: {:?}", line_num, self.breaks);
                 }
                 Line::Branches(branches) => {
                     self.breaks.push(line_num + branches.len());
-                    println!("init breaks line {}: {:?}", line_num, self.breaks);
                 }
                 _ => (),
             }
@@ -100,10 +97,8 @@ impl<'r> Runner<'r> {
                 }
             }
             Line::Branches(branches) => {
-                println!("branches!");
                 branches.take(&mut self.config).unwrap();
                 self.breaks.push(self.config.line + branches.length());
-                println!("breaks: {:?}", self.breaks);
                 &Line::Continue
             }
             Line::Goto(goto) => {
@@ -112,7 +107,6 @@ impl<'r> Runner<'r> {
             }
             Line::Break => {
                 let last_break = self.breaks.pop();
-                println!("breaks: {:?}", self.breaks);
                 self.config.line = match last_break {
                     Some(line_num) => line_num,
                     None => 0,
