@@ -4,7 +4,7 @@ use linear_map::LinearMap;
 
 pub trait Branchable {
     fn take(&self, config: &mut Config) -> Result<(), ValidationError>;
-    fn len(&self) -> usize;
+    fn length(&self) -> usize;
 }
 
 pub type Branches = LinearMap<String, Vec<Line>>;
@@ -27,7 +27,7 @@ impl Branchable for Branches {
         Ok(())
     }
 
-    fn len(&self) -> usize {
+    fn length(&self) -> usize {
         let mut length = 0;
         for (_expression, lines) in self {
             length += flattened_len(lines) + 1;

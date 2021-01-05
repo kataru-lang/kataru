@@ -100,8 +100,9 @@ impl<'r> Runner<'r> {
                 }
             }
             Line::Branches(branches) => {
+                println!("branches!");
                 branches.take(&mut self.config).unwrap();
-                self.breaks.push(self.config.line + branches.len());
+                self.breaks.push(self.config.line + branches.length());
                 println!("breaks: {:?}", self.breaks);
                 &Line::Continue
             }
