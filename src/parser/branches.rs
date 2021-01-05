@@ -30,12 +30,7 @@ impl Branchable for Branches {
     fn length(&self) -> usize {
         let mut length = 0;
 
-        // Every branch except for the first branch has an extra break appended.
-        let mut branches_it = self.iter();
-        if let Some((_expression, branch_lines)) = branches_it.next() {
-            length += flattened_len(branch_lines);
-        }
-        for (_expression, branch_lines) in branches_it {
+        for (_expression, branch_lines) in self {
             length += 1 + flattened_len(branch_lines);
         }
         length
