@@ -54,9 +54,15 @@ impl<'r> Runner<'r> {
             match line {
                 Line::Branches(branches) => {
                     self.lines.push(&line);
-                    for (_expression, branch_lines) in branches {
+
+                    // Add breaks after each line except for the last line
+                    let mut branches_it = branches.iter();
+                    if let Some((_expression, branch_lines)) = branches_it.next() {
                         self.load_lines(branch_lines);
+                    }
+                    for (_expression, branch_lines) in branches_it {
                         self.lines.push(&Line::Break);
+                        self.load_lines(branch_lines);
                     }
                 }
                 _ => self.lines.push(&line),
@@ -97,8 +103,10 @@ impl<'r> Runner<'r> {
                 }
             }
             Line::Branches(branches) => {
-                branches.take(&mut self.config).unwrap();
-                self.breaks.push(self.config.line + branches.length());
+                let skipped_len = branches.take(&mut self.config).unwrap();
+                let branch_len = branches.length();
+                self.breaks
+                    .push(self.config.line + branch_len - skipped_len);
                 &Line::Continue
             }
             Line::Goto(goto) => {
