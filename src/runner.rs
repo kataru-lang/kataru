@@ -1,5 +1,5 @@
-use crate::parser::{Branchable, Config, Line, Passage, StateUpdatable, Story};
 use crate::vars::replace_vars;
+use kataru_parser::{Branchable, Config, Line, Passage, StateUpdatable, Story};
 
 pub struct Runner<'r> {
     pub config: &'r mut Config,

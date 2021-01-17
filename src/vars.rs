@@ -1,4 +1,4 @@
-use crate::parser::State;
+use kataru_parser::State;
 use regex::{Captures, Regex};
 use std::borrow::Cow;
 
@@ -20,7 +20,7 @@ pub fn replace_vars(text: &str, vars: &State) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::Value;
+    use kataru_parser::Value;
 
     #[test]
     fn test_str_replace() {

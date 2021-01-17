@@ -7,9 +7,10 @@ version = "0.1.0"
 [dependencies]
 colored = "2.0.0"
 html_parser = "0.5.0"
+kataru-parser = {git = "https://github.com/Katsutoshii/kataru-parser.git", branch = "main"}
 lazy_static = "1.4.0"
 linear-map = {version = "1.2.0", features = ["serde_impl"]}
 regex = "1.4.2"
 serde = {version = "1.0.117", features = ["derive"]}
-serde_yaml = "0.8.4"
+serde_yaml = "0.8.15"
 yaml-rust = "0.4.4"
