@@ -10,6 +10,7 @@ Start:
   - choices:
       continue: ContinueReading
       stop: End
+    timeout: 1
 
 ContinueReading:
   - Alice: I'm so glad you chose to keep reading! Just for that, I'll go ahead and increase your charisma for you :)
@@ -21,3 +22,7 @@ ContinueReading:
   - choices:
       fight: TryToFight
       train: Train
+
+End:
+  - The end. Thanks for playing!
+  - Done.

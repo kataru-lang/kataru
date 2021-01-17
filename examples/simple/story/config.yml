@@ -8,3 +8,4 @@ characters:
     description: A character named Alice.
   Bob:
     description: A character named Bob.
+cmds: {}

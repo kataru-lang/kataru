@@ -10,6 +10,7 @@ passage: Test
 characters:
     Alice:
         description: Alice.
+cmds: {}
 ";
     let story_str = "\
 Test:

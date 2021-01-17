@@ -1,3 +1,16 @@
+TryToFight:
+  - You fight and fight and fight...
+  - if strength > 2:
+      - And you finally defeat the monster!
+      - Congrats!
+      - goto: End
+    else:
+      - But you weren't strong enough!
+      - Should you try again?
+      - choices:
+          try again: TryToFight
+          train: Train
+
 Train:
   - if strength < 3:
       - |
@@ -11,16 +24,3 @@ Train:
   - choices:
       continue training: Train
       try to fight: TryToFight
-
-TryToFight:
-  - You fight and fight and fight...
-  - if strength > 2:
-      - And you finally defeat the monster!
-      - Congrats!
-      - goto: End
-    else:
-      - But you weren't strong enough!
-      - Should you try again?
-      - choices:
-          try again: TryToFight
-          train: Train

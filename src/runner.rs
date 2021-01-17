@@ -152,11 +152,11 @@ impl<'r> Runner<'r> {
         match &mut cloned_line {
             Line::Dialogue(dialogue) => {
                 for (_character, text) in dialogue.iter_mut() {
-                    *text = replace_vars(text, &self.config.state);
+                    *text = replace_vars(text, &self.config.state).trim().to_string();
                 }
             }
             Line::Text(text) => {
-                *text = replace_vars(text, &self.config.state);
+                *text = replace_vars(text, &self.config.state).trim().to_string();
             }
             _ => (),
         };
