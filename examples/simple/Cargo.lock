@@ -213,7 +213,7 @@ dependencies = [
 [[package]]
 name = "kataru-parser"
 version = "0.1.0"
-source = "git+https://github.com/Katsutoshii/kataru-parser.git?branch=main#d1e75c0f8814679accca1faba5e5ef1832f230ce"
+source = "git+https://github.com/Katsutoshii/kataru-parser.git?branch=main#334bbe03f1e0a6799e0e0f4f4b4fa482f11d1b59"
 dependencies = [
  "html_parser 0.6.2",
  "linear-map",

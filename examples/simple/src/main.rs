@@ -36,10 +36,8 @@ fn print_validation(config: &Config, story: &Story) {
 fn main() {
     // Load the story.
     println!("{}", "Loading story...".bold().cyan());
-    let (mut config, story) = unpack(
-        include_bytes!("../target/config"),
-        include_bytes!("../target/story"),
-    );
+    let mut config = Config::deserialize(include_bytes!("../target/config"));
+    let story = Story::deserialize(include_bytes!("../target/story"));
 
     #[cfg(debug_assertions)]
     print_validation(&config, &story);
