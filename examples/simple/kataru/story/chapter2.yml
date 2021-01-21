@@ -1,4 +1,10 @@
-TryToFight:
+---
+namespace: ch2
+state:
+  strength: 0
+
+---
+Fight:
   - You fight and fight and fight...
   - if strength > 2:
       - And you finally defeat the monster!
@@ -8,7 +14,7 @@ TryToFight:
       - But you weren't strong enough!
       - Should you try again?
       - choices:
-          try again: TryToFight
+          try again: Fight
           train: Train
 
 Train:
@@ -22,5 +28,10 @@ Train:
       - You've already trained too much!
   - What would you like to do now?
   - choices:
-      continue training: Train
-      try to fight: TryToFight
+      train: Train
+      fight: Fight
+      ...: Timeout
+
+Timeout:
+  - You took to long to decide! Looks like you need some training...
+  - goto: Train

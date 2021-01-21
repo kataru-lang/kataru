@@ -141,6 +141,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "glob"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
+
+[[package]]
 name = "heck"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -174,21 +180,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "html_parser"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58112d7b68ff61447bd22a489d7877a79ee688f6f34d57d3857842776d42dd0c"
-dependencies = [
- "pest",
- "pest_derive",
- "serde",
- "serde_derive",
- "serde_json",
- "structopt",
- "thiserror",
-]
-
-[[package]]
 name = "itoa"
 version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -200,27 +191,15 @@ version = "0.1.0"
 dependencies = [
  "bincode",
  "colored",
- "html_parser 0.5.0",
- "kataru-parser",
+ "glob",
+ "html_parser",
  "lazy_static",
- "linear-map",
- "regex",
- "serde",
- "serde_yaml",
- "yaml-rust",
-]
-
-[[package]]
-name = "kataru-parser"
-version = "0.1.0"
-source = "git+https://github.com/Katsutoshii/kataru-parser.git?branch=main#10aab88b0a53f322dd5bf0c341b36da2558c2b3a"
-dependencies = [
- "html_parser 0.6.2",
  "linear-map",
  "regex",
  "rmp-serde",
  "serde",
  "serde_yaml",
+ "yaml-rust",
 ]
 
 [[package]]

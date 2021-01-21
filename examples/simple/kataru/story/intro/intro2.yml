@@ -1,0 +1,7 @@
+---
+namespace: intro
+---
+Next:
+  - This is another passage in the same namespace, defined in a different file!
+  - Now lets go see how a conversation will work in Chapter 1...
+  - goto: ch1:Conversation

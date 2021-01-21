@@ -23,10 +23,10 @@ fn await_key(input: &mut String) {
 }
 
 #[cfg(debug_assertions)]
-fn print_validation(config: &Config, story: &Story) {
+fn print_validation(story: &Story) {
     // Validate the story.
     println!("{}", "Validating story...".bold().cyan());
-    let msg = match validate(&config, &story) {
+    let msg = match Validator::new(story).validate() {
         Err(e) => format!("{}", e).red(),
         Ok(_) => "Validated story successfully.".bold().green(),
     };
@@ -36,13 +36,13 @@ fn print_validation(config: &Config, story: &Story) {
 fn main() {
     // Load the story.
     println!("{}", "Loading story...".bold().cyan());
-    let mut config = Config::deserialize(include_bytes!("../target/config"));
+    let mut bookmark = Bookmark::deserialize(include_bytes!("../target/bookmark"));
     let story = Story::deserialize(include_bytes!("../target/story"));
 
     #[cfg(debug_assertions)]
-    print_validation(&config, &story);
+    print_validation(&story);
 
-    let mut runner = Runner::new(&mut config, &story);
+    let mut runner = Runner::new(&mut bookmark, &story);
 
     let mut input = String::new();
     loop {

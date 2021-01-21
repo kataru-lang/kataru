@@ -1,0 +1,11 @@
+---
+namespace: intro
+state:
+  var: 2
+
+---
+Start:
+  - Start
+  - root:var = ${:var}
+  - intro:var = ${var}
+  - goto: Next

@@ -1,0 +1,6 @@
+---
+namespace: intro
+state:
+  var: 3
+---
+

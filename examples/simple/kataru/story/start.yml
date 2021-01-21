@@ -1,3 +1,14 @@
+---
+namespace: ""
+state:
+  var: 0
+characters:
+  Alice:
+    description: Main character.
+  Bob:
+    description: Side kick.
+
+---
 Start:
   - |
     Welcome to Kataru!
@@ -8,21 +19,9 @@ Start:
   - Alice: It sure is, Bob!
   - Bob: Get ready though, soon you'll have to make a choice. Will you continue reading, or stop here?
   - choices:
-      continue: ContinueReading
+      continue: intro:Start
       stop: End
     timeout: 1
 
-ContinueReading:
-  - Alice: I'm so glad you chose to keep reading! Just for that, I'll go ahead and increase your charisma for you :)
-  - set:
-      charisma +=: 1
-  - |
-    Your charisma: ${charisma}
-  - Bob: Uh oh, I think I hear a monster approaching! Reader, do you want to try fighting it?
-  - choices:
-      fight: TryToFight
-      train: Train
-
 End:
-  - The end. Thanks for playing!
-  - Done.
+  - End of story. Thanks for playing!

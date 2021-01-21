@@ -1,8 +1,9 @@
+use crate::structs::resolve_namespace;
 use crate::vars::replace_vars;
-use kataru_parser::{Branchable, Config, Line, Passage, StateUpdatable, Story};
+use crate::{Bookmark, Branchable, Line, Passage, StateUpdatable, Story, StoryGetters};
 
 pub struct Runner<'r> {
-    pub config: &'r mut Config,
+    pub bookmark: &'r mut Bookmark,
     pub story: &'r Story,
     pub line: usize,
     pub passage: &'r Passage,
@@ -11,11 +12,14 @@ pub struct Runner<'r> {
 }
 
 impl<'r> Runner<'r> {
-    pub fn new(config: &'r mut Config, story: &'r Story) -> Self {
+    pub fn new(bookmark: &'r mut Bookmark, story: &'r Story) -> Self {
         // Flatten dialogue lines
-        let passage = &story[&config.passage];
+        let passage = &story
+            .passage(&bookmark.namespace, &bookmark.passage)
+            .0
+            .unwrap();
         let mut runner = Self {
-            config,
+            bookmark,
             story,
             line: 0,
             lines: vec![],
@@ -33,7 +37,7 @@ impl<'r> Runner<'r> {
     /// Each time a branch is detected, push the end of the branch on the break stack.
     fn init_breaks(&mut self) {
         for (line_num, line) in self.lines.iter().enumerate() {
-            if line_num >= self.config.line {
+            if line_num >= self.bookmark.line {
                 break;
             }
             match line {
@@ -70,11 +74,30 @@ impl<'r> Runner<'r> {
         }
     }
 
+    fn resolve_namespace(&self, name: &str) -> (String, String) {
+        let (new_namespace, base_name) = resolve_namespace(&self.bookmark.namespace, name);
+        (new_namespace.to_string(), base_name.to_string())
+    }
+
     /// Goto a given `passage_name`.
     fn goto(&mut self, passage_name: &str) {
-        self.config.passage = passage_name.to_string();
-        self.config.line = 0;
-        self.passage = &self.story[&self.config.passage];
+        // Get the real passage name
+        let (new_namespace, base_name) = self.resolve_namespace(passage_name);
+        println!("new_namespace: {}, base_name: {}", new_namespace, base_name);
+
+        let (passage_opt, is_root) = self.story.passage(&new_namespace, &base_name);
+        self.passage = passage_opt.unwrap();
+
+        // If not currently in root namespace, but passage resolution fell back to use root namespace,
+        // then set the namespace to root.
+        if self.bookmark.namespace != "" && is_root {
+            self.bookmark.namespace = "".to_string();
+        } else {
+            self.bookmark.namespace = new_namespace;
+        }
+        self.bookmark.passage = base_name;
+        self.bookmark.line = 0;
+
         self.lines = vec![];
         self.breaks = vec![];
         self.load_lines(self.passage);
@@ -88,8 +111,9 @@ impl<'r> Runner<'r> {
             // When a choice is encountered, it should first be returned for display.
             // Second time its encountered,
             Line::SetCmd(set) => {
-                self.config.state.update(&set.set).unwrap();
-                self.config.line += 1;
+                let root_sets = self.bookmark.state().update(&set.set).unwrap();
+                self.bookmark.root_state().update(&root_sets).unwrap();
+                self.bookmark.line += 1;
                 &Line::Continue
             }
             Line::Choices(choices) => {
@@ -103,10 +127,10 @@ impl<'r> Runner<'r> {
                 }
             }
             Line::Branches(branches) => {
-                let skipped_len = branches.take(&mut self.config).unwrap();
+                let skipped_len = branches.take(&mut self.bookmark).unwrap();
                 let branch_len = branches.length();
                 self.breaks
-                    .push(self.config.line + branch_len - skipped_len);
+                    .push(self.bookmark.line + branch_len - skipped_len);
                 &Line::Continue
             }
             Line::Goto(goto) => {
@@ -115,7 +139,7 @@ impl<'r> Runner<'r> {
             }
             Line::Break => {
                 let last_break = self.breaks.pop();
-                self.config.line = match last_break {
+                self.bookmark.line = match last_break {
                     Some(line_num) => line_num,
                     None => 0,
                 };
@@ -123,7 +147,7 @@ impl<'r> Runner<'r> {
             }
             _ => {
                 // For all others, progress to the next dialog line.
-                self.config.line += 1;
+                self.bookmark.line += 1;
                 line
             }
         }
@@ -131,10 +155,10 @@ impl<'r> Runner<'r> {
 
     /// If the current configuration points to a valid line, processes the line.
     fn process(&mut self, input: &str) -> Option<&'r Line> {
-        if self.config.line >= self.lines.len() {
+        if self.bookmark.line >= self.lines.len() {
             None
         } else {
-            Some(self.process_line(input, self.lines[self.config.line]))
+            Some(self.process_line(input, self.lines[self.bookmark.line]))
         }
     }
 
@@ -152,11 +176,11 @@ impl<'r> Runner<'r> {
         match &mut cloned_line {
             Line::Dialogue(dialogue) => {
                 for (_character, text) in dialogue.iter_mut() {
-                    *text = replace_vars(text, &self.config.state).trim().to_string();
+                    *text = replace_vars(text, self.bookmark).trim().to_string();
                 }
             }
             Line::Text(text) => {
-                *text = replace_vars(text, &self.config.state).trim().to_string();
+                *text = replace_vars(text, self.bookmark).trim().to_string();
             }
             _ => (),
         };
