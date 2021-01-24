@@ -1,7 +1,7 @@
 use crate::error::ParseError;
 use crate::structs::{
-    Branches, Choices, Cmd, Comparator, Conditional, Line, Map, Operator, Params, Passage,
-    Passages, State, StateMod, Story, StoryGetters, Value,
+    Branches, Choice, Choices, Cmd, Comparator, Conditional, Line, Map, Operator, Params, Passage,
+    Passages, QualifiedName, State, StateMod, Story, StoryGetters, Value,
 };
 use crate::traits::Parsable;
 use html_parser::Dom;
@@ -31,50 +31,59 @@ impl<'a> Validator<'a> {
     /// Validate that the dialogue contains valid text and configured characters only.
     fn validate_dialogue(&self, dialogue: &Map<String, String>) -> Result<(), ParseError> {
         for (name, _text) in dialogue {
-            if self.story.character(self.namespace, name).0.is_none() {
-                return Err(perror!("Undefined character name: {}", name));
+            if self
+                .story
+                .character(&QualifiedName::from(self.namespace, name))
+                .is_none()
+            {
+                return Err(perror!("Undefined character name {}", name));
             }
             // Self::validate_text(&text)?;
         }
         Ok(())
     }
 
-    // Validates a conditional.
-    fn validate_conditional(&self, branches: &Branches) -> Result<(), ParseError> {
+    /// Validates a conditional statement.
+    fn validate_conditional(&self, expression: &str) -> Result<(), ParseError> {
+        let cond = Conditional::parse(expression)?;
+        let value = self.validate_var(cond.var)?;
+        Self::validate_cmp(&cond.val, value, cond.cmp)
+    }
+
+    /// Validates conditional branches.
+    fn validate_branches(&self, branches: &Branches) -> Result<(), ParseError> {
         for (expression, lines) in branches {
             if expression != "else" {
-                let cond = Conditional::parse(expression)?;
-                let value = self.validate_var(cond.var)?;
-                Self::validate_cmp(&cond.val, value, cond.cmp)?;
+                self.validate_conditional(expression)?;
             }
             self.validate_passage(lines)?;
         }
         Ok(())
     }
 
+    /// Validates parameters for a function call.
     fn validate_params(cmd: &Cmd, config_params: &Params) -> Result<(), ParseError> {
-        match &cmd.params {
-            Some(params) => {
-                for (param, _val) in params {
-                    if !config_params.contains_key(param) {
-                        return Err(perror!(
-                            "No such parameter '{}' for command '{}'",
-                            param,
-                            cmd.cmd
-                        ));
-                    }
-                }
-                Ok(())
+        for (param, _val) in &cmd.params {
+            if !config_params.contains_key(param) {
+                return Err(perror!(
+                    "No such parameter '{}' for command '{}'",
+                    param,
+                    cmd.cmd
+                ));
             }
-            None => Ok(()),
         }
+        Ok(())
     }
 
     /// Validates a command.
     fn validate_cmd(&self, cmd: &Cmd) -> Result<(), ParseError> {
-        match self.story.cmd(&cmd.cmd, self.namespace).0 {
+        match self
+            .story
+            .params(&QualifiedName::from(self.namespace, &cmd.cmd))
+        {
             None => Err(perror!("No such command '{}'.", cmd.cmd)),
-            Some(config_params) => Self::validate_params(cmd, config_params),
+            Some(Some(config_params)) => Self::validate_params(cmd, config_params),
+            Some(None) => Ok(()),
         }
     }
 
@@ -83,7 +92,7 @@ impl<'a> Validator<'a> {
         match &line {
             Line::Dialogue(dialogue) => self.validate_dialogue(dialogue),
             // Line::Text(text) => validate_text(text),
-            Line::Branches(cond) => self.validate_conditional(cond),
+            Line::Branches(cond) => self.validate_branches(cond),
             Line::Choices(choices) => self.validate_choices(choices),
             Line::Goto(goto) => self.validate_goto(&goto.goto),
             Line::SetCmd(cmd) => self.validate_state(&cmd.set),
@@ -156,7 +165,7 @@ impl<'a> Validator<'a> {
 
     /// Validates a variable and returns a reference to it's value.
     fn validate_var(&self, var: &str) -> Result<&Value, ParseError> {
-        match self.story.state(self.namespace, var).0 {
+        match self.story.value(&QualifiedName::from(self.namespace, var)) {
             Some(value) => Ok(value),
             None => return Err(perror!("No state variable named '{}'", var)),
         }
@@ -173,7 +182,10 @@ impl<'a> Validator<'a> {
     }
 
     fn validate_goto(&self, passage_name: &str) -> Result<(), ParseError> {
-        match self.story.passage(self.namespace, passage_name).0 {
+        match self
+            .story
+            .passage(&QualifiedName::from(self.namespace, passage_name))
+        {
             None => Err(perror!(
                 "Passage name '{}' was not defined in the story.",
                 passage_name
@@ -184,8 +196,16 @@ impl<'a> Validator<'a> {
 
     /// Validates that the story contains the referenced passage.
     fn validate_choices(&self, choices: &Choices) -> Result<(), ParseError> {
-        for (_choice, passage_name) in &choices.choices {
-            self.validate_goto(passage_name)?;
+        for (key, choice) in &choices.choices {
+            match choice {
+                Choice::PassageName(passage_name) => self.validate_goto(passage_name)?,
+                Choice::Conditional(conditional) => {
+                    for (_choice_name, passage_name) in conditional {
+                        self.validate_conditional(key)?;
+                        self.validate_goto(passage_name)?;
+                    }
+                }
+            }
         }
         Ok(())
     }

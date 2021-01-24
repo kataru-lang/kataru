@@ -47,33 +47,37 @@ fn main() {
     let mut input = String::new();
     loop {
         match runner.next(&input) {
-            Some(line) => match &line {
-                Line::Text(text) => {
-                    println!("{}", text.italic());
-                    await_key(&mut input);
+            Line::Text(text) => {
+                println!("{}", text.italic());
+                await_key(&mut input);
+            }
+            Line::Dialogue(dialogue) => {
+                let (name, quote) = dialogue.iter().next().unwrap();
+                println!("{}: {}", name.bold().yellow(), quote);
+                await_key(&mut input);
+            }
+            Line::Choices(choices) => {
+                for (choice, _passage_name) in &choices.choices {
+                    println!("{}", choice.cyan());
                 }
-                Line::Dialogue(dialogue) => {
-                    let (name, quote) = dialogue.iter().next().unwrap();
-                    println!("{}: {}", name.bold().yellow(), quote);
-                    await_key(&mut input);
-                }
-                Line::Choices(choices) => {
-                    for (choice, _passage_name) in &choices.choices {
-                        println!("{}", choice.cyan());
-                    }
-                    print!("{}", "Enter your choice: ".magenta());
-                    get_input(&mut input);
-                }
-                Line::InvalidChoice => {
-                    print!(
-                        "{}",
-                        format!("Invalid choice '{}', try again: ", input).magenta()
-                    );
-                    get_input(&mut input);
-                }
+                print!("{}", "Enter your choice: ".magenta());
+                get_input(&mut input);
+            }
+            Line::Cmd(cmd) => match cmd.cmd.as_str() {
+                "clearScreen" => print!("{}[2J", 27 as char),
                 _ => (),
             },
-            None => break,
+            Line::InvalidChoice => {
+                print!(
+                    "{}",
+                    format!("Invalid choice '{}', try again: ", input).magenta()
+                );
+                get_input(&mut input);
+            }
+            Line::Error | Line::End => {
+                break;
+            }
+            _ => (),
         }
     }
 }

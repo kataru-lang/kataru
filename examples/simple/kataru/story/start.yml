@@ -2,26 +2,35 @@
 namespace: ""
 state:
   var: 0
+  Alice.angry: false
+  Start.visited: false
 characters:
   Alice:
     description: Main character.
   Bob:
     description: Side kick.
-
+cmds:
+  clearScreen:
 ---
 Start:
   - |
     Welcome to Kataru!
     「カタル」へようこそ!
     Kataru is a dialogue engine build completely on top of YAML with a focus on ease of implementation and simplicity of writing.
-  - Alice: Hello, my name is Alice. This is how you write a dialogue line in Kataru!
+
+  - Alice: Hello, my name is Alice. This is how you write a dialogue line in Kataru! Am I angry? ${Alice.angry}
   - Bob: Hi Alice, I'm Bob. Here is another line of dialogue. Isn't it nice how all character names are validated upon parsing?
   - Alice: It sure is, Bob!
   - Bob: Get ready though, soon you'll have to make a choice. Will you continue reading, or stop here?
   - choices:
-      continue: intro:Start
+      investigate: inv:Start
       stop: End
+      ...: Timeout
     timeout: 1
 
 End:
   - End of story. Thanks for playing!
+
+Timeout:
+  - No response, huh?
+  - goto: End

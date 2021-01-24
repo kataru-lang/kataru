@@ -38,15 +38,20 @@ pub struct StateMod<'a> {
 impl<'a> Parsable<'a> for StateMod<'a> {
     fn parse(text: &'a str) -> Result<Self, ParseError> {
         let split: Vec<&str> = text.split(' ').collect();
-        if split.len() != 2 {
-            return Err(perror!(
-                "State modification must be of the form 'VAR [+-=]:'."
-            ));
+        if split.len() == 1 {
+            return Ok(Self {
+                var: split[0],
+                op: Operator::SET,
+            });
+        } else if split.len() == 2 {
+            return Ok(Self {
+                var: split[0],
+                op: Operator::parse(split[1])?,
+            });
         }
-        Ok(Self {
-            var: split[0],
-            op: Operator::parse(split[1])?,
-        })
+        Err(perror!(
+            "State modification must be of the form 'VAR [+-]:'."
+        ))
     }
 }
 

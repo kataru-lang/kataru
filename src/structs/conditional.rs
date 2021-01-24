@@ -1,4 +1,4 @@
-use super::{Comparator, State, Value};
+use super::{Bookmark, Comparator, Value};
 use crate::error::ParseError;
 use crate::traits::Parsable;
 
@@ -10,8 +10,8 @@ pub struct Conditional<'a> {
 }
 
 impl<'a> Conditional<'a> {
-    pub fn eval(&self, state: &State) -> Result<bool, ParseError> {
-        self.cmp(&state[self.var])
+    pub fn eval(&self, bookmark: &Bookmark) -> Result<bool, ParseError> {
+        self.cmp(bookmark.value(&self.var).unwrap())
     }
 
     pub fn cmp(&self, val: &Value) -> Result<bool, ParseError> {
@@ -36,17 +36,31 @@ impl<'a> Conditional<'a> {
 impl<'a> Parsable<'a> for Conditional<'a> {
     fn parse(text: &'a str) -> Result<Self, ParseError> {
         let split: Vec<&'a str> = text.split(' ').collect();
-        if split.len() != 4 || split[0] != "if" {
-            return Err(perror!(
-                "Conditionals must be of the form 'if VAR [<,<=,>,=>,==,] VALUE:', not {}",
-                text
-            ));
+        if split[0] == "if" {
+            if split.len() == 4 {
+                return Ok(Self {
+                    var: split[1],
+                    cmp: Comparator::parse(split[2])?,
+                    val: Value::parse(split[3])?,
+                });
+            } else if split.len() == 2 {
+                return Ok(Self {
+                    var: split[1],
+                    cmp: Comparator::EQ,
+                    val: Value::Bool(true),
+                });
+            } else if split.len() == 3 && split[1] == "not" {
+                return Ok(Self {
+                    var: split[2],
+                    cmp: Comparator::EQ,
+                    val: Value::Bool(false),
+                });
+            }
         }
-        Ok(Self {
-            var: split[1],
-            cmp: Comparator::parse(split[2])?,
-            val: Value::parse(split[3])?,
-        })
+        Err(perror!(
+            "Conditionals must be of the form 'if VAR [<,<=,>,=>,==,] VALUE:' or 'if VAR', not '{}'",
+            text
+        ))
     }
 }
 

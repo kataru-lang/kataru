@@ -5,10 +5,10 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct CharacterData {
+    #[serde(default)]
     pub description: String,
 }
 
-pub type Characters = Map<String, CharacterData>;
 pub type Params = Map<String, Value>;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -18,9 +18,9 @@ pub struct Config {
     #[serde(default)]
     pub state: State,
     #[serde(default)]
-    pub cmds: Map<String, Params>,
+    pub cmds: Map<String, Option<Params>>,
     #[serde(default)]
-    pub characters: Characters,
+    pub characters: Map<String, CharacterData>,
 }
 
 impl Parsable<'_> for Config {

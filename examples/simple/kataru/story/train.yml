@@ -1,9 +1,17 @@
 ---
-namespace: ch2
+namespace: train
 state:
   strength: 0
 
 ---
+Start:
+  - You walk into another room, where you find a monster!
+  - What would you like to do?
+  - choices:
+      fight: Fight
+      train: Train
+      ...: Timeout
+
 Fight:
   - You fight and fight and fight...
   - if strength > 2:
@@ -16,13 +24,14 @@ Fight:
       - choices:
           try again: Fight
           train: Train
+          ...: Timeout
 
 Train:
   - if strength < 3:
       - |
         *training noises*
       - set:
-          strength +=: 1
+          strength +: 1
       - You trained and got stronger. You now have a strength score of ${strength}.
     else:
       - You've already trained too much!

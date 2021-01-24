@@ -18,9 +18,7 @@ impl Branchable for Branches {
             if expression == "else" {
                 continue;
             };
-            if Conditional::parse(expression)?
-                .eval(&bookmark.state.get(&bookmark.namespace).unwrap())?
-            {
+            if Conditional::parse(expression)?.eval(bookmark)? {
                 break;
             } else {
                 skip_lines += flattened_len(lines) + 1;

@@ -1,5 +1,4 @@
-use super::story::{get_from, resolve_namespace};
-use super::{Entry, Map, State, Story, Value};
+use super::{Entry, Map, QualifiedName, State, Story, Value};
 use crate::error::ParseError;
 use crate::traits::{Deserializable, Loadable, Parsable};
 use serde::{Deserialize, Serialize};
@@ -20,15 +19,12 @@ pub struct Bookmark {
 }
 
 impl<'a> Bookmark {
-    pub fn val(&'a self, var: &str) -> Option<&'a Value> {
-        let (full_namespace, base_name) = resolve_namespace(&self.namespace, var);
-        get_from(
-            self.state.get(full_namespace)?,
-            self.state.get("")?,
-            base_name,
-        )
-        .0
-        // self.state.get(&self.namespace).unwrap().get(var).unwrap()
+    pub fn value(&'a self, var: &str) -> Option<&'a Value> {
+        let qname = QualifiedName::from(&self.namespace, var);
+        match self.state.get(&qname.namespace)?.get(&qname.name) {
+            Some(data) => Some(data),
+            None => self.state.get("")?.get(&qname.name),
+        }
     }
 
     pub fn state(&'a mut self) -> &'a mut State {

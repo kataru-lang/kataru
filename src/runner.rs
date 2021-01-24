@@ -1,6 +1,8 @@
-use crate::structs::resolve_namespace;
+use crate::structs::{
+    Bookmark, Branchable, Choice, Choices, Dialogue, Line, Passage, QualifiedName, StateUpdatable,
+    Story, StoryGetters,
+};
 use crate::vars::replace_vars;
-use crate::{Bookmark, Branchable, Line, Passage, StateUpdatable, Story, StoryGetters};
 
 pub struct Runner<'r> {
     pub bookmark: &'r mut Bookmark,
@@ -9,14 +11,14 @@ pub struct Runner<'r> {
     pub passage: &'r Passage,
     lines: Vec<&'r Line>,
     breaks: Vec<usize>,
+    choices: Choices,
 }
 
 impl<'r> Runner<'r> {
     pub fn new(bookmark: &'r mut Bookmark, story: &'r Story) -> Self {
         // Flatten dialogue lines
         let passage = &story
-            .passage(&bookmark.namespace, &bookmark.passage)
-            .0
+            .passage(&QualifiedName::from(&bookmark.namespace, &bookmark.passage))
             .unwrap();
         let mut runner = Self {
             bookmark,
@@ -25,6 +27,7 @@ impl<'r> Runner<'r> {
             lines: vec![],
             passage,
             breaks: vec![],
+            choices: Choices::default(),
         };
         runner.load_lines(passage);
         runner.init_breaks();
@@ -74,28 +77,32 @@ impl<'r> Runner<'r> {
         }
     }
 
-    fn resolve_namespace(&self, name: &str) -> (String, String) {
-        let (new_namespace, base_name) = resolve_namespace(&self.bookmark.namespace, name);
-        (new_namespace.to_string(), base_name.to_string())
-    }
-
     /// Goto a given `passage_name`.
     fn goto(&mut self, passage_name: &str) {
-        // Get the real passage name
-        let (new_namespace, base_name) = self.resolve_namespace(passage_name);
-        println!("new_namespace: {}, base_name: {}", new_namespace, base_name);
+        // `passage_name` could be:
+        // 1) a local name (unquallified), in which case namespace stays the same.
+        // 2) a qualified name pointing to another section, in which case we switch namespace.
+        // 3) a global name, in which we must changed namespace to root.
+        let qname = QualifiedName::from(&self.bookmark.namespace, passage_name);
+        self.passage = match self
+            .story
+            .get(&qname.namespace)
+            .unwrap()
+            .passage(&qname.name)
+        {
+            Some(passage) => {
+                if !qname.namespace.is_empty() {
+                    self.bookmark.namespace = qname.namespace;
+                }
+                passage
+            }
+            None => {
+                self.bookmark.namespace = "".to_string();
+                self.story.get("").unwrap().passage(&qname.name).unwrap()
+            }
+        };
 
-        let (passage_opt, is_root) = self.story.passage(&new_namespace, &base_name);
-        self.passage = passage_opt.unwrap();
-
-        // If not currently in root namespace, but passage resolution fell back to use root namespace,
-        // then set the namespace to root.
-        if self.bookmark.namespace != "" && is_root {
-            self.bookmark.namespace = "".to_string();
-        } else {
-            self.bookmark.namespace = new_namespace;
-        }
-        self.bookmark.passage = base_name;
+        self.bookmark.passage = qname.name;
         self.bookmark.line = 0;
 
         self.lines = vec![];
@@ -106,24 +113,24 @@ impl<'r> Runner<'r> {
     /// Processes a line.
     /// Returning &Line::Continue signals to `next()` that another line should be processed
     /// before returning a line to the user.
-    fn process_line(&mut self, input: &str, line: &'r Line) -> &'r Line {
+    fn process_line(&mut self, input: &str, line: &'r Line) -> Line {
         match line {
             // When a choice is encountered, it should first be returned for display.
             // Second time its encountered,
-            Line::SetCmd(set) => {
-                let root_sets = self.bookmark.state().update(&set.set).unwrap();
-                self.bookmark.root_state().update(&root_sets).unwrap();
-                self.bookmark.line += 1;
-                &Line::Continue
-            }
             Line::Choices(choices) => {
-                if choices.choices.contains_key(input) {
-                    self.goto(&choices.choices[input]);
-                    &Line::Continue
-                } else if input.is_empty() {
-                    line
+                // If empty input, chocies are being returned for display.
+                if input.is_empty() {
+                    self.choices = choices.get_valid(&self.bookmark);
+                    Line::Choices(self.choices.clone())
+                } else if self.choices.choices.contains_key(input) {
+                    if let Some(Choice::PassageName(passage_name)) =
+                        self.choices.choices.remove(input)
+                    {
+                        self.goto(&passage_name);
+                    }
+                    Line::Continue
                 } else {
-                    &Line::InvalidChoice
+                    Line::InvalidChoice
                 }
             }
             Line::Branches(branches) => {
@@ -131,11 +138,11 @@ impl<'r> Runner<'r> {
                 let branch_len = branches.length();
                 self.breaks
                     .push(self.bookmark.line + branch_len - skipped_len);
-                &Line::Continue
+                Line::Continue
             }
             Line::Goto(goto) => {
                 self.goto(&goto.goto);
-                &Line::Continue
+                Line::Continue
             }
             Line::Break => {
                 let last_break = self.breaks.pop();
@@ -143,47 +150,60 @@ impl<'r> Runner<'r> {
                     Some(line_num) => line_num,
                     None => 0,
                 };
-                &Line::Continue
+                Line::Continue
             }
-            _ => {
-                // For all others, progress to the next dialog line.
+            Line::Cmd(_) => {
                 self.bookmark.line += 1;
-                line
+                line.clone()
             }
+            Line::SetCmd(set) => {
+                let root_sets = self.bookmark.state().update(&set.set).unwrap();
+                self.bookmark.root_state().update(&root_sets).unwrap();
+                self.bookmark.line += 1;
+                Line::Continue
+            }
+            Line::Dialogue(dialogue) => {
+                let mut replaced_dialogue = Dialogue::default();
+                for (character, text) in dialogue {
+                    replaced_dialogue.insert(
+                        character.to_string(),
+                        replace_vars(text, self.bookmark).trim().to_string(),
+                    );
+                }
+                self.bookmark.line += 1;
+                Line::Dialogue(replaced_dialogue)
+            }
+            Line::Text(text) => {
+                self.bookmark.line += 1;
+                Line::Text(replace_vars(text, self.bookmark).trim().to_string())
+            }
+            Line::Continue => {
+                self.bookmark.line += 1;
+                Line::Continue
+            }
+            Line::End => Line::End,
+            Line::Error => Line::Error,
+            Line::InvalidChoice => Line::InvalidChoice,
         }
     }
 
     /// If the current configuration points to a valid line, processes the line.
-    fn process(&mut self, input: &str) -> Option<&'r Line> {
+    fn process(&mut self, input: &str) -> Line {
         if self.bookmark.line >= self.lines.len() {
-            None
+            Line::Error
         } else {
-            Some(self.process_line(input, self.lines[self.bookmark.line]))
+            self.process_line(input, self.lines[self.bookmark.line])
         }
     }
 
     /// Gets the next dialogue line from the story based on the user's input.
     /// Internally, a single call to `next()` may result in multiple lines being processed,
     /// i.e. when a choice is being made.
-    pub fn next(&mut self, input: &str) -> Option<Line> {
-        let mut line = self.process(input)?;
-        while line == &Line::Continue {
-            line = self.process("")?;
+    pub fn next(&mut self, input: &str) -> Line {
+        let mut line = self.process(input);
+        while line == Line::Continue {
+            line = self.process("");
         }
-
-        // Copy the current line so we can modify it for variable replacement.
-        let mut cloned_line: Line = line.clone();
-        match &mut cloned_line {
-            Line::Dialogue(dialogue) => {
-                for (_character, text) in dialogue.iter_mut() {
-                    *text = replace_vars(text, self.bookmark).trim().to_string();
-                }
-            }
-            Line::Text(text) => {
-                *text = replace_vars(text, self.bookmark).trim().to_string();
-            }
-            _ => (),
-        };
-        Some(cloned_line)
+        line
     }
 }

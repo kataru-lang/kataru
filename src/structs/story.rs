@@ -1,4 +1,4 @@
-use super::{CharacterData, Line, Map, Params, Section, Value};
+use super::{CharacterData, Line, Map, Params, QualifiedName, Section, Value};
 use crate::error::ParseError;
 use crate::traits::{Deserializable, Loadable, Mergeable, Parsable};
 use glob::glob;
@@ -28,47 +28,39 @@ pub type Story = Map<String, Section>;
 /// Each story getter returns an Option reference if the name is found.
 /// Also returns a boolean flag that is true if the name was found in root namespace.
 pub trait StoryGetters<'a> {
-    fn character(&'a self, namespace: &str, name: &str) -> (Option<&'a CharacterData>, bool);
-    fn passage(&'a self, namespace: &str, name: &str) -> (Option<&'a Passage>, bool);
-    fn state(&'a self, namespace: &str, name: &str) -> (Option<&'a Value>, bool);
-    fn cmd(&'a self, namespace: &str, name: &str) -> (Option<&'a Params>, bool);
+    fn character(&'a self, qname: &QualifiedName) -> Option<&'a CharacterData>;
+    fn passage(&'a self, qname: &QualifiedName) -> Option<&'a Passage>;
+    fn value(&'a self, qname: &QualifiedName) -> Option<&'a Value>;
+    fn params(&'a self, qname: &QualifiedName) -> Option<&'a Option<Params>>;
 }
 
 impl<'a> StoryGetters<'a> for Story {
-    fn character(&'a self, namespace: &str, name: &str) -> (Option<&'a CharacterData>, bool) {
-        let (full_namespace, base_name) = resolve_namespace(namespace, name);
-        get_from(
-            &self.get(full_namespace).unwrap().config.characters,
-            &self.get("").unwrap().config.characters,
-            base_name,
-        )
+    fn character(&'a self, qname: &QualifiedName) -> Option<&'a CharacterData> {
+        match self.get(&qname.namespace)?.character(&qname.name) {
+            Some(data) => Some(data),
+            None => self.get("")?.character(&qname.name),
+        }
     }
 
-    fn passage(&'a self, namespace: &str, name: &str) -> (Option<&'a Passage>, bool) {
-        let (full_namespace, base_name) = resolve_namespace(namespace, name);
-        get_from(
-            &self.get(full_namespace).unwrap().passages,
-            &self.get("").unwrap().passages,
-            base_name,
-        )
+    fn passage(&'a self, qname: &QualifiedName) -> Option<&'a Passage> {
+        match self.get(&qname.namespace)?.passage(&qname.name) {
+            Some(data) => Some(data),
+            None => self.get("")?.passage(&qname.name),
+        }
     }
 
-    fn state(&'a self, namespace: &str, name: &str) -> (Option<&'a Value>, bool) {
-        let (full_namespace, base_name) = resolve_namespace(namespace, name);
-        get_from(
-            &self.get(full_namespace).unwrap().config.state,
-            &self.get("").unwrap().config.state,
-            base_name,
-        )
+    fn value(&'a self, qname: &QualifiedName) -> Option<&'a Value> {
+        match self.get(&qname.namespace)?.value(&qname.name) {
+            Some(data) => Some(data),
+            None => self.get("")?.value(&qname.name),
+        }
     }
 
-    fn cmd(&'a self, namespace: &str, name: &str) -> (Option<&'a Params>, bool) {
-        let (full_namespace, base_name) = resolve_namespace(namespace, name);
-        get_from(
-            &self.get(full_namespace).unwrap().config.cmds,
-            &self.get("").unwrap().config.cmds,
-            base_name,
-        )
+    fn params(&'a self, qname: &QualifiedName) -> Option<&'a Option<Params>> {
+        match self.get(&qname.namespace)?.params(&qname.name) {
+            Some(data) => Some(data),
+            None => self.get("")?.params(&qname.name),
+        }
     }
 }
 
@@ -81,7 +73,6 @@ impl Deserializable for Story {
 impl Loadable for Story {
     /// Loads a story from a given directory.
     fn load<P: AsRef<Path>>(path: P) -> io::Result<Self> {
-        println!("Loading story... {:?}", path.as_ref());
         let mut story = Self::new();
         let pattern: &str = &path
             .as_ref()
@@ -104,26 +95,5 @@ impl Loadable for Story {
             }
         }
         Ok(story)
-    }
-}
-
-pub fn get_from<'a, T>(
-    map: &'a Map<String, T>,
-    fallback: &'a Map<String, T>,
-    name: &str,
-) -> (Option<&'a T>, bool) {
-    match map.get(name) {
-        Some(data) => (Some(data), false),
-        None => (fallback.get(name), true),
-    }
-}
-
-/// Gets the namespace if indicated by `name`.
-/// Defaults to using `namespace`.
-pub fn resolve_namespace<'a>(namespace: &'a str, name: &'a str) -> (&'a str, &'a str) {
-    let split: Vec<&str> = name.rsplitn(2, ":").collect();
-    match split.as_slice() {
-        [split_name, explicit_namespace] => (explicit_namespace, split_name),
-        _ => (namespace, name),
     }
 }
