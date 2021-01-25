@@ -165,17 +165,15 @@ impl<'r> Runner<'r> {
             Line::Dialogue(dialogue) => {
                 let mut replaced_dialogue = Dialogue::default();
                 for (character, text) in dialogue {
-                    replaced_dialogue.insert(
-                        character.to_string(),
-                        replace_vars(text, self.bookmark).trim().to_string(),
-                    );
+                    replaced_dialogue
+                        .insert(character.to_string(), replace_vars(text, self.bookmark));
                 }
                 self.bookmark.line += 1;
                 Line::Dialogue(replaced_dialogue)
             }
             Line::Text(text) => {
                 self.bookmark.line += 1;
-                Line::Text(replace_vars(text, self.bookmark).trim().to_string())
+                Line::Text(replace_vars(text, self.bookmark))
             }
             Line::Continue => {
                 self.bookmark.line += 1;

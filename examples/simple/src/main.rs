@@ -48,19 +48,20 @@ fn main() {
     loop {
         match runner.next(&input) {
             Line::Text(text) => {
-                println!("{}", text.italic());
+                print!("{}", text.italic());
                 await_key(&mut input);
             }
             Line::Dialogue(dialogue) => {
                 let (name, quote) = dialogue.iter().next().unwrap();
-                println!("{}: {}", name.bold().yellow(), quote);
+                print!("{}: {}", name.bold().yellow(), quote);
                 await_key(&mut input);
             }
             Line::Choices(choices) => {
+                println!();
                 for (choice, _passage_name) in &choices.choices {
                     println!("{}", choice.cyan());
                 }
-                print!("{}", "Enter your choice: ".magenta());
+                print!("\n{}", "Enter your choice: ".magenta());
                 get_input(&mut input);
             }
             Line::Cmd(cmd) => match cmd.cmd.as_str() {
