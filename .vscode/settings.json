@@ -1,6 +1,7 @@
 {
     "yaml.schemas": {
-        "https://kataru-schema.github.io/bookmark.json": ["/kataru/config.yml"],
-        "https://kataru-schema.github.io/story.json": ["/kataru/story/*.yml"]
-    }
+        // "https://kataru-schema.github.io/bookmark.json": ["/kataru/config.yml"],
+        // "https://kataru-schema.github.io/story.json": ["/kataru/story/*.yml"]
+    },
+    "yaml.customTags": ["!goto", "!choices", "!set"]
 }

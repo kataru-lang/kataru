@@ -62,13 +62,17 @@ impl<'a> Validator<'a> {
     }
 
     /// Validates parameters for a function call.
-    fn validate_params(cmd: &Cmd, config_params: &Params) -> Result<(), ParseError> {
-        for (param, _val) in &cmd.params {
+    fn validate_params(
+        command: &str,
+        params: &Params,
+        config_params: &Params,
+    ) -> Result<(), ParseError> {
+        for (param, _val) in params {
             if !config_params.contains_key(param) {
                 return Err(perror!(
                     "No such parameter '{}' for command '{}'",
                     param,
-                    cmd.cmd
+                    command
                 ));
             }
         }
@@ -77,14 +81,25 @@ impl<'a> Validator<'a> {
 
     /// Validates a command.
     fn validate_cmd(&self, cmd: &Cmd) -> Result<(), ParseError> {
-        match self
-            .story
-            .params(&QualifiedName::from(self.namespace, &cmd.cmd))
-        {
-            None => Err(perror!("No such command '{}'.", cmd.cmd)),
-            Some(Some(config_params)) => Self::validate_params(cmd, config_params),
-            Some(None) => Ok(()),
+        for (command, params) in cmd {
+            match self
+                .story
+                .params(&QualifiedName::from(self.namespace, command))
+            {
+                None => Err(perror!("No such command '{}'.", command)),
+                Some(Some(config_params)) => Self::validate_params(command, params, config_params),
+                Some(None) => Ok(()),
+            }?
         }
+        Ok(())
+    }
+
+    /// Validates a list of commands.
+    fn validate_cmds(&self, cmds: &Vec<Cmd>) -> Result<(), ParseError> {
+        for cmd in cmds {
+            self.validate_cmd(cmd)?
+        }
+        Ok(())
     }
 
     /// Validates a line of dialogue.
@@ -96,7 +111,7 @@ impl<'a> Validator<'a> {
             Line::Choices(choices) => self.validate_choices(choices),
             Line::Goto(goto) => self.validate_goto(&goto.goto),
             Line::SetCmd(cmd) => self.validate_state(&cmd.set),
-            Line::Cmd(cmd) => self.validate_cmd(&cmd),
+            Line::Cmds(cmds) => self.validate_cmds(&cmds),
             _ => Ok(()),
         }
     }

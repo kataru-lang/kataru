@@ -1,4 +1,4 @@
-use super::{Map, State, Value};
+use super::{Map, Params, State};
 use crate::error::ParseError;
 use crate::traits::{Mergeable, Parsable};
 use serde::{Deserialize, Serialize};
@@ -8,8 +8,6 @@ pub struct CharacterData {
     #[serde(default)]
     pub description: String,
 }
-
-pub type Params = Map<String, Value>;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Config {

@@ -5,6 +5,7 @@ state:
 
 ---
 Start:
+  - [clearScreen: {}]
   - You walk into another room, where you find a monster!
   - What would you like to do?
   - choices:
@@ -30,6 +31,7 @@ Train:
   - if strength < 3:
       - |
         *training noises*
+      - set: { strength: 1 }
       - set:
           strength +: 1
       - You trained and got stronger. You now have a strength score of ${strength}.

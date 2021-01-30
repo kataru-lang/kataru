@@ -8,14 +8,15 @@ state:
 
 ---
 Start:
-  - cmd: clearScreen
+  - [clearScreen: {}]
   - This is another passage in the same namespace, defined in a different file!
-  - Here let's show how we can use state to have nodes that are explorable at most once.
+  - |
+    Here let's show how we can use state to have nodes that are explorable at most once.
   - goto: Investigate
 
 Investigate:
   - You stand in a room. Before you is a computer, a fridge, and a cup of coffee.
-  - Woudl you like to investigate any of them?
+  - Would you like to investigate any of them?
   - choices:
       if not Fridge.visited: { fridge: Fridge }
       if not Coffee.visited: { coffee: Coffee }

@@ -152,7 +152,7 @@ impl<'r> Runner<'r> {
                 };
                 Line::Continue
             }
-            Line::Cmd(_) => {
+            Line::Cmds(_) => {
                 self.bookmark.line += 1;
                 line.clone()
             }

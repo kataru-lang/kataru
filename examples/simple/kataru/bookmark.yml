@@ -1,5 +1,6 @@
 line: 0
 passage: Start
+namespace: ""
 state:
   "":
     test: 0

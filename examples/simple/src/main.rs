@@ -33,6 +33,13 @@ fn print_validation(story: &Story) {
     println!("{}\n", msg);
 }
 
+fn run_command(command: &str, _params: &Map<String, Value>) {
+    match command {
+        "clearScreen" => print!("{}[2J", 27 as char),
+        _ => println!("{}", "Unknown command".red()),
+    }
+}
+
 fn main() {
     // Load the story.
     println!("{}", "Loading story...".bold().cyan());
@@ -64,10 +71,13 @@ fn main() {
                 print!("\n{}", "Enter your choice: ".magenta());
                 get_input(&mut input);
             }
-            Line::Cmd(cmd) => match cmd.cmd.as_str() {
-                "clearScreen" => print!("{}[2J", 27 as char),
-                _ => (),
-            },
+            Line::Cmds(cmds) => {
+                for cmd in cmds {
+                    for (command, params) in &cmd {
+                        run_command(command, params);
+                    }
+                }
+            }
             Line::InvalidChoice => {
                 print!(
                     "{}",

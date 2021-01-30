@@ -3,12 +3,8 @@ use serde::{Deserialize, Serialize};
 
 pub type Dialogue = Map<String, String>;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Cmd {
-    pub cmd: String,
-    #[serde(default)]
-    pub params: Map<String, Value>,
-}
+pub type Params = Map<String, Value>;
+pub type Cmd = Map<String, Params>;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Goto {
@@ -24,11 +20,11 @@ pub struct SetCmd {
 #[serde(untagged)]
 pub enum Line {
     Branches(Branches),
+    SetCmd(SetCmd),
+    Cmds(Vec<Cmd>),
     Choices(Choices),
     Goto(Goto),
     Text(String),
-    SetCmd(SetCmd),
-    Cmd(Cmd),
     Dialogue(Dialogue),
     Continue,
     Break,

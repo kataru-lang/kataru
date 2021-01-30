@@ -2,25 +2,38 @@
 namespace: ""
 state:
   var: 0
-  Alice.angry: false
-  Start.visited: false
 characters:
   Alice:
     description: Main character.
   Bob:
     description: Side kick.
 cmds:
-  clearScreen:
+  clearScreen: { duration: 1 }
+
 ---
+# Each passage is a key in the YAML file.
 Start:
+  # Commands can be called in the client using `cmd`.
+  - [clearScreen: {}]
+
+  # A single text block can have many lines using `|`.
   - |
     Welcome to Kataru!
     「カタル」へようこそ!
     Kataru is a dialogue engine built completely on top of YAML with a focus on ease of implementation and simplicity of writing.
-  - Alice: Hello, my name is Alice. This is how you write a dialogue line in Kataru! Am I angry? ${Alice.angry}
+
+  # If you want to ignore whitespace, use `>-`.
+  - >-
+    Alice walks into the room,
+    her footsteps echoing through the halls.
+
+  # Character dialogue can be done using single-entry maps.
+  - Alice: Hello, my name is Alice. This is how you write a dialogue line in Kataru!
   - Bob: Hi Alice, I'm Bob. Here is another line of dialogue. Isn't it nice how all character names are validated upon parsing?
   - Alice: It sure is, Bob!
   - Bob: Get ready though, soon you'll have to make a choice. Will you continue reading, or stop here?
+
+  # Choices are represented as a mapping.
   - choices:
       continue: inv:Start
       stop: End
@@ -29,6 +42,7 @@ Start:
 
 End:
   - End of story. Thanks for playing!
+  - goto: Start
 
 Timeout:
   - No response, huh?

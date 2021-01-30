@@ -4,13 +4,16 @@ Kataru 「カタル」is a dialogue engine like [Yarn Spinner](yarnspinner.dev) 
 
 ```yml
 ---
+# Configure the scene. List your characters, commands, etc.
 characters:
   Alice:
+
 ---
+# Define each of your passages.
 Start:
   - Alice walks into the room...
   - Alice: Welcome to my story!
-  - Make a decision:
+  - Now make a decision...
   - choices:
       continue: Continue
       end: End
@@ -22,6 +25,72 @@ Continue:
 
 End:
   - Thanks for reading!
+```
+
+## Features
+
+Each line of a Kataru dialogue script can perform one of many operations, each of which are described in detail in this section.
+
+### Text
+
+Any dialogue line that contains only a YAML string is interpretated as narration text.
+YAML supports different ways of multi-lining strings, including the `|` operator for retaining white space and `>-` operator for ignoring white space.
+
+```yaml
+---
+# No config required for this scene.
+---
+Passage:
+  # A single text block can have many lines using `|`.
+  - |
+    Welcome to Kataru!
+    「カタル」へようこそ!
+    Kataru is a dialogue engine built completely on top of YAML with a focus on ease of implementation and simplicity of writing.
+
+  # If you want to ignore whitespace, use `>-`.
+  - >-
+    Alice walks into the room,
+    her footsteps echoing through the halls.
+
+  # Single line text requires no operator.
+  - A simple, single line of text.
+```
+
+### Dialogue
+
+Dialogue lines are maps of configured character names to their speech text.
+
+```yaml
+---
+# Define your character(s)
+characters:
+  Alice:
+
+---
+Start:
+  - Alice: Welcome to my story!
+```
+
+### Set state
+
+To set state in a story, use the `set: {}` command.
+
+### Commands
+
+Commands are delineated by `[]`, and are recognized by the YAML parser as arrays.
+Any dialogue lines that are arrays are viewed as list of commands to be executed by the client.
+
+```yaml
+# Define commands and their default parameters.
+cmds:
+  clearScreen: { duration: 0 }
+---
+# Call them in a passage
+Passage:
+  Test:
+    - [clearScreen: {}] # Call with default parameters.
+    - [clearScreen: { duration: 1 }] # Call with overriden parameters.
+    - [clearScreen: {}, clearScreen: {}] # Call multiple commands in sequence.
 ```
 
 ## Understanding the `Bookmark`
