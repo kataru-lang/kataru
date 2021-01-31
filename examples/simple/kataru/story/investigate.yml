@@ -23,6 +23,7 @@ Investigate:
       if not Computer.visited: { computer: Computer }
       no: Done
       ...: Done
+    timeout: 10
 
 Coffee:
   - set: { Coffee.visited: true }

@@ -12,6 +12,7 @@ Start:
       fight: Fight
       train: Train
       ...: Timeout
+    timeout: 10
 
 Fight:
   - You fight and fight and fight...
@@ -26,6 +27,7 @@ Fight:
           try again: Fight
           train: Train
           ...: Timeout
+        timeout: 10
 
 Train:
   - if strength < 3:
@@ -41,6 +43,7 @@ Train:
       train: Train
       fight: Fight
       ...: Timeout
+    timeout: 10
 
 Timeout:
   - You took to long to decide! Looks like you need some training...

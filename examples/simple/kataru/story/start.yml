@@ -1,7 +1,7 @@
 ---
 namespace: ""
 state:
-  var: 0
+  var: 2
 characters:
   Alice:
     description: Main character.
@@ -31,14 +31,14 @@ Start:
   - Alice: Hello, my name is Alice. This is how you write a dialogue line in Kataru!
   - Bob: Hi Alice, I'm Bob. Here is another line of dialogue. Isn't it nice how all character names are validated upon parsing?
   - Alice: It sure is, Bob!
-  - Bob: Get ready though, soon you'll have to make a choice. Will you continue reading, or stop here?
+  - Bob: TEST Get ready though, soon you'll have to make a choice. Will you continue reading, or stop here?
 
   # Choices are represented as a mapping.
   - choices:
       continue: inv:Start
       stop: End
       ...: Timeout
-    timeout: 1
+    timeout: 10
 
 End:
   - End of story. Thanks for playing!

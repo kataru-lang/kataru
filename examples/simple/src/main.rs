@@ -53,7 +53,9 @@ fn main() {
 
     let mut input = String::new();
     loop {
-        match runner.next(&input) {
+        let line = runner.next(&input);
+        // println!("line: {:?}", line);
+        match line {
             Line::Text(text) => {
                 print!("{}", text.italic());
                 await_key(&mut input);
