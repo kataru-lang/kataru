@@ -16,8 +16,8 @@ pub use error::ParseError;
 pub use packer::pack;
 pub use structs::{
     Bookmark, Branchable, Branches, CharacterData, Choices, Cmd, Comparator, Conditional, Config,
-    Dialogue, Goto, Line, Map, Operator, Params, Passage, Passages, Section, SetCmd, State,
-    StateMod, StateUpdatable, Story, StoryGetters, Value,
+    Dialogue, Goto, InputCmd, Line, Map, Operator, Params, Passage, Passages, Section, SetCmd,
+    State, StateMod, StateUpdatable, Story, StoryGetters, Value,
 };
 pub use traits::{Deserializable, Loadable, Mergeable, Parsable};
 pub use validator::Validator;

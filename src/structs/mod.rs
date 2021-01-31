@@ -19,7 +19,7 @@ pub use choices::{Choice, Choices};
 pub use comparator::Comparator;
 pub use conditional::Conditional;
 pub use config::{CharacterData, Config};
-pub use line::{Cmd, Dialogue, Goto, Line, Params, SetCmd};
+pub use line::{Cmd, Dialogue, Goto, InputCmd, Line, Params, SetCmd};
 pub use map::{Entry, Map};
 pub use operator::Operator;
 pub use section::{QualifiedName, Section};
