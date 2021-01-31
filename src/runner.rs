@@ -1,8 +1,11 @@
-use crate::structs::{
-    Bookmark, Branchable, Choice, Choices, Dialogue, Line, Passage, QualifiedName, StateUpdatable,
-    Story, StoryGetters,
-};
 use crate::vars::replace_vars;
+use crate::{
+    structs::{
+        Bookmark, Branchable, Choice, Choices, Dialogue, Line, Passage, QualifiedName, State,
+        StateUpdatable, Story, StoryGetters,
+    },
+    Value,
+};
 
 pub struct Runner<'r> {
     pub bookmark: &'r mut Bookmark,
@@ -116,7 +119,7 @@ impl<'r> Runner<'r> {
     fn process_line(&mut self, input: &str, line: &'r Line) -> Line {
         match line {
             // When a choice is encountered, it should first be returned for display.
-            // Second time its encountered,
+            // Second time it's encountered, go to the chosen passage.
             Line::Choices(choices) => {
                 // If empty input, chocies are being returned for display.
                 if input.is_empty() {
@@ -131,6 +134,22 @@ impl<'r> Runner<'r> {
                     Line::Continue
                 } else {
                     Line::InvalidChoice
+                }
+            }
+            // When input is encountered, it should first be returned for display.
+            // Second time it's encountered, modify state.
+            Line::InputCmd(input_cmd) => {
+                if input.is_empty() {
+                    line.clone()
+                } else {
+                    for (var, _prompt) in &input_cmd.input {
+                        let mut state = State::new();
+                        state.insert(var.clone(), Value::String(input.to_string()));
+                        let root_sets = self.bookmark.state().update(&state).unwrap();
+                        self.bookmark.root_state().update(&root_sets).unwrap();
+                    }
+                    self.bookmark.line += 1;
+                    Line::Continue
                 }
             }
             Line::Branches(branches) => {

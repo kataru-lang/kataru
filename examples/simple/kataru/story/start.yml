@@ -1,6 +1,7 @@
 ---
 namespace: ""
 state:
+  name: ""
   var: 2
 characters:
   Alice:
@@ -22,10 +23,13 @@ Start:
     「カタル」へようこそ!
     Kataru is a dialogue engine built completely on top of YAML with a focus on ease of implementation and simplicity of writing.
 
+  - input:
+      name: What's your name?
+
   # If you want to ignore whitespace, use `>-`.
   - >-
-    Alice walks into the room,
-    her footsteps echoing through the halls.
+    Hello ${name},
+    are you ready for an epic story?
 
   # Character dialogue can be done using single-entry maps.
   - Alice: Hello, my name is Alice. This is how you write a dialogue line in Kataru!

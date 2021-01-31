@@ -16,10 +16,16 @@ pub struct SetCmd {
     pub set: State,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct InputCmd {
+    pub input: Map<String, String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum Line {
     Branches(Branches),
+    InputCmd(InputCmd),
     SetCmd(SetCmd),
     Cmds(Vec<Cmd>),
     Choices(Choices),

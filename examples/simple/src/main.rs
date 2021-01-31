@@ -54,7 +54,6 @@ fn main() {
     let mut input = String::new();
     loop {
         let line = runner.next(&input);
-        // println!("line: {:?}", line);
         match line {
             Line::Text(text) => {
                 print!("{}", text.italic());
@@ -70,7 +69,7 @@ fn main() {
                 for (choice, _passage_name) in &choices.choices {
                     println!("{}", choice.cyan());
                 }
-                print!("\n{}", "Enter your choice: ".magenta());
+                print!("\n{}", "Enter your choice: ".bold().magenta());
                 get_input(&mut input);
             }
             Line::Cmds(cmds) => {
@@ -78,6 +77,12 @@ fn main() {
                     for (command, params) in &cmd {
                         run_command(command, params);
                     }
+                }
+            }
+            Line::InputCmd(input_cmd) => {
+                for (_var, prompt) in input_cmd.input {
+                    print!("{}: ", prompt.bold().magenta());
+                    get_input(&mut input);
                 }
             }
             Line::InvalidChoice => {
