@@ -18,7 +18,10 @@ pub struct Choices {
 
 impl Choices {
     pub fn get_valid(&self, bookmark: &Bookmark) -> Self {
-        let mut valid = Self::default();
+        let mut valid = Self {
+            choices: Map::default(),
+            timeout: self.timeout,
+        };
         for (key, choice) in &self.choices {
             match choice {
                 Choice::PassageName(passage_name) => {
