@@ -2,7 +2,7 @@ use super::{Entry, Map, QualifiedName, State, Story, Value};
 use crate::error::ParseError;
 use crate::traits::{Deserializable, Loadable, Parsable};
 use serde::{Deserialize, Serialize};
-use std::io;
+use std::fmt;
 use std::path::Path;
 
 /// All data necessary to find your place in the story.
@@ -59,10 +59,10 @@ impl Deserializable for Bookmark {
 }
 
 impl Loadable for Bookmark {
-    fn load<P: AsRef<Path>>(path: P) -> io::Result<Self> {
+    fn load<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self, ParseError> {
         match Self::load_string(path) {
-            Ok(source) => Ok(Self::parse(&source).unwrap()),
-            _ => Ok(Self::default()),
+            Ok(source) => Self::parse(&source),
+            Err(e) => Err(perror!("{}", e.message)),
         }
     }
 }
@@ -71,7 +71,7 @@ impl<'a> Parsable<'a> for Bookmark {
     fn parse(text: &'a str) -> Result<Self, ParseError> {
         match serde_yaml::from_str(text) {
             Ok(config) => Ok(config),
-            Err(e) => Err(perror!("{}", e)),
+            Err(e) => Err(perror!("Invalid YAML for bookmark: {}", e)),
         }
     }
 }

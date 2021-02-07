@@ -2,7 +2,6 @@ use super::{CharacterData, Line, Map, Params, QualifiedName, Section, Value};
 use crate::error::ParseError;
 use crate::traits::{Deserializable, Loadable, Mergeable, Parsable};
 use glob::glob;
-use std::io;
 use std::path::Path;
 
 pub type Passage = Vec<Line>;
@@ -18,7 +17,7 @@ impl Parsable<'_> for Passages {
 
         match serde_yaml::from_str(text) {
             Ok(config) => Ok(config),
-            Err(e) => Err(perror!("{}", e)),
+            Err(e) => Err(perror!("Invalid YAML for passages: {}", e)),
         }
     }
 }
@@ -72,7 +71,7 @@ impl Deserializable for Story {
 
 impl Loadable for Story {
     /// Loads a story from a given directory.
-    fn load<P: AsRef<Path>>(path: P) -> io::Result<Self> {
+    fn load<P: AsRef<Path>>(path: P) -> Result<Self, ParseError> {
         let mut story = Self::new();
         let pattern: &str = &path
             .as_ref()

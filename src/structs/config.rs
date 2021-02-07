@@ -25,7 +25,7 @@ impl Parsable<'_> for Config {
     fn parse(text: &str) -> Result<Self, ParseError> {
         match serde_yaml::from_str(text) {
             Ok(config) => Ok(config),
-            Err(e) => Err(perror!("{}", e)),
+            Err(e) => Err(perror!("Invalid YAML for config: {}", e)),
         }
     }
 }

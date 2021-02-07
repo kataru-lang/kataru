@@ -1,7 +1,7 @@
 use super::Map;
 use crate::ParseError;
+use std::fmt;
 use std::fs::File;
-use std::io;
 use std::io::Read;
 use std::path::Path;
 
@@ -34,16 +34,19 @@ pub trait Deserializable {
 
 pub trait Loadable {
     /// Reads a file from a given path into new string.
-    fn load_string<P: AsRef<Path>>(path: P) -> io::Result<String> {
-        let mut f = File::open(path)?;
+    fn load_string<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<String, ParseError> {
+        let mut f = match File::open(path) {
+            Ok(f) => f,
+            Err(e) => return Err(perror!("Error opening file: {:?}", e)),
+        };
         let mut s = String::new();
         match f.read_to_string(&mut s) {
             Ok(_) => Ok(s),
-            Err(e) => Err(e),
+            Err(e) => return Err(perror!("Error reading file to string: {:?}", e)),
         }
     }
 
-    fn load<P: AsRef<Path>>(path: P) -> io::Result<Self>
+    fn load<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self, ParseError>
     where
         Self: Sized;
 }

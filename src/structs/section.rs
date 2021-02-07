@@ -2,7 +2,7 @@ use crate::error::ParseError;
 use crate::structs::{CharacterData, Config, Params, Passage, Passages, Value};
 use crate::traits::{Loadable, Mergeable, Parsable};
 use serde::{Deserialize, Serialize};
-use std::io;
+use std::fmt;
 use std::path::Path;
 
 /// A qualified name is a name in an explicit namespace.
@@ -58,19 +58,16 @@ impl Mergeable for Section {
 }
 
 impl Loadable for Section {
-    fn load<P: AsRef<Path>>(path: P) -> io::Result<Self> {
+    fn load<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self, ParseError> {
         let source = Self::load_string(path)?;
         let split: Vec<&str> = source.split("---").collect();
         if let [config_str, passages_str] = &split[1..] {
             Ok(Self {
-                config: Config::parse(config_str).unwrap(),
-                passages: Passages::parse(passages_str).unwrap(),
+                config: Config::parse(config_str)?,
+                passages: Passages::parse(passages_str)?,
             })
         } else {
-            Err(io::Error::new(
-                io::ErrorKind::Other,
-                "Unable to parse file.",
-            ))
+            Err(perror!("Unable to parse file."))
         }
     }
 }
