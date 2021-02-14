@@ -1,5 +1,9 @@
 use crate::structs::Line;
+#[cfg(feature = "wasm")]
+use wasm_bindgen::prelude::*;
 
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
+#[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LineTag {
     Choices,
