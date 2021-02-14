@@ -40,6 +40,53 @@ fn run_command(command: &str, _params: &Map<String, Value>) {
     }
 }
 
+fn handle_line(runner: &mut Runner, input: &mut String) -> bool {
+    match runner.next(&input) {
+        Line::Dialogue(dialogue) => {
+            let (name, quote) = dialogue.iter().next().unwrap();
+            match name.as_str() {
+                "Narrator" => print!("{}", quote.italic()),
+                _ => print!("{}: {}", name.bold().yellow(), quote),
+            }
+            await_key(input);
+            true
+        }
+        Line::Choices(choices) => {
+            println!();
+            for (choice, _passage_name) in &choices.choices {
+                println!("{}", choice.cyan());
+            }
+            print!("\n{}", "Enter your choice: ".bold().magenta());
+            get_input(input);
+            true
+        }
+        Line::Cmds(cmds) => {
+            for cmd in cmds {
+                for (command, params) in cmd {
+                    run_command(command, params);
+                }
+            }
+            true
+        }
+        Line::InputCmd(input_cmd) => {
+            for (_var, prompt) in &input_cmd.input {
+                print!("{}: ", prompt.bold().magenta());
+                get_input(input);
+            }
+            true
+        }
+        Line::InvalidChoice => {
+            print!(
+                "{}",
+                format!("Invalid choice '{}', try again: ", input).magenta()
+            );
+            get_input(input);
+            true
+        }
+        _ => false,
+    }
+}
+
 fn main() {
     // Load the story.
     println!("{}", "Loading story...".bold().cyan());
@@ -50,51 +97,7 @@ fn main() {
     print_validation(&story);
 
     let mut runner = Runner::new(&mut bookmark, &story);
-
     let mut input = String::new();
-    loop {
-        let line = runner.next(&input);
-        match line {
-            Line::Dialogue(dialogue) => {
-                let (name, quote) = dialogue.iter().next().unwrap();
-                match name.as_str() {
-                    "Narrator" => print!("{}", quote.italic()),
-                    _ => print!("{}: {}", name.bold().yellow(), quote),
-                }
-                await_key(&mut input);
-            }
-            Line::Choices(choices) => {
-                println!();
-                for (choice, _passage_name) in &choices.choices {
-                    println!("{}", choice.cyan());
-                }
-                print!("\n{}", "Enter your choice: ".bold().magenta());
-                get_input(&mut input);
-            }
-            Line::Cmds(cmds) => {
-                for cmd in cmds {
-                    for (command, params) in &cmd {
-                        run_command(command, params);
-                    }
-                }
-            }
-            Line::InputCmd(input_cmd) => {
-                for (_var, prompt) in input_cmd.input {
-                    print!("{}: ", prompt.bold().magenta());
-                    get_input(&mut input);
-                }
-            }
-            Line::InvalidChoice => {
-                print!(
-                    "{}",
-                    format!("Invalid choice '{}', try again: ", input).magenta()
-                );
-                get_input(&mut input);
-            }
-            Line::Error | Line::End => {
-                break;
-            }
-            _ => (),
-        }
-    }
+
+    while handle_line(&mut runner, &mut input) {}
 }

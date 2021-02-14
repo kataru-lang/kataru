@@ -1,7 +1,7 @@
 use crate::vars::replace_vars;
 use crate::{
     structs::{
-        Bookmark, Branchable, Choice, Choices, Dialogue, Line, Passage, QualifiedName, State,
+        Bookmark, Branchable, Choice, Dialogue, Line, Passage, QualifiedName, State,
         StateUpdatable, Story, StoryGetters,
     },
     Value,
@@ -10,11 +10,11 @@ use crate::{
 pub struct Runner<'r> {
     pub bookmark: &'r mut Bookmark,
     pub story: &'r Story,
-    pub line: usize,
+    pub line_num: usize,
     pub passage: &'r Passage,
     lines: Vec<&'r Line>,
+    line: Line,
     breaks: Vec<usize>,
-    choices: Choices,
     speaker: &'r str,
 }
 
@@ -27,11 +27,11 @@ impl<'r> Runner<'r> {
         let mut runner = Self {
             bookmark,
             story,
-            line: 0,
+            line_num: 0,
             lines: vec![],
+            line: Line::Continue,
             passage,
             breaks: vec![],
-            choices: Choices::default(),
             speaker: "",
         };
         runner.load_lines(passage);
@@ -116,7 +116,7 @@ impl<'r> Runner<'r> {
     }
 
     /// Processes a line.
-    /// Returning &Line::Continue signals to `next()` that another line should be processed
+    /// Returning Line::Continue signals to `next()` that another line should be processed
     /// before returning a line to the user.
     fn process_line(&mut self, input: &str, line: &'r Line) -> Line {
         match line {
@@ -125,17 +125,20 @@ impl<'r> Runner<'r> {
             Line::Choices(choices) => {
                 // If empty input, chocies are being returned for display.
                 if input.is_empty() {
-                    self.choices = choices.get_valid(&self.bookmark);
-                    Line::Choices(self.choices.clone())
-                } else if self.choices.choices.contains_key(input) {
-                    if let Some(Choice::PassageName(passage_name)) =
-                        self.choices.choices.remove(input)
-                    {
-                        self.goto(&passage_name);
+                    Line::Choices(choices.get_valid(&self.bookmark))
+                } else if let Line::Choices(ref mut choices) = self.line {
+                    if choices.choices.contains_key(input) {
+                        if let Some(Choice::PassageName(passage_name)) =
+                            choices.choices.remove(input)
+                        {
+                            self.goto(&passage_name);
+                        }
+                        Line::Continue
+                    } else {
+                        Line::InvalidChoice
                     }
-                    Line::Continue
                 } else {
-                    Line::InvalidChoice
+                    Line::Error
                 }
             }
             // When input is encountered, it should first be returned for display.
@@ -221,11 +224,11 @@ impl<'r> Runner<'r> {
     /// Gets the next dialogue line from the story based on the user's input.
     /// Internally, a single call to `next()` may result in multiple lines being processed,
     /// i.e. when a choice is being made.
-    pub fn next(&mut self, input: &str) -> Line {
-        let mut line = self.process(input);
-        while line == Line::Continue {
-            line = self.process("");
+    pub fn next(&mut self, input: &str) -> &Line {
+        self.line = self.process(input);
+        while self.line == Line::Continue {
+            self.line = self.process("");
         }
-        line
+        &self.line
     }
 }

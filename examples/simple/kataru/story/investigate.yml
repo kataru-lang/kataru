@@ -1,6 +1,5 @@
 ---
 namespace: inv
-
 state:
   Fridge.visited: false
   Computer.visited: false
@@ -10,9 +9,8 @@ state:
 ---
 Start:
   - [clearScreen: {}]
-  - This is another passage in the same namespace, defined in a different file!
-  - |
-    Here let's show how we can use state to have nodes that are explorable at most once.
+  - Narrator: This is another passage in the same namespace, defined in a different file!
+  - Here let's show how we can use state to have nodes that are explorable at most once.
   - goto: Investigate
 
 Investigate:
@@ -24,7 +22,6 @@ Investigate:
       if not Computer.visited: { computer: Computer }
       no: Done
       ...: Done
-    timeout: 10
 
 Coffee:
   - set: { Coffee.visited: true }
@@ -32,9 +29,7 @@ Coffee:
   - goto: Investigate
 
 Fridge:
-  - set:
-      Fridge.visited: true
-      Coffee.visited: true
+  - set: { Fridge.visited: true }
   - It's a fridge. There's some moldy cheese in there. Gross!
   - goto: Investigate
 
