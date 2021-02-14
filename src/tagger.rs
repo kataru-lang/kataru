@@ -15,7 +15,7 @@ pub enum LineTag {
 }
 
 impl LineTag {
-    pub fn tag(line_opt: &Option<Line>) -> Self {
+    pub fn tag(line_opt: &Option<&Line>) -> Self {
         match line_opt {
             Some(line) => match line {
                 Line::Choices(_) => LineTag::Choices,
