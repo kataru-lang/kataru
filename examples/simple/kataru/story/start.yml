@@ -1,13 +1,18 @@
 ---
 namespace: ""
+
 state:
   name: ""
   var: 2
+
 characters:
   Alice:
     description: Main character.
   Bob:
     description: Side kick.
+  Narrator:
+    description: The narrator.
+
 cmds:
   clearScreen: { duration: 1 }
 
@@ -18,10 +23,12 @@ Start:
   - [clearScreen: {}]
 
   # A single text block can have many lines using `|`.
-  - |
-    Welcome to Kataru!
-    「カタル」へようこそ!
-    Kataru is a dialogue engine built completely on top of YAML with a focus on ease of implementation and simplicity of writing.
+  - Narrator: |
+      Welcome to Kataru!
+      「カタル」へようこそ!
+
+  # To reuse the same character, just don't include the tag!
+  - Kataru is a dialogue engine built completely on top of YAML with a focus on ease of implementation and simplicity of writing.
 
   - input:
       name: What's your name?

@@ -1,5 +1,6 @@
 ---
 namespace: train
+
 state:
   strength: 0
 

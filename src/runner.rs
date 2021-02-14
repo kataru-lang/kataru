@@ -15,6 +15,7 @@ pub struct Runner<'r> {
     lines: Vec<&'r Line>,
     breaks: Vec<usize>,
     choices: Choices,
+    speaker: &'r str,
 }
 
 impl<'r> Runner<'r> {
@@ -31,6 +32,7 @@ impl<'r> Runner<'r> {
             passage,
             breaks: vec![],
             choices: Choices::default(),
+            speaker: "",
         };
         runner.load_lines(passage);
         runner.init_breaks();
@@ -182,8 +184,9 @@ impl<'r> Runner<'r> {
                 Line::Continue
             }
             Line::Dialogue(dialogue) => {
-                let mut replaced_dialogue = Dialogue::default();
+                let mut replaced_dialogue = Dialogue::new();
                 for (character, text) in dialogue {
+                    self.speaker = character;
                     replaced_dialogue
                         .insert(character.to_string(), replace_vars(text, self.bookmark));
                 }
@@ -191,8 +194,10 @@ impl<'r> Runner<'r> {
                 Line::Dialogue(replaced_dialogue)
             }
             Line::Text(text) => {
+                let mut dialogue = Dialogue::new();
+                dialogue.insert(self.speaker.to_string(), replace_vars(text, self.bookmark));
                 self.bookmark.line += 1;
-                Line::Text(replace_vars(text, self.bookmark))
+                Line::Dialogue(dialogue)
             }
             Line::Continue => {
                 self.bookmark.line += 1;

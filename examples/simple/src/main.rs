@@ -55,13 +55,12 @@ fn main() {
     loop {
         let line = runner.next(&input);
         match line {
-            Line::Text(text) => {
-                print!("{}", text.italic());
-                await_key(&mut input);
-            }
             Line::Dialogue(dialogue) => {
                 let (name, quote) = dialogue.iter().next().unwrap();
-                print!("{}: {}", name.bold().yellow(), quote);
+                match name.as_str() {
+                    "Narrator" => print!("{}", quote.italic()),
+                    _ => print!("{}: {}", name.bold().yellow(), quote),
+                }
                 await_key(&mut input);
             }
             Line::Choices(choices) => {

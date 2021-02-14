@@ -1,5 +1,6 @@
 ---
 namespace: inv
+
 state:
   Fridge.visited: false
   Computer.visited: false
