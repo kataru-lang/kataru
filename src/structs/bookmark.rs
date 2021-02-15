@@ -1,9 +1,9 @@
 use super::{Entry, Map, QualifiedName, State, Story, Value};
-use crate::traits::{FromMessagePack, FromYaml, Load, SaveMessagePack};
-use crate::{error::ParseError, traits::SaveYaml};
+use crate::{
+    traits::{FromMessagePack, FromYaml, LoadYaml, SaveMessagePack},
+    LoadMessagePack, SaveYaml,
+};
 use serde::{Deserialize, Serialize};
-use std::fmt;
-use std::path::Path;
 
 /// All data necessary to find your place in the story.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, Default)]
@@ -52,16 +52,9 @@ impl<'a> Bookmark {
     }
 }
 
-impl Load for Bookmark {
-    fn load<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self, ParseError> {
-        match Self::load_string(path) {
-            Ok(source) => Self::from_yml(&source),
-            Err(e) => Err(perror!("{}", e.message)),
-        }
-    }
-}
-
-impl<'a> FromYaml<'a> for Bookmark {}
-impl<'a> FromMessagePack<'a> for Bookmark {}
+impl FromYaml for Bookmark {}
+impl FromMessagePack for Bookmark {}
 impl SaveYaml for Bookmark {}
 impl SaveMessagePack for Bookmark {}
+impl LoadYaml for Bookmark {}
+impl LoadMessagePack for Bookmark {}

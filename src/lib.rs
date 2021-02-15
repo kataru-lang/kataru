@@ -22,5 +22,7 @@ pub use structs::{
     SetCmd, State, StateMod, StateUpdatable, Story, StoryGetters, Value,
 };
 pub use tagger::LineTag;
-pub use traits::{FromMessagePack, FromYaml, Load, Merge};
+pub use traits::{
+    FromMessagePack, FromYaml, LoadMessagePack, LoadYaml, Merge, SaveMessagePack, SaveYaml,
+};
 pub use validator::Validator;

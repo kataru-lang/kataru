@@ -1,6 +1,6 @@
 use crate::error::ParseError;
 use crate::structs::{CharacterData, Config, Params, Passage, Passages, Value};
-use crate::traits::{FromYaml, Load, Merge};
+use crate::traits::{FromYaml, LoadYaml, Merge};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::path::Path;
@@ -57,8 +57,10 @@ impl Merge for Section {
     }
 }
 
-impl Load for Section {
-    fn load<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self, ParseError> {
+impl FromYaml for Section {}
+
+impl LoadYaml for Section {
+    fn load_yml<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self, ParseError> {
         let source = Self::load_string(path)?;
         let split: Vec<&str> = source.split("---").collect();
         if let [config_str, passages_str] = &split[1..] {

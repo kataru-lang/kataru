@@ -1,5 +1,5 @@
 use super::{CharacterData, Line, Map, Params, QualifiedName, Section, Value};
-use crate::traits::{FromMessagePack, FromYaml, Load, Merge, SaveMessagePack};
+use crate::traits::{FromMessagePack, FromYaml, LoadYaml, Merge, SaveMessagePack};
 use crate::{error::ParseError, traits::SaveYaml};
 use glob::glob;
 use std::path::Path;
@@ -8,7 +8,7 @@ pub type Passage = Vec<Line>;
 
 pub type Passages = Map<String, Passage>;
 
-impl FromYaml<'_> for Passages {
+impl FromYaml for Passages {
     fn from_yml(text: &str) -> Result<Self, ParseError> {
         // Avoid parsing whitespace only strings.
         if text.trim_start().is_empty() {
@@ -63,14 +63,15 @@ impl<'a> StoryGetters<'a> for Story {
     }
 }
 
-impl<'a> FromMessagePack<'a> for Story {}
+impl<'a> FromMessagePack for Story {}
 
 impl SaveYaml for Story {}
 impl SaveMessagePack for Story {}
+impl FromYaml for Story {}
 
-impl Load for Story {
+impl LoadYaml for Story {
     /// Loads a story from a given directory.
-    fn load<P: AsRef<Path>>(path: P) -> Result<Self, ParseError> {
+    fn load_yml<P: AsRef<Path>>(path: P) -> Result<Self, ParseError> {
         let mut story = Self::new();
         let pattern: &str = &path
             .as_ref()
@@ -80,7 +81,7 @@ impl Load for Story {
             .unwrap();
         for entry in glob(pattern).expect("Failed to read glob pattern") {
             if let Ok(path) = entry {
-                let mut section = Section::load(path).unwrap();
+                let mut section = Section::load_yml(path).unwrap();
                 let namespace = section.config.namespace.clone();
                 match story.get_mut(&namespace) {
                     Some(story_section) => {

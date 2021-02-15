@@ -21,7 +21,7 @@ pub struct Config {
     pub characters: Map<String, CharacterData>,
 }
 
-impl FromYaml<'_> for Config {}
+impl FromYaml for Config {}
 
 impl Merge for Config {
     fn merge(&mut self, other: &mut Self) -> Result<(), ParseError> {
