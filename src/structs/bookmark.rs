@@ -1,7 +1,7 @@
 use super::{Entry, Map, QualifiedName, State, Story, Value};
 use crate::{
     traits::{FromMessagePack, FromYaml, LoadYaml, SaveMessagePack},
-    LoadMessagePack, SaveYaml,
+    Load, LoadMessagePack, Save, SaveYaml,
 };
 use serde::{Deserialize, Serialize};
 
@@ -56,5 +56,7 @@ impl FromYaml for Bookmark {}
 impl FromMessagePack for Bookmark {}
 impl SaveYaml for Bookmark {}
 impl SaveMessagePack for Bookmark {}
+impl Save for Bookmark {}
 impl LoadYaml for Bookmark {}
 impl LoadMessagePack for Bookmark {}
+impl Load for Bookmark {}

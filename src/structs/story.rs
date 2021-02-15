@@ -1,6 +1,9 @@
 use super::{CharacterData, Line, Map, Params, QualifiedName, Section, Value};
-use crate::traits::{FromMessagePack, FromYaml, LoadYaml, Merge, SaveMessagePack};
 use crate::{error::ParseError, traits::SaveYaml};
+use crate::{
+    traits::{FromMessagePack, FromYaml, Load, LoadYaml, Merge, Save, SaveMessagePack},
+    LoadMessagePack,
+};
 use glob::glob;
 use std::path::Path;
 
@@ -67,6 +70,7 @@ impl<'a> FromMessagePack for Story {}
 
 impl SaveYaml for Story {}
 impl SaveMessagePack for Story {}
+impl Save for Story {}
 impl FromYaml for Story {}
 
 impl LoadYaml for Story {
@@ -96,3 +100,6 @@ impl LoadYaml for Story {
         Ok(story)
     }
 }
+
+impl LoadMessagePack for Story {}
+impl Load for Story {}
