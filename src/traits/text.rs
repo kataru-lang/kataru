@@ -20,7 +20,10 @@ pub trait FromStr<'a> {
 
 /// Trait for extract config/story from MessagePack bytes.
 pub trait FromMessagePack: DeserializeOwned {
-    fn from_mp(bytes: &[u8]) -> Self {
-        rmp_serde::from_slice(bytes).unwrap()
+    fn from_mp(bytes: &[u8]) -> Result<Self, ParseError> {
+        match rmp_serde::from_slice(bytes) {
+            Ok(r) => Ok(r),
+            Err(e) => Err(perror!("{}", e)),
+        }
     }
 }

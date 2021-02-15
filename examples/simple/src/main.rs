@@ -90,8 +90,8 @@ fn handle_line(runner: &mut Runner, input: &mut String) -> bool {
 fn main() {
     // Load the story.
     println!("{}", "Loading story...".bold().cyan());
-    let mut bookmark = Bookmark::from_mp(include_bytes!("../target/bookmark"));
-    let story = Story::from_mp(include_bytes!("../target/story"));
+    let mut bookmark = Bookmark::from_mp(include_bytes!("../target/bookmark")).unwrap();
+    let story = Story::from_mp(include_bytes!("../target/story")).unwrap();
 
     #[cfg(debug_assertions)]
     print_validation(&story);

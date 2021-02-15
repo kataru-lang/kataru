@@ -41,7 +41,7 @@ pub trait LoadMessagePack: FromMessagePack {
     }
     fn load_mp<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self, ParseError> {
         let bytes = Self::load_bytes(path)?;
-        Ok(Self::from_mp(&bytes))
+        Self::from_mp(&bytes)
     }
 }
 
