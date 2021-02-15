@@ -51,7 +51,7 @@ fn is_yaml<P: AsRef<Path> + fmt::Debug>(path: P) -> bool {
     }
     match path.as_ref().extension() {
         Some(extension) => match extension.to_str() {
-            Some("yml") | Some("yaml") => false,
+            Some("yml") | Some("yaml") => true,
             _ => false,
         },
         None => false,
@@ -61,8 +61,10 @@ fn is_yaml<P: AsRef<Path> + fmt::Debug>(path: P) -> bool {
 pub trait Load: LoadMessagePack + LoadYaml {
     fn load<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self, ParseError> {
         if is_yaml(&path) {
+            println!("Yaml!");
             Self::load_yml(path)
         } else {
+            println!("Mp!");
             Self::load_mp(path)
         }
     }
