@@ -1,5 +1,5 @@
 use crate::error::ParseError;
-use crate::traits::Parsable;
+use crate::traits::FromStr;
 
 #[derive(Debug)]
 pub enum Operator {
@@ -8,8 +8,8 @@ pub enum Operator {
     SET,
 }
 
-impl Parsable<'_> for Operator {
-    fn parse(op: &str) -> Result<Self, ParseError> {
+impl FromStr<'_> for Operator {
+    fn from_str(op: &str) -> Result<Self, ParseError> {
         match op {
             "+" => Ok(Self::ADD),
             "-" => Ok(Self::SUB),

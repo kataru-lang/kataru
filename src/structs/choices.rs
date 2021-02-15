@@ -1,5 +1,5 @@
 use super::{Bookmark, Conditional, Map};
-use crate::traits::Parsable;
+use crate::traits::FromStr;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
@@ -32,7 +32,7 @@ impl Choices {
                 }
                 Choice::Conditional(conditional) => {
                     for (choice_text, passage_name) in conditional {
-                        if !Conditional::parse(key).unwrap().eval(&bookmark).unwrap() {
+                        if !Conditional::from_str(key).unwrap().eval(&bookmark).unwrap() {
                             continue;
                         }
                         valid.choices.insert(

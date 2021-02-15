@@ -1,8 +1,8 @@
-use kataru::{pack, Deserializable, Story};
+use kataru::{pack, FromMessagePack, Story};
 use std::fs;
 
 #[test]
 fn test_pack() {
     pack("./examples/simple/kataru", "./target").unwrap();
-    let _story = Story::deserialize(&fs::read("./target/story").unwrap());
+    let _story = Story::from_mp(&fs::read("./target/story").unwrap());
 }

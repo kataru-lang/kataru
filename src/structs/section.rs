@@ -1,6 +1,6 @@
 use crate::error::ParseError;
 use crate::structs::{CharacterData, Config, Params, Passage, Passages, Value};
-use crate::traits::{Loadable, Mergeable, Parsable};
+use crate::traits::{FromYaml, Load, Merge};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::path::Path;
@@ -49,7 +49,7 @@ impl<'a> Section {
     }
 }
 
-impl Mergeable for Section {
+impl Merge for Section {
     fn merge(&mut self, other: &mut Self) -> Result<(), ParseError> {
         self.config.merge(&mut other.config)?;
         self.passages.merge(&mut other.passages)?;
@@ -57,14 +57,14 @@ impl Mergeable for Section {
     }
 }
 
-impl Loadable for Section {
+impl Load for Section {
     fn load<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self, ParseError> {
         let source = Self::load_string(path)?;
         let split: Vec<&str> = source.split("---").collect();
         if let [config_str, passages_str] = &split[1..] {
             Ok(Self {
-                config: Config::parse(config_str)?,
-                passages: Passages::parse(passages_str)?,
+                config: Config::from_yml(config_str)?,
+                passages: Passages::from_yml(passages_str)?,
             })
         } else {
             Err(perror!("Unable to parse file."))

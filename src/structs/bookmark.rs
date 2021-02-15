@@ -1,6 +1,6 @@
 use super::{Entry, Map, QualifiedName, State, Story, Value};
-use crate::error::ParseError;
-use crate::traits::{Deserializable, Loadable, Parsable};
+use crate::traits::{FromMessagePack, FromYaml, Load, SaveMessagePack};
+use crate::{error::ParseError, traits::SaveYaml};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::path::Path;
@@ -52,26 +52,16 @@ impl<'a> Bookmark {
     }
 }
 
-impl Deserializable for Bookmark {
-    fn deserialize(bytes: &[u8]) -> Self {
-        rmp_serde::from_slice(bytes).unwrap()
-    }
-}
-
-impl Loadable for Bookmark {
+impl Load for Bookmark {
     fn load<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self, ParseError> {
         match Self::load_string(path) {
-            Ok(source) => Self::parse(&source),
+            Ok(source) => Self::from_yml(&source),
             Err(e) => Err(perror!("{}", e.message)),
         }
     }
 }
 
-impl<'a> Parsable<'a> for Bookmark {
-    fn parse(text: &'a str) -> Result<Self, ParseError> {
-        match serde_yaml::from_str(text) {
-            Ok(config) => Ok(config),
-            Err(e) => Err(perror!("Invalid YAML for bookmark: {}", e)),
-        }
-    }
-}
+impl<'a> FromYaml<'a> for Bookmark {}
+impl<'a> FromMessagePack<'a> for Bookmark {}
+impl SaveYaml for Bookmark {}
+impl SaveMessagePack for Bookmark {}

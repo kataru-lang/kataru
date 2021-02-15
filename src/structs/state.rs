@@ -1,5 +1,5 @@
-use crate::ParseError;
-use crate::{Map, Operator, Parsable, Value};
+use crate::{traits::FromStr, ParseError};
+use crate::{Map, Operator, Value};
 
 /// Typedef for state, which is a mapping of values.
 pub type State = Map<String, Value>;
@@ -18,7 +18,7 @@ impl StateUpdatable for State {
     fn update(&mut self, state: &Self) -> Result<Self, ParseError> {
         let mut root_vars = Self::new();
         for (key, value) in state {
-            let statemod = StateMod::parse(key)?;
+            let statemod = StateMod::from_str(key)?;
             if self.contains_key(statemod.var) {
                 statemod.apply(self, value);
             } else {
@@ -35,8 +35,8 @@ pub struct StateMod<'a> {
     pub op: Operator,
 }
 
-impl<'a> Parsable<'a> for StateMod<'a> {
-    fn parse(text: &'a str) -> Result<Self, ParseError> {
+impl<'a> FromStr<'a> for StateMod<'a> {
+    fn from_str(text: &'a str) -> Result<Self, ParseError> {
         let split: Vec<&str> = text.split(' ').collect();
         if split.len() == 1 {
             return Ok(Self {
@@ -46,7 +46,7 @@ impl<'a> Parsable<'a> for StateMod<'a> {
         } else if split.len() == 2 {
             return Ok(Self {
                 var: split[0],
-                op: Operator::parse(split[1])?,
+                op: Operator::from_str(split[1])?,
             });
         }
         Err(perror!(

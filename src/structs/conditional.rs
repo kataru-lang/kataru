@@ -1,6 +1,6 @@
 use super::{Bookmark, Comparator, Value};
 use crate::error::ParseError;
-use crate::traits::Parsable;
+use crate::traits::FromStr;
 
 #[derive(Debug, PartialEq)]
 pub struct Conditional<'a> {
@@ -33,14 +33,14 @@ impl<'a> Conditional<'a> {
     }
 }
 
-impl<'a> Parsable<'a> for Conditional<'a> {
-    fn parse(text: &'a str) -> Result<Self, ParseError> {
+impl<'a> FromStr<'a> for Conditional<'a> {
+    fn from_str(text: &'a str) -> Result<Self, ParseError> {
         let split: Vec<&'a str> = text.split(' ').collect();
         if split[0] == "if" {
             if split.len() == 4 {
                 return Ok(Self {
                     var: split[1],
-                    cmp: Comparator::parse(split[2])?,
+                    cmp: Comparator::from_str(split[2])?,
                     val: Value::parse(split[3])?,
                 });
             } else if split.len() == 2 {
@@ -82,7 +82,7 @@ mod tests {
     /// Tests construction and comparison of conditional
     #[test]
     fn test_cond_cmp() {
-        let res = Conditional::parse("if var > 5");
+        let res = Conditional::from_str("if var > 5");
         assert!(res.is_ok(), "Parsing failed: {:?}", res.unwrap_err());
 
         let cond = res.unwrap();

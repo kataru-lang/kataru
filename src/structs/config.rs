@@ -1,6 +1,6 @@
 use super::{Map, Params, State};
 use crate::error::ParseError;
-use crate::traits::{Mergeable, Parsable};
+use crate::traits::{FromYaml, Merge};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -21,16 +21,9 @@ pub struct Config {
     pub characters: Map<String, CharacterData>,
 }
 
-impl Parsable<'_> for Config {
-    fn parse(text: &str) -> Result<Self, ParseError> {
-        match serde_yaml::from_str(text) {
-            Ok(config) => Ok(config),
-            Err(e) => Err(perror!("Invalid YAML for config: {}", e)),
-        }
-    }
-}
+impl FromYaml<'_> for Config {}
 
-impl Mergeable for Config {
+impl Merge for Config {
     fn merge(&mut self, other: &mut Self) -> Result<(), ParseError> {
         self.characters.merge(&mut other.characters)?;
         self.cmds.merge(&mut other.cmds)?;

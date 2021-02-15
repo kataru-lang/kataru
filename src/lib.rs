@@ -22,5 +22,5 @@ pub use structs::{
     SetCmd, State, StateMod, StateUpdatable, Story, StoryGetters, Value,
 };
 pub use tagger::LineTag;
-pub use traits::{Deserializable, Loadable, Mergeable, Parsable};
+pub use traits::{FromMessagePack, FromYaml, Load, Merge};
 pub use validator::Validator;

@@ -1,6 +1,6 @@
 use super::{Bookmark, Conditional, Line};
 use crate::error::ParseError;
-use crate::traits::Parsable;
+use crate::traits::FromStr;
 use linear_map::LinearMap;
 
 pub trait Branchable {
@@ -18,7 +18,7 @@ impl Branchable for Branches {
             if expression == "else" {
                 continue;
             };
-            if Conditional::parse(expression)?.eval(bookmark)? {
+            if Conditional::from_str(expression)?.eval(bookmark)? {
                 break;
             } else {
                 skip_lines += flattened_len(lines) + 1;

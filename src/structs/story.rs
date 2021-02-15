@@ -1,6 +1,6 @@
 use super::{CharacterData, Line, Map, Params, QualifiedName, Section, Value};
-use crate::error::ParseError;
-use crate::traits::{Deserializable, Loadable, Mergeable, Parsable};
+use crate::traits::{FromMessagePack, FromYaml, Load, Merge, SaveMessagePack};
+use crate::{error::ParseError, traits::SaveYaml};
 use glob::glob;
 use std::path::Path;
 
@@ -8,8 +8,8 @@ pub type Passage = Vec<Line>;
 
 pub type Passages = Map<String, Passage>;
 
-impl Parsable<'_> for Passages {
-    fn parse(text: &str) -> Result<Self, ParseError> {
+impl FromYaml<'_> for Passages {
+    fn from_yml(text: &str) -> Result<Self, ParseError> {
         // Avoid parsing whitespace only strings.
         if text.trim_start().is_empty() {
             return Ok(Self::new());
@@ -63,13 +63,12 @@ impl<'a> StoryGetters<'a> for Story {
     }
 }
 
-impl Deserializable for Story {
-    fn deserialize(bytes: &[u8]) -> Self {
-        rmp_serde::from_slice(bytes).unwrap()
-    }
-}
+impl<'a> FromMessagePack<'a> for Story {}
 
-impl Loadable for Story {
+impl SaveYaml for Story {}
+impl SaveMessagePack for Story {}
+
+impl Load for Story {
     /// Loads a story from a given directory.
     fn load<P: AsRef<Path>>(path: P) -> Result<Self, ParseError> {
         let mut story = Self::new();

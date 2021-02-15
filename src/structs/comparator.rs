@@ -1,5 +1,5 @@
 use crate::error::ParseError;
-use crate::traits::Parsable;
+use crate::traits::FromStr;
 
 #[derive(Debug, PartialEq)]
 pub enum Comparator {
@@ -11,8 +11,8 @@ pub enum Comparator {
     LEQ,
 }
 
-impl Parsable<'_> for Comparator {
-    fn parse(op: &str) -> Result<Self, ParseError> {
+impl FromStr<'_> for Comparator {
+    fn from_str(op: &str) -> Result<Self, ParseError> {
         match op {
             "==" => Ok(Self::EQ),
             "!=" => Ok(Self::NEQ),

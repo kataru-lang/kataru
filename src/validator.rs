@@ -1,9 +1,8 @@
-use crate::error::ParseError;
 use crate::structs::{
     Branches, Choice, Choices, Cmd, Comparator, Conditional, Line, Map, Operator, Params, Passage,
     Passages, QualifiedName, State, StateMod, Story, StoryGetters, Value,
 };
-use crate::traits::Parsable;
+use crate::{error::ParseError, traits::FromStr};
 use html_parser::Dom;
 
 pub struct Validator<'a> {
@@ -45,7 +44,7 @@ impl<'a> Validator<'a> {
 
     /// Validates a conditional statement.
     fn validate_conditional(&self, expression: &str) -> Result<(), ParseError> {
-        let cond = Conditional::parse(expression)?;
+        let cond = Conditional::from_str(expression)?;
         let value = self.validate_var(cond.var)?;
         Self::validate_cmp(&cond.val, value, cond.cmp)
     }
@@ -189,7 +188,7 @@ impl<'a> Validator<'a> {
     /// Validates the state only contains configured keys.
     fn validate_state(&self, state: &State) -> Result<(), ParseError> {
         for (key, value) in state {
-            let smod = StateMod::parse(key)?;
+            let smod = StateMod::from_str(key)?;
             let state_value = self.validate_var(smod.var)?;
             Self::validate_op(state_value, value, smod.op)?;
         }

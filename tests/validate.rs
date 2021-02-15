@@ -1,4 +1,4 @@
-use kataru::{Loadable, Story, Validator};
+use kataru::{Load, Story, Validator};
 
 #[test]
 fn test_validate() {
