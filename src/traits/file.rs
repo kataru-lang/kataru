@@ -93,7 +93,7 @@ pub trait SaveMessagePack: Serialize {
 
 /// Trait to save a serializable object to a YAML file.
 pub trait SaveYaml: Serialize {
-    fn same_yml<P: AsRef<Path> + fmt::Debug>(&self, path: P) -> Result<(), ParseError> {
+    fn save_yml<P: AsRef<Path> + fmt::Debug>(&self, path: P) -> Result<(), ParseError> {
         match serde_yaml::to_writer(bufwriter(path)?, self) {
             Ok(_) => Ok(()),
             Err(e) => return Err(perror!("Failed to write to file: {:?}", e)),
@@ -102,9 +102,9 @@ pub trait SaveYaml: Serialize {
 }
 
 pub trait Save: SaveMessagePack + SaveYaml {
-    fn load<P: AsRef<Path> + fmt::Debug>(&self, path: P) -> Result<(), ParseError> {
+    fn save<P: AsRef<Path> + fmt::Debug>(&self, path: P) -> Result<(), ParseError> {
         if is_yaml(&path) {
-            self.same_yml(path)
+            self.save_yml(path)
         } else {
             self.save_mp(path)
         }
