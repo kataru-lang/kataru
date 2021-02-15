@@ -45,6 +45,29 @@ pub trait LoadMessagePack: FromMessagePack {
     }
 }
 
+fn is_yaml<P: AsRef<Path> + fmt::Debug>(path: P) -> bool {
+    if path.as_ref().is_dir() {
+        return true;
+    }
+    match path.as_ref().extension() {
+        Some(extension) => match extension.to_str() {
+            Some("yml") | Some("yaml") => false,
+            _ => false,
+        },
+        None => false,
+    }
+}
+
+pub trait Load: LoadMessagePack + LoadYaml {
+    fn load<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self, ParseError> {
+        if is_yaml(&path) {
+            Self::load_yml(path)
+        } else {
+            Self::load_mp(path)
+        }
+    }
+}
+
 /// Private utility to construct a BufWriter for a file.
 fn bufwriter<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<BufWriter<File>, ParseError> {
     let file = match File::create(path) {
@@ -70,10 +93,20 @@ pub trait SaveMessagePack: Serialize {
 
 /// Trait to save a serializable object to a YAML file.
 pub trait SaveYaml: Serialize {
-    fn save_yaml<P: AsRef<Path> + fmt::Debug>(&self, path: P) -> Result<(), ParseError> {
+    fn same_yml<P: AsRef<Path> + fmt::Debug>(&self, path: P) -> Result<(), ParseError> {
         match serde_yaml::to_writer(bufwriter(path)?, self) {
             Ok(_) => Ok(()),
             Err(e) => return Err(perror!("Failed to write to file: {:?}", e)),
+        }
+    }
+}
+
+pub trait Save: SaveMessagePack + SaveYaml {
+    fn load<P: AsRef<Path> + fmt::Debug>(&self, path: P) -> Result<(), ParseError> {
+        if is_yaml(&path) {
+            self.same_yml(path)
+        } else {
+            self.save_mp(path)
         }
     }
 }

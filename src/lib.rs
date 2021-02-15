@@ -23,6 +23,7 @@ pub use structs::{
 };
 pub use tagger::LineTag;
 pub use traits::{
-    FromMessagePack, FromYaml, LoadMessagePack, LoadYaml, Merge, SaveMessagePack, SaveYaml,
+    FromMessagePack, FromYaml, Load, LoadMessagePack, LoadYaml, Merge, Save, SaveMessagePack,
+    SaveYaml,
 };
 pub use validator::Validator;

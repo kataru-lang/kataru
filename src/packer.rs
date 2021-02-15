@@ -10,7 +10,7 @@ use std::path::Path;
 fn dump<S: SaveYaml + SaveMessagePack>(obj: &S, outpath: &Path) -> Result<(), ParseError> {
     // Dump yaml for debugging
     if cfg!(debug_assertions) {
-        obj.save_yaml(outpath.with_extension("yml"))?;
+        obj.same_yml(outpath.with_extension("yml"))?;
     }
 
     // Dump message pack

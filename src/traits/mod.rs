@@ -4,7 +4,7 @@ use crate::ParseError;
 mod file;
 mod text;
 
-pub use file::{LoadMessagePack, LoadYaml, SaveMessagePack, SaveYaml};
+pub use file::{Load, LoadMessagePack, LoadYaml, Save, SaveMessagePack, SaveYaml};
 pub use text::{FromMessagePack, FromStr, FromYaml};
 
 /// Trait to merge two objects together. Used for maps.
