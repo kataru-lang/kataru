@@ -16,7 +16,7 @@ mod traits;
 mod validator;
 mod vars;
 
-pub use error::Error;
+pub use error::{Error, Result};
 pub use packer::pack;
 pub use runner::Runner;
 pub use structs::{
