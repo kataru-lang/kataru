@@ -41,12 +41,11 @@ fn run_command(command: &str, _params: &Map<String, Value>) {
 }
 
 fn handle_line(runner: &mut Runner, input: &mut String) -> bool {
-    match runner.next(&input) {
+    match runner.next(&input).unwrap() {
         Line::Dialogue(dialogue) => {
-            let (name, quote) = dialogue.iter().next().unwrap();
-            match name.as_str() {
-                "Narrator" => print!("{}", quote.italic()),
-                _ => print!("{}: {}", name.bold().yellow(), quote),
+            match dialogue.name.as_str() {
+                "Narrator" => print!("{}", dialogue.text.italic()),
+                _ => print!("{}: {}", dialogue.name.bold().yellow(), dialogue.text),
             }
             await_key(input);
             true
@@ -96,7 +95,7 @@ fn main() {
     #[cfg(debug_assertions)]
     print_validation(&story);
 
-    let mut runner = Runner::new(&mut bookmark, &story);
+    let mut runner = Runner::new(&mut bookmark, &story).unwrap();
     let mut input = String::new();
 
     while handle_line(&mut runner, &mut input) {}

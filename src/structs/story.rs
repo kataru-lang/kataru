@@ -1,5 +1,6 @@
 use super::{CharacterData, Line, Map, Params, QualifiedName, Section, Value};
-use crate::{error::ParseError, traits::SaveYaml};
+use crate::error::{Error, Result};
+use crate::traits::SaveYaml;
 use crate::{
     traits::{FromMessagePack, FromYaml, Load, LoadYaml, Merge, Save, SaveMessagePack},
     LoadMessagePack,
@@ -12,7 +13,7 @@ pub type Passage = Vec<Line>;
 pub type Passages = Map<String, Passage>;
 
 impl FromYaml for Passages {
-    fn from_yml(text: &str) -> Result<Self, ParseError> {
+    fn from_yml(text: &str) -> Result<Self> {
         // Avoid parsing whitespace only strings.
         if text.trim_start().is_empty() {
             return Ok(Self::new());
@@ -20,7 +21,7 @@ impl FromYaml for Passages {
 
         match serde_yaml::from_str(text) {
             Ok(config) => Ok(config),
-            Err(e) => Err(perror!("Invalid YAML for passages: {}", e)),
+            Err(e) => Err(error!("Invalid YAML for passages: {}", e)),
         }
     }
 }
@@ -75,7 +76,7 @@ impl FromYaml for Story {}
 
 impl LoadYaml for Story {
     /// Loads a story from a given directory.
-    fn load_yml<P: AsRef<Path>>(path: P) -> Result<Self, ParseError> {
+    fn load_yml<P: AsRef<Path>>(path: P) -> Result<Self> {
         let mut story = Self::new();
         let pattern: &str = &path
             .as_ref()

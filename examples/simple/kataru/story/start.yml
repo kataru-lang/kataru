@@ -9,8 +9,10 @@ characters:
     description: Side kick.
   Narrator:
     description: The story narrator.
-cmds:
+commands:
   clearScreen:
+attributes:
+  bold:
 ---
 # Each passage is a key in the YAML file.
 Start:
@@ -28,7 +30,7 @@ Start:
   # If you want to ignore whitespace, use `>-`.
   - >-
     Hello ${name},
-    are you ready for an epic story?
+    are you ready for an <bold>epic</bold> story?
 
   # Character dialogue can be done using single-entry maps.
   - Alice: Hello, my name is Alice. This is how you write a dialogue line in Kataru!

@@ -1,10 +1,10 @@
 use super::{Bookmark, Conditional, Line};
-use crate::error::ParseError;
+use crate::error::Result;
 use crate::traits::FromStr;
 use linear_map::LinearMap;
 
 pub trait Branchable {
-    fn take(&self, bookmark: &mut Bookmark) -> Result<usize, ParseError>;
+    fn take(&self, bookmark: &mut Bookmark) -> Result<usize>;
     fn length(&self) -> usize;
 }
 
@@ -12,7 +12,7 @@ pub type Branches = LinearMap<String, Vec<Line>>;
 
 impl Branchable for Branches {
     /// Evaluates the conditionals in a given branch and takes the first one that evaluates to true.
-    fn take(&self, bookmark: &mut Bookmark) -> Result<usize, ParseError> {
+    fn take(&self, bookmark: &mut Bookmark) -> Result<usize> {
         let mut skip_lines = 1;
         for (expression, lines) in self {
             if expression == "else" {

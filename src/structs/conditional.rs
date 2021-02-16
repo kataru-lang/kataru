@@ -1,5 +1,5 @@
 use super::{Bookmark, Comparator, Value};
-use crate::error::ParseError;
+use crate::error::Error;
 use crate::traits::FromStr;
 
 #[derive(Debug, PartialEq)]
@@ -10,16 +10,15 @@ pub struct Conditional<'a> {
 }
 
 impl<'a> Conditional<'a> {
-    pub fn eval(&self, bookmark: &Bookmark) -> Result<bool, ParseError> {
+    pub fn eval(&self, bookmark: &Bookmark) -> Result<bool, Error> {
         self.cmp(bookmark.value(&self.var).unwrap())
     }
 
-    pub fn cmp(&self, val: &Value) -> Result<bool, ParseError> {
+    pub fn cmp(&self, val: &Value) -> Result<bool, Error> {
         if !val.same_type(&self.val) {
-            return Err(perror!(
+            return Err(error!(
                 "Comparisons require values of the same type, not {:?} and {:?}",
-                val,
-                self.val
+                val, self.val
             ));
         }
         match self.cmp {
@@ -34,7 +33,7 @@ impl<'a> Conditional<'a> {
 }
 
 impl<'a> FromStr<'a> for Conditional<'a> {
-    fn from_str(text: &'a str) -> Result<Self, ParseError> {
+    fn from_str(text: &'a str) -> Result<Self, Error> {
         let split: Vec<&'a str> = text.split(' ').collect();
         if split[0] == "if" {
             if split.len() == 4 {
@@ -57,7 +56,7 @@ impl<'a> FromStr<'a> for Conditional<'a> {
                 });
             }
         }
-        Err(perror!(
+        Err(error!(
             "Conditionals must be of the form 'if VAR [<,<=,>,=>,==,] VALUE:' or 'if VAR', not '{}'",
             text
         ))

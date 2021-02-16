@@ -1,3 +1,4 @@
+use crate::error::{Error, Result};
 use std::{
     fmt,
     fs::{self, File},
@@ -5,41 +6,41 @@ use std::{
     path::Path,
 };
 
-use crate::{error::ParseError, FromMessagePack, FromYaml};
+use crate::{FromMessagePack, FromYaml};
 use serde::Serialize;
 
 /// Trait to load a struct from a file or structured directory.
 pub trait LoadYaml: FromYaml {
     /// Reads a file from a given path into new string.
-    fn load_string<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<String, ParseError> {
+    fn load_string<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<String> {
         let mut f = match File::open(path) {
             Ok(f) => f,
-            Err(e) => return Err(perror!("Error opening file: {:?}", e)),
+            Err(e) => return Err(error!("Error opening file: {:?}", e)),
         };
         let mut s = String::new();
         match f.read_to_string(&mut s) {
             Ok(_) => Ok(s),
-            Err(e) => Err(perror!("Error reading file to string: {:?}", e)),
+            Err(e) => Err(error!("Error reading file to string: {:?}", e)),
         }
     }
 
-    fn load_yml<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self, ParseError> {
+    fn load_yml<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self> {
         match Self::load_string(path) {
             Ok(source) => Self::from_yml(&source),
-            Err(e) => Err(perror!("{}", e.message)),
+            Err(e) => Err(error!("{}", e.message)),
         }
     }
 }
 
 /// Trait to load a struct from a file or structured directory.
 pub trait LoadMessagePack: FromMessagePack {
-    fn load_bytes<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Vec<u8>, ParseError> {
+    fn load_bytes<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Vec<u8>> {
         match fs::read(path) {
             Ok(vec) => Ok(vec),
-            Err(e) => Err(perror!("Error reading file to string: {:?}", e)),
+            Err(e) => Err(error!("Error reading file to string: {:?}", e)),
         }
     }
-    fn load_mp<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self, ParseError> {
+    fn load_mp<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self> {
         let bytes = Self::load_bytes(path)?;
         Self::from_mp(&bytes)
     }
@@ -59,7 +60,7 @@ fn is_yaml<P: AsRef<Path> + fmt::Debug>(path: P) -> bool {
 }
 
 pub trait Load: LoadMessagePack + LoadYaml {
-    fn load<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self, ParseError> {
+    fn load<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self> {
         if is_yaml(&path) {
             println!("Yaml!");
             Self::load_yml(path)
@@ -71,40 +72,40 @@ pub trait Load: LoadMessagePack + LoadYaml {
 }
 
 /// Private utility to construct a BufWriter for a file.
-fn bufwriter<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<BufWriter<File>, ParseError> {
+fn bufwriter<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<BufWriter<File>> {
     let file = match File::create(path) {
         Ok(f) => f,
-        Err(e) => return Err(perror!("Failed to create file: {:?}", e)),
+        Err(e) => return Err(error!("Failed to create file: {:?}", e)),
     };
     Ok(BufWriter::new(file))
 }
 
 /// Trait to save a serializable object to a MessagePack file.
 pub trait SaveMessagePack: Serialize {
-    fn save_mp<P: AsRef<Path> + fmt::Debug>(&self, path: P) -> Result<(), ParseError> {
+    fn save_mp<P: AsRef<Path> + fmt::Debug>(&self, path: P) -> Result<()> {
         let buffer = match rmp_serde::to_vec(self) {
             Ok(b) => b,
-            Err(e) => return Err(perror!("Failed to serialize object: {:?}", e)),
+            Err(e) => return Err(error!("Failed to serialize object: {:?}", e)),
         };
         match bufwriter(path)?.write(&buffer) {
             Ok(_) => Ok(()),
-            Err(e) => return Err(perror!("Error writing MessagePack buffer: {:?}", e)),
+            Err(e) => return Err(error!("Error writing MessagePack buffer: {:?}", e)),
         }
     }
 }
 
 /// Trait to save a serializable object to a YAML file.
 pub trait SaveYaml: Serialize {
-    fn save_yml<P: AsRef<Path> + fmt::Debug>(&self, path: P) -> Result<(), ParseError> {
+    fn save_yml<P: AsRef<Path> + fmt::Debug>(&self, path: P) -> Result<()> {
         match serde_yaml::to_writer(bufwriter(path)?, self) {
             Ok(_) => Ok(()),
-            Err(e) => return Err(perror!("Failed to write to file: {:?}", e)),
+            Err(e) => return Err(error!("Failed to write to file: {:?}", e)),
         }
     }
 }
 
 pub trait Save: SaveMessagePack + SaveYaml {
-    fn save<P: AsRef<Path> + fmt::Debug>(&self, path: P) -> Result<(), ParseError> {
+    fn save<P: AsRef<Path> + fmt::Debug>(&self, path: P) -> Result<()> {
         if is_yaml(&path) {
             self.save_yml(path)
         } else {

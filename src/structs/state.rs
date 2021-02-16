@@ -1,4 +1,5 @@
-use crate::{traits::FromStr, ParseError};
+use crate::error::{Error, Result};
+use crate::traits::FromStr;
 use crate::{Map, Operator, Value};
 
 /// Typedef for state, which is a mapping of values.
@@ -6,7 +7,7 @@ pub type State = Map<String, Value>;
 
 /// Trait to give state a `.update` function.
 pub trait StateUpdatable {
-    fn update(&mut self, state: &Self) -> Result<Self, ParseError>
+    fn update(&mut self, state: &Self) -> Result<Self>
     where
         Self: Sized;
 }
@@ -15,7 +16,7 @@ impl StateUpdatable for State {
     /// Updates the state using a state modifier state_mod.
     /// Note that state_mod may NOT contain any keys not present in state.
     /// It's also assumed that all keys in state mod have been validated.
-    fn update(&mut self, state: &Self) -> Result<Self, ParseError> {
+    fn update(&mut self, state: &Self) -> Result<Self> {
         let mut root_vars = Self::new();
         for (key, value) in state {
             let statemod = StateMod::from_str(key)?;
@@ -36,7 +37,7 @@ pub struct StateMod<'a> {
 }
 
 impl<'a> FromStr<'a> for StateMod<'a> {
-    fn from_str(text: &'a str) -> Result<Self, ParseError> {
+    fn from_str(text: &'a str) -> Result<Self> {
         let split: Vec<&str> = text.split(' ').collect();
         if split.len() == 1 {
             return Ok(Self {
@@ -49,7 +50,7 @@ impl<'a> FromStr<'a> for StateMod<'a> {
                 op: Operator::from_str(split[1])?,
             });
         }
-        Err(perror!(
+        Err(error!(
             "State modification must be of the form 'VAR [+-]:'."
         ))
     }

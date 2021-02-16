@@ -1,4 +1,4 @@
-use crate::error::ParseError;
+use crate::error::Error;
 use crate::traits::FromStr;
 
 #[derive(Debug)]
@@ -9,11 +9,11 @@ pub enum Operator {
 }
 
 impl FromStr<'_> for Operator {
-    fn from_str(op: &str) -> Result<Self, ParseError> {
+    fn from_str(op: &str) -> Result<Self, Error> {
         match op {
             "+" => Ok(Self::ADD),
             "-" => Ok(Self::SUB),
-            _ => Err(perror!("No valid Operator matches {}", op)),
+            _ => Err(error!("No valid Operator matches {}", op)),
         }
     }
 }

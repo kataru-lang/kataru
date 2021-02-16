@@ -1,7 +1,5 @@
-use super::{Branches, Choices, Map, State, Value};
+use super::{Branches, Choices, Dialogue, Map, State, Value};
 use serde::{Deserialize, Serialize};
-
-pub type Dialogue = Map<String, String>;
 
 pub type Params = Map<String, Value>;
 pub type Cmd = Map<String, Params>;
@@ -31,10 +29,10 @@ pub enum Line {
     Choices(Choices),
     Goto(Goto),
     Text(String),
+    _Dialogue(Map<String, String>),
     Dialogue(Dialogue),
     Continue,
     Break,
     InvalidChoice,
     End,
-    Error,
 }

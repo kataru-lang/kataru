@@ -1,13 +1,13 @@
 use crate::traits::{LoadYaml, SaveMessagePack, SaveYaml};
 use crate::{
     structs::{Bookmark, Story},
-    ParseError,
+    Error,
 };
 
 use std::path::Path;
 
 // Dumps the file to disk.
-fn dump<S: SaveYaml + SaveMessagePack>(obj: &S, outpath: &Path) -> Result<(), ParseError> {
+fn dump<S: SaveYaml + SaveMessagePack>(obj: &S, outpath: &Path) -> Result<(), Error> {
     // Dump yaml for debugging
     if cfg!(debug_assertions) {
         obj.save_yml(outpath.with_extension("yml"))?;
@@ -18,7 +18,7 @@ fn dump<S: SaveYaml + SaveMessagePack>(obj: &S, outpath: &Path) -> Result<(), Pa
 }
 
 /// Parses the config and story files into RMP and writes to the output.
-pub fn pack(dir: &str, outdir: &str) -> Result<(), ParseError> {
+pub fn pack(dir: &str, outdir: &str) -> Result<(), Error> {
     let path = Path::new(dir);
     let outpath = Path::new(outdir);
 

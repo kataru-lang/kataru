@@ -1,4 +1,4 @@
-use crate::error::ParseError;
+use crate::error::Error;
 use crate::traits::FromStr;
 
 #[derive(Debug, PartialEq)]
@@ -12,7 +12,7 @@ pub enum Comparator {
 }
 
 impl FromStr<'_> for Comparator {
-    fn from_str(op: &str) -> Result<Self, ParseError> {
+    fn from_str(op: &str) -> Result<Self, Error> {
         match op {
             "==" => Ok(Self::EQ),
             "!=" => Ok(Self::NEQ),
@@ -20,7 +20,7 @@ impl FromStr<'_> for Comparator {
             ">=" => Ok(Self::GEQ),
             "<" => Ok(Self::LT),
             "<=" => Ok(Self::LEQ),
-            _ => Err(perror!("No valid comparator matches {}", op)),
+            _ => Err(error!("No valid comparator matches {}", op)),
         }
     }
 }

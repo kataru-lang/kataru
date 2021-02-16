@@ -17,6 +17,7 @@ serde = {version = "1.0.117", features = ["derive"]}
 serde_yaml = "0.8.15"
 wasm-bindgen = {version = "0.2.70", optional = true}
 yaml-rust = "0.4.4"
+maplit = "1.0.2"
 
 [features]
 wasm = ["wasm-bindgen"]

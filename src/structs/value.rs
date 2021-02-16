@@ -1,4 +1,4 @@
-use crate::ParseError;
+use crate::error::{Error, Result};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::ops::{AddAssign, SubAssign};
@@ -51,19 +51,19 @@ impl Value {
         }
     }
 
-    fn from_yaml(yaml_value: serde_yaml::Value) -> Result<Self, ParseError> {
+    fn from_yaml(yaml_value: serde_yaml::Value) -> Result<Self> {
         match yaml_value {
             serde_yaml::Value::Bool(b) => Ok(Value::Bool(b)),
             serde_yaml::Value::String(s) => Ok(Value::String(s)),
             serde_yaml::Value::Number(n) => Ok(Value::Number(n.as_f64().unwrap())),
-            _ => Err(perror!("Cannot create value from {:?}", yaml_value)),
+            _ => Err(error!("Cannot create value from {:?}", yaml_value)),
         }
     }
 
-    pub fn parse(text: &str) -> Result<Value, ParseError> {
+    pub fn parse(text: &str) -> Result<Value> {
         match serde_yaml::from_str(&text) {
             Ok(r) => Self::from_yaml(r),
-            Err(e) => Err(perror!("{}", e)),
+            Err(e) => Err(error!("{}", e)),
         }
     }
 }

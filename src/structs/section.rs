@@ -1,4 +1,4 @@
-use crate::error::ParseError;
+use crate::error::Error;
 use crate::structs::{CharacterData, Config, Params, Passage, Passages, Value};
 use crate::traits::{FromYaml, LoadYaml, Merge};
 use serde::{Deserialize, Serialize};
@@ -39,7 +39,7 @@ impl<'a> Section {
         self.passages.get(name)
     }
     pub fn params(&'a self, name: &str) -> Option<&'a Option<Params>> {
-        self.config.cmds.get(name)
+        self.config.commands.get(name)
     }
     pub fn character(&'a self, name: &str) -> Option<&'a CharacterData> {
         self.config.characters.get(name)
@@ -50,7 +50,7 @@ impl<'a> Section {
 }
 
 impl Merge for Section {
-    fn merge(&mut self, other: &mut Self) -> Result<(), ParseError> {
+    fn merge(&mut self, other: &mut Self) -> Result<(), Error> {
         self.config.merge(&mut other.config)?;
         self.passages.merge(&mut other.passages)?;
         Ok(())
@@ -60,7 +60,7 @@ impl Merge for Section {
 impl FromYaml for Section {}
 
 impl LoadYaml for Section {
-    fn load_yml<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self, ParseError> {
+    fn load_yml<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self, Error> {
         let source = Self::load_string(path)?;
         let split: Vec<&str> = source.split("---").collect();
         if let [config_str, passages_str] = &split[1..] {
@@ -69,7 +69,7 @@ impl LoadYaml for Section {
                 passages: Passages::from_yml(passages_str)?,
             })
         } else {
-            Err(perror!("Unable to parse file."))
+            Err(error!("Unable to parse file."))
         }
     }
 }

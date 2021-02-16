@@ -195,6 +195,7 @@ dependencies = [
  "html_parser",
  "lazy_static",
  "linear-map",
+ "maplit",
  "regex",
  "rmp-serde",
  "serde",

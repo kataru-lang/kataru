@@ -1,5 +1,5 @@
 use super::{Map, Params, State};
-use crate::error::ParseError;
+use crate::error::Error;
 use crate::traits::{FromYaml, Merge};
 use serde::{Deserialize, Serialize};
 
@@ -16,18 +16,21 @@ pub struct Config {
     #[serde(default)]
     pub state: State,
     #[serde(default)]
-    pub cmds: Map<String, Option<Params>>,
+    pub commands: Map<String, Option<Params>>,
     #[serde(default)]
     pub characters: Map<String, CharacterData>,
+    #[serde(default)]
+    pub attributes: Map<String, Option<String>>,
 }
 
 impl FromYaml for Config {}
 
 impl Merge for Config {
-    fn merge(&mut self, other: &mut Self) -> Result<(), ParseError> {
+    fn merge(&mut self, other: &mut Self) -> Result<(), Error> {
         self.characters.merge(&mut other.characters)?;
-        self.cmds.merge(&mut other.cmds)?;
+        self.commands.merge(&mut other.commands)?;
         self.state.merge(&mut other.state)?;
+        self.attributes.merge(&mut other.attributes)?;
         Ok(())
     }
 }

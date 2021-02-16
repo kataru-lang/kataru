@@ -1,5 +1,5 @@
 use super::Map;
-use crate::ParseError;
+use crate::Error;
 
 mod file;
 mod text;
@@ -16,7 +16,7 @@ pub trait Merge {
         }
         keys
     }
-    fn merge(&mut self, other: &mut Self) -> Result<(), ParseError>
+    fn merge(&mut self, other: &mut Self) -> Result<(), Error>
     where
         Self: std::marker::Sized;
 }
