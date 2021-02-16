@@ -11,8 +11,8 @@ pub fn replace_vars(text: &str, bookmark: &Bookmark) -> String {
         .replace_all(&text, |cap: &Captures| {
             let var = &cap[1];
             match bookmark.value(var) {
-                Some(value) => Cow::from(value.to_string()),
-                None => Cow::from(format!("${{{}}}", var).to_string()),
+                Ok(value) => Cow::from(value.to_string()),
+                Err(_) => Cow::from(format!("${{{}}}", var).to_string()),
             }
         })
         .to_string()

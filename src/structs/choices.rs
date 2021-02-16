@@ -1,4 +1,5 @@
 use super::{Bookmark, Conditional, Map};
+use crate::error::Result;
 use crate::traits::FromStr;
 use serde::{Deserialize, Serialize};
 
@@ -17,7 +18,7 @@ pub struct Choices {
 }
 
 impl Choices {
-    pub fn get_valid(&self, bookmark: &Bookmark) -> Self {
+    pub fn get_valid(&self, bookmark: &Bookmark) -> Result<Self> {
         let mut valid = Self {
             choices: Map::default(),
             timeout: self.timeout,
@@ -32,7 +33,7 @@ impl Choices {
                 }
                 Choice::Conditional(conditional) => {
                     for (choice_text, passage_name) in conditional {
-                        if !Conditional::from_str(key).unwrap().eval(&bookmark).unwrap() {
+                        if !Conditional::from_str(key)?.eval(&bookmark)? {
                             continue;
                         }
                         valid.choices.insert(
@@ -43,6 +44,6 @@ impl Choices {
                 }
             }
         }
-        valid
+        Ok(valid)
     }
 }

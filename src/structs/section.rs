@@ -13,6 +13,9 @@ pub struct QualifiedName {
 }
 
 impl QualifiedName {
+    /// Constructs a qualified name while in the context of `namespace`.
+    /// This means that if no namespace is specified in `name`, then the qname will have `namespace` as its namespace.
+    /// Otherwise it takes the namespace specified in `name`.
     pub fn from(namespace: &str, name: &str) -> Self {
         let split: Vec<&str> = name.rsplitn(2, ":").collect();
         match split.as_slice() {

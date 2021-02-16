@@ -89,37 +89,54 @@ impl<'r> Runner<'r> {
         }
     }
 
+    /// Attempts to get a passage matching `qname`.
+    /// First checks in the specified namespace, and falls back to root namespace if not found.
+    ///
+    /// Note that passage name could be:
+    /// 1. a local name (unquallified), in which case namespace stays the same.
+    /// 2. a qualified name pointing to another section, in which case we switch namespace.
+    /// 3. a global name, in which we must changed namespace to root.
+    fn get_passage(&mut self, qname: QualifiedName) -> Result<&'r Passage> {
+        // First try to find the section specified namespace.
+        if let Some(section) = self.story.get(&qname.namespace) {
+            if let Some(passage) = section.passage(&qname.name) {
+                // Case 2: name is not local, so switch namespace.
+                self.bookmark.namespace = qname.namespace;
+                self.bookmark.passage = qname.name;
+                return Ok(passage);
+            }
+        } else {
+            return Err(error!("Invalid namespace '{}'", &qname.namespace));
+        }
+
+        // Fall back to try root namespace.
+        if let Some(root_section) = self.story.get("") {
+            if let Some(passage) = root_section.passage(&qname.name) {
+                // Case 3: passage could not be found in local/specified namespace, so switch to global.
+                self.bookmark.namespace = "".to_string();
+                self.bookmark.passage = qname.name;
+                return Ok(passage);
+            }
+        } else {
+            return Err(error!("No root namespace"));
+        }
+
+        // Return error if there is no passage name in either namespace.
+        Err(error!(
+            "Passage name '{}' could not be found in '{}' nor root namespace",
+            qname.name, qname.namespace
+        ))
+    }
+
     /// Goto a given `passage_name`.
     fn goto(&mut self, passage_name: &str) -> Result<()> {
-        // `passage_name` could be:
-        // 1) a local name (unquallified), in which case namespace stays the same.
-        // 2) a qualified name pointing to another section, in which case we switch namespace.
-        // 3) a global name, in which we must changed namespace to root.
-        let qname = QualifiedName::from(&self.bookmark.namespace, passage_name);
-        match self.story.get(&qname.namespace) {
-            Some(section) => {
-                self.passage = match section.passage(&qname.name) {
-                    Some(passage) => {
-                        if !qname.namespace.is_empty() {
-                            self.bookmark.namespace = qname.namespace;
-                        }
-                        passage
-                    }
-                    None => {
-                        self.bookmark.namespace = "".to_string();
-                        self.story.get("").unwrap().passage(&qname.name).unwrap()
-                    }
-                };
-                self.bookmark.passage = qname.name;
-                self.bookmark.line = 0;
-
-                self.lines = vec![];
-                self.breaks = vec![];
-                self.load_lines(self.passage);
-                Ok(())
-            }
-            None => Err(error!("Invalid goto statement to passage {}", passage_name)),
-        }
+        self.passage =
+            self.get_passage(QualifiedName::from(&self.bookmark.namespace, passage_name))?;
+        self.bookmark.line = 0;
+        self.lines = vec![];
+        self.breaks = vec![];
+        self.load_lines(self.passage);
+        Ok(())
     }
 
     /// Processes a line.
@@ -132,7 +149,7 @@ impl<'r> Runner<'r> {
             Line::Choices(choices) => {
                 // If empty input, chocies are being returned for display.
                 if input.is_empty() {
-                    Line::Choices(choices.get_valid(&self.bookmark))
+                    Line::Choices(choices.get_valid(&self.bookmark)?)
                 } else if let Line::Choices(ref mut choices) = self.line {
                     if choices.choices.contains_key(input) {
                         if let Some(Choice::PassageName(passage_name)) =
@@ -157,8 +174,8 @@ impl<'r> Runner<'r> {
                     for (var, _prompt) in &input_cmd.input {
                         let mut state = State::new();
                         state.insert(var.clone(), Value::String(input.to_string()));
-                        let root_sets = self.bookmark.state().update(&state)?;
-                        self.bookmark.root_state().update(&root_sets)?;
+                        let root_sets = self.bookmark.state()?.update(&state)?;
+                        self.bookmark.root_state()?.update(&root_sets)?;
                     }
                     self.bookmark.line += 1;
                     Line::Continue
@@ -188,8 +205,8 @@ impl<'r> Runner<'r> {
                 line.clone()
             }
             Line::SetCmd(set) => {
-                let root_sets = self.bookmark.state().update(&set.set)?;
-                self.bookmark.root_state().update(&root_sets)?;
+                let root_sets = self.bookmark.state()?.update(&set.set)?;
+                self.bookmark.root_state()?.update(&root_sets)?;
                 self.bookmark.line += 1;
                 Line::Continue
             }

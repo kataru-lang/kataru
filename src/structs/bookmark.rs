@@ -1,4 +1,5 @@
 use super::{Entry, Map, QualifiedName, State, Story, Value};
+use crate::error::{Error, Result};
 use crate::{
     traits::{FromMessagePack, FromYaml, LoadYaml, SaveMessagePack},
     Load, LoadMessagePack, Save, SaveYaml,
@@ -19,20 +20,43 @@ pub struct Bookmark {
 }
 
 impl<'a> Bookmark {
-    pub fn value(&'a self, var: &str) -> Option<&'a Value> {
+    pub fn value(&'a self, var: &str) -> Result<&'a Value> {
         let qname = QualifiedName::from(&self.namespace, var);
-        match self.state.get(&qname.namespace)?.get(&qname.name) {
-            Some(data) => Some(data),
-            None => self.state.get("")?.get(&qname.name),
+        if let Some(section) = self.state.get(&qname.namespace) {
+            if let Some(val) = section.get(&qname.name) {
+                return Ok(val);
+            }
+        } else {
+            return Err(error!("No state for namespace '{}'", &qname.namespace));
+        }
+
+        if let Some(section) = self.state.get("") {
+            if let Some(val) = section.get(&qname.name) {
+                return Ok(val);
+            }
+        } else {
+            return Err(error!("No state for root namespace"));
+        }
+
+        // Return error if there is no passage name in either namespace.
+        Err(error!(
+            "Variable '{}' could not be found in '{}' nor root namespace state",
+            qname.name, qname.namespace
+        ))
+    }
+
+    pub fn state(&'a mut self) -> Result<&'a mut State> {
+        match self.state.get_mut(&self.namespace) {
+            Some(state) => Ok(state),
+            None => Err(error!("Invalid namespace {}", &self.namespace)),
         }
     }
 
-    pub fn state(&'a mut self) -> &'a mut State {
-        self.state.get_mut(&self.namespace).unwrap()
-    }
-
-    pub fn root_state(&'a mut self) -> &'a mut State {
-        self.state.get_mut("").unwrap()
+    pub fn root_state(&'a mut self) -> Result<&'a mut State> {
+        match self.state.get_mut("") {
+            Some(state) => Ok(state),
+            None => Err(error!("No root namesapce")),
+        }
     }
 
     pub fn init_state(&mut self, story: &Story) {
