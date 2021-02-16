@@ -150,7 +150,7 @@ impl<'r> Runner<'r> {
             }
             // When input is encountered, it should first be returned for display.
             // Second time it's encountered, modify state.
-            Line::InputCmd(input_cmd) => {
+            Line::Input(input_cmd) => {
                 if input.is_empty() {
                     line.clone()
                 } else {
@@ -183,7 +183,7 @@ impl<'r> Runner<'r> {
                 };
                 Line::Continue
             }
-            Line::Cmds(_) => {
+            Line::Commands(_) => {
                 self.bookmark.line += 1;
                 line.clone()
             }

@@ -23,9 +23,9 @@ pub struct InputCmd {
 #[serde(untagged)]
 pub enum Line {
     Branches(Branches),
-    InputCmd(InputCmd),
+    Input(InputCmd),
     SetCmd(SetCmd),
-    Cmds(Vec<Cmd>),
+    Commands(Vec<Cmd>),
     Choices(Choices),
     Goto(Goto),
     Text(String),

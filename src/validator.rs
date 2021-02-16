@@ -108,7 +108,7 @@ impl<'a> Validator<'a> {
             Line::Choices(choices) => self.validate_choices(choices),
             Line::Goto(goto) => self.validate_goto(&goto.goto),
             Line::SetCmd(cmd) => self.validate_state(&cmd.set),
-            Line::Cmds(cmds) => self.validate_cmds(&cmds),
+            Line::Commands(cmds) => self.validate_cmds(&cmds),
             _ => Ok(()),
         }
     }

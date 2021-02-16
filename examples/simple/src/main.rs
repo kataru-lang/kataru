@@ -59,7 +59,7 @@ fn handle_line(runner: &mut Runner, input: &mut String) -> bool {
             get_input(input);
             true
         }
-        Line::Cmds(cmds) => {
+        Line::Commands(cmds) => {
             for cmd in cmds {
                 for (command, params) in cmd {
                     run_command(command, params);
@@ -67,7 +67,7 @@ fn handle_line(runner: &mut Runner, input: &mut String) -> bool {
             }
             true
         }
-        Line::InputCmd(input_cmd) => {
+        Line::Input(input_cmd) => {
             for (_var, prompt) in &input_cmd.input {
                 print!("{}: ", prompt.bold().magenta());
                 get_input(input);
