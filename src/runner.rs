@@ -129,7 +129,7 @@ impl<'r> Runner<'r> {
     }
 
     /// Goto a given `passage_name`.
-    fn goto(&mut self, passage_name: &str) -> Result<()> {
+    pub fn goto(&mut self, passage_name: &str) -> Result<()> {
         self.passage =
             self.get_passage(QualifiedName::from(&self.bookmark.namespace, passage_name))?;
         self.bookmark.line = 0;
