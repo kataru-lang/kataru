@@ -1,5 +1,7 @@
 # Kataru 「カタル」 The YAML based dialogue engine.
 
+![rust workflow](https://github.com/katsutoshii/kataru/actions/workflows/rust.yml/badge.svg)
+
 Kataru 「カタル」is a dialogue engine like [Yarn Spinner](yarnspinner.dev) but based completed on YAML.
 
 ```yml
