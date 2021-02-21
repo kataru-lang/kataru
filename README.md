@@ -11,7 +11,6 @@ characters:
 ---
 # Define each of your passages.
 Start:
-  - Alice walks into the room...
   - Alice: Welcome to my story!
   - Now make a decision...
   - choices:
@@ -20,7 +19,7 @@ Start:
 
 Continue:
   - Alice: I see you want to keep reading...
-  - Alice: To bad, this is just a demo story!
+  - To bad, this is just a demo story!
   - goto: End
 
 End:
