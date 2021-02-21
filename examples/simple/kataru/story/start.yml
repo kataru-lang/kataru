@@ -1,18 +1,23 @@
 ---
 namespace: ""
+
 state:
   name: "Player"
+
 characters:
   Alice:
     description: Main character.
   Bob:
     description: Side kick.
   Narrator:
-    description: The story narrator.
+    description: Narrator of the story.
+
 commands:
   clearScreen:
+  save:
+
 attributes:
-  bold:
+  wave:
 ---
 # Each passage is a key in the YAML file.
 Start:
@@ -30,7 +35,9 @@ Start:
   # If you want to ignore whitespace, use `>-`.
   - >-
     Hello ${name},
-    are you ready for an <bold>epic</bold> story?
+    are you ready for an <wave>epic</wave> story?
+
+  - [save: {}]
 
   # Character dialogue can be done using single-entry maps.
   - Alice: Hello, my name is Alice. This is how you write a dialogue line in Kataru!

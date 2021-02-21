@@ -12,7 +12,11 @@ pub struct Dialogue {
 
 // fn extract_attributes(text: &str, story: &Story, bookmark: &mut Bookmark) ->
 impl Dialogue {
-    fn extract_attr(text: &str, namespace: &str, story: &Story) -> Result<(Attributes, String)> {
+    pub fn extract_attr(
+        text: &str,
+        namespace: &str,
+        story: &Story,
+    ) -> Result<(Attributes, String)> {
         match story.get(namespace) {
             Some(section) => extract_attr(text, &section.config.attributes),
             None => Err(error!("No attributes in dialogue.")),
