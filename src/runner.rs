@@ -173,16 +173,6 @@ impl<'r> Runner<'r> {
         Ok(())
     }
 
-    // Return from the given passage to the last position saved on the stack.
-    pub fn retn(&mut self) -> Result<()> {
-        self.bookmark.position = match self.bookmark.stack.pop() {
-            Some(position) => position,
-            None => return Err(error!("Return on empty stack.")),
-        };
-        self.goto()?;
-        Ok(())
-    }
-
     /// Processes a line.
     /// Returning Line::Continue signals to `next()` that another line should be processed
     /// before returning a line to the user.
@@ -244,10 +234,14 @@ impl<'r> Runner<'r> {
                 self.call(call.passage.clone())?;
                 Line::Continue
             }
-            Line::Return(_) => {
-                self.retn()?;
-                Line::Continue
-            }
+            Line::Return(_) => match self.bookmark.stack.pop() {
+                Some(position) => {
+                    self.bookmark.position = position;
+                    self.goto()?;
+                    Line::Continue
+                }
+                None => Line::End,
+            },
             Line::Break => {
                 let last_break = self.breaks.pop();
                 self.bookmark.position.line = match last_break {

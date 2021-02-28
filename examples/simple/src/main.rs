@@ -111,8 +111,12 @@ fn handle_line(runner: &mut Runner, input: &mut String) -> bool {
             get_input(input);
             true
         }
+        Line::End => {
+            println!("End of story.");
+            false
+        }
         _ => {
-            println!("line: {:?}", line);
+            println!("Invalid line encountered: {:?}", line);
             false
         }
     }

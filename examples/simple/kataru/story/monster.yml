@@ -8,8 +8,10 @@ state:
 Start:
   # - [clearScreen: {}]
   - Narrator: You walk into another room, where you find a monster!
-  - [Bobs.wave: {}]
   - What would you like to do?
+  - call: FightChoices
+
+FightChoices:
   - choices:
       attack:
       engage:
@@ -54,10 +56,7 @@ Train:
     else:
       - You've already trained too much!
   - What would you like to do now?
-  - choices:
-      train: Train
-      fight: Fight
-      ...: Timeout
+  - call: FightChoices
 
 Timeout:
   - You took to long to decide! Looks like you need some training...
