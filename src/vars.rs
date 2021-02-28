@@ -21,27 +21,30 @@ pub fn replace_vars(text: &str, bookmark: &Bookmark) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Value;
+    use crate::{Position, Value};
 
     #[test]
     fn test_str_replace() {
         let bookmark = Bookmark {
-            namespace: "test".to_string(),
-            passage: "".to_string(),
-            line: 0,
+            position: Position {
+                namespace: "test".to_string(),
+                passage: "".to_string(),
+                line: 0,
+            },
             state: btreemap! {
                 "test".to_string() => btreemap! {
                     "var1".to_string() => Value::Number(1.0)
                 },
-                "".to_string() => btreemap! {
+                "global".to_string() => btreemap! {
                     "var2".to_string() => Value::String("a".to_string()),
                     "char.var1".to_string() => Value::String("b".to_string())
                 }
             },
+            stack: Vec::new(),
         };
         assert_eq!(
             replace_vars(
-                "var1 = ${var1}, var2 = ${:var2}, char.var1 = ${char.var1}. Tickets cost $10.",
+                "var1 = ${var1}, var2 = ${global:var2}, char.var1 = ${char.var1}. Tickets cost $10.",
                 &bookmark
             ),
             "var1 = 1, var2 = a, char.var1 = b. Tickets cost $10."

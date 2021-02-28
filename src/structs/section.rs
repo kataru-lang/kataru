@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::path::Path;
 
+pub static GLOBAL: &str = "global";
+
 /// A qualified name is a name in an explicit namespace.
 /// If namespace is empty, then this name is global.
 pub struct QualifiedName {
@@ -44,7 +46,7 @@ impl<'a> Section {
     pub fn params(&'a self, name: &str) -> Option<&'a Option<Params>> {
         self.config.commands.get(name)
     }
-    pub fn character(&'a self, name: &str) -> Option<&'a CharacterData> {
+    pub fn character(&'a self, name: &str) -> Option<&'a Option<CharacterData>> {
         self.config.characters.get(name)
     }
     pub fn value(&'a self, name: &str) -> Option<&'a Value> {

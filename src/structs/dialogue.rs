@@ -27,7 +27,8 @@ impl Dialogue {
 
     pub fn from_map(map: &Map<String, String>, story: &Story, bookmark: &Bookmark) -> Result<Self> {
         for (name, text) in map {
-            let (attributes, text) = Self::extract_attr(&text, &bookmark.namespace, story)?;
+            let (attributes, text) =
+                Self::extract_attr(&text, &bookmark.position.namespace, story)?;
             return Ok(Self {
                 name: name.clone(),
                 text: replace_vars(&text, bookmark),
@@ -38,7 +39,7 @@ impl Dialogue {
     }
 
     pub fn from(name: &str, text: &str, story: &Story, bookmark: &Bookmark) -> Result<Self> {
-        let (attributes, text) = Self::extract_attr(&text, &bookmark.namespace, story)?;
+        let (attributes, text) = Self::extract_attr(&text, &bookmark.position.namespace, story)?;
         Ok(Self {
             name: name.to_string(),
             text: replace_vars(&text, bookmark),
@@ -50,14 +51,14 @@ impl Dialogue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Config, Map, Section, State};
+    use crate::{Config, Map, Position, Section, State, GLOBAL};
 
     #[test]
     fn test_dialogue() {
         // let mut story;
-        let namespace = "".to_string();
+        let namespace = GLOBAL.to_string();
         let story = btreemap! {
-            "".to_string() => Section {
+            GLOBAL.to_string() => Section {
                 config: Config {
                     namespace,
                     commands: Map::new(),
@@ -71,12 +72,15 @@ mod tests {
             }
         };
         let bookmark = Bookmark {
-            namespace: "".to_string(),
-            passage: "".to_string(),
-            line: 0,
-            state: btreemap! {
-                "".to_string() => Map::new()
+            position: Position {
+                namespace: GLOBAL.to_string(),
+                passage: "".to_string(),
+                line: 0,
             },
+            state: btreemap! {
+                GLOBAL.to_string() => Map::new()
+            },
+            stack: Vec::new(),
         };
         let dialogue_map =
             btreemap! {"Character".to_string() => "Text <attr>annotated</attr>.".to_string()};

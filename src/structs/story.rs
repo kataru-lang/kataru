@@ -1,6 +1,9 @@
 use super::{CharacterData, Line, Map, Params, QualifiedName, Section, Value};
-use crate::error::{Error, Result};
 use crate::traits::SaveYaml;
+use crate::{
+    error::{Error, Result},
+    GLOBAL,
+};
 use crate::{
     traits::{FromMessagePack, FromYaml, Load, LoadYaml, Merge, Save, SaveMessagePack},
     LoadMessagePack,
@@ -31,38 +34,38 @@ pub type Story = Map<String, Section>;
 /// Each story getter returns an Option reference if the name is found.
 /// Also returns a boolean flag that is true if the name was found in root namespace.
 pub trait StoryGetters<'a> {
-    fn character(&'a self, qname: &QualifiedName) -> Option<&'a CharacterData>;
+    fn character(&'a self, qname: &QualifiedName) -> Option<&'a Option<CharacterData>>;
     fn passage(&'a self, qname: &QualifiedName) -> Option<&'a Passage>;
     fn value(&'a self, qname: &QualifiedName) -> Option<&'a Value>;
     fn params(&'a self, qname: &QualifiedName) -> Option<&'a Option<Params>>;
 }
 
 impl<'a> StoryGetters<'a> for Story {
-    fn character(&'a self, qname: &QualifiedName) -> Option<&'a CharacterData> {
+    fn character(&'a self, qname: &QualifiedName) -> Option<&'a Option<CharacterData>> {
         match self.get(&qname.namespace)?.character(&qname.name) {
             Some(data) => Some(data),
-            None => self.get("")?.character(&qname.name),
+            None => self.get(GLOBAL)?.character(&qname.name),
         }
     }
 
     fn passage(&'a self, qname: &QualifiedName) -> Option<&'a Passage> {
         match self.get(&qname.namespace)?.passage(&qname.name) {
             Some(data) => Some(data),
-            None => self.get("")?.passage(&qname.name),
+            None => self.get(GLOBAL)?.passage(&qname.name),
         }
     }
 
     fn value(&'a self, qname: &QualifiedName) -> Option<&'a Value> {
         match self.get(&qname.namespace)?.value(&qname.name) {
             Some(data) => Some(data),
-            None => self.get("")?.value(&qname.name),
+            None => self.get(GLOBAL)?.value(&qname.name),
         }
     }
 
     fn params(&'a self, qname: &QualifiedName) -> Option<&'a Option<Params>> {
         match self.get(&qname.namespace)?.params(&qname.name) {
             Some(data) => Some(data),
-            None => self.get("")?.params(&qname.name),
+            None => self.get(GLOBAL)?.params(&qname.name),
         }
     }
 }

@@ -1,8 +1,13 @@
-line: 0
-passage: Start
-namespace: ""
+position:
+  line: 0
+  passage: Start
+  namespace: monster
 state:
-  "":
+  global:
     test: 0
   intro:
     var: 2
+stack:
+  - line: 0
+    passage: Start
+    namespace: global

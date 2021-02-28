@@ -2,9 +2,19 @@ use super::{Entry, Map, QualifiedName, State, Story, Value};
 use crate::error::{Error, Result};
 use crate::{
     traits::{FromMessagePack, FromYaml, LoadYaml, SaveMessagePack},
-    Load, LoadMessagePack, Save, SaveYaml,
+    Load, LoadMessagePack, Save, SaveYaml, GLOBAL,
 };
 use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize, Default)]
+pub struct Position {
+    #[serde(default)]
+    pub namespace: String,
+    #[serde(default)]
+    pub passage: String,
+    #[serde(default)]
+    pub line: usize,
+}
 
 /// All data necessary to find your place in the story.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, Default)]
@@ -12,16 +22,14 @@ pub struct Bookmark {
     #[serde(default)]
     pub state: Map<String, State>,
     #[serde(default)]
-    pub passage: String,
+    pub position: Position,
     #[serde(default)]
-    pub line: usize,
-    #[serde(default)]
-    pub namespace: String,
+    pub stack: Vec<Position>,
 }
 
 impl<'a> Bookmark {
     pub fn value(&'a self, var: &str) -> Result<&'a Value> {
-        let qname = QualifiedName::from(&self.namespace, var);
+        let qname = QualifiedName::from(&self.position.namespace, var);
         if let Some(section) = self.state.get(&qname.namespace) {
             if let Some(val) = section.get(&qname.name) {
                 return Ok(val);
@@ -30,7 +38,7 @@ impl<'a> Bookmark {
             return Err(error!("No state for namespace '{}'", &qname.namespace));
         }
 
-        if let Some(section) = self.state.get("") {
+        if let Some(section) = self.state.get(GLOBAL) {
             if let Some(val) = section.get(&qname.name) {
                 return Ok(val);
             }
@@ -46,14 +54,14 @@ impl<'a> Bookmark {
     }
 
     pub fn state(&'a mut self) -> Result<&'a mut State> {
-        match self.state.get_mut(&self.namespace) {
+        match self.state.get_mut(&self.position.namespace) {
             Some(state) => Ok(state),
-            None => Err(error!("Invalid namespace {}", &self.namespace)),
+            None => Err(error!("Invalid namespace {}", &self.position.namespace)),
         }
     }
 
     pub fn root_state(&'a mut self) -> Result<&'a mut State> {
-        match self.state.get_mut("") {
+        match self.state.get_mut(GLOBAL) {
             Some(state) => Ok(state),
             None => Err(error!("No root namesapce")),
         }

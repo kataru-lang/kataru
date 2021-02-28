@@ -1,6 +1,13 @@
 use colored::*;
 use kataru::*;
-use std::io::{stdin, stdout, Write};
+use regex::{Captures, Regex};
+use std::{
+    borrow::Cow,
+    io::{stdin, stdout, Write},
+};
+
+#[macro_use]
+extern crate lazy_static;
 
 fn get_input(input: &mut String) {
     let _ = stdout().flush();
@@ -40,12 +47,34 @@ fn run_command(command: &str, _params: &Map<String, Value>) {
     }
 }
 
+fn replace_tags_ansi(text: &str) -> String {
+    lazy_static! {
+        static ref TAGS_RE: Regex = Regex::new(r"<([:a-zA-Z0-9_\./]*)>").unwrap();
+    }
+    TAGS_RE
+        .replace_all(&text, |cap: &Captures| {
+            let tag = &cap[1];
+            let code = match tag {
+                "b" => "\x1b[1m",
+                "/b" => "\x1b[0m",
+                _ => "",
+            };
+            Cow::from(code.to_string())
+        })
+        .to_string()
+}
+
 fn handle_line(runner: &mut Runner, input: &mut String) -> bool {
-    match runner.next(&input).unwrap() {
+    let line = runner.next(&input).unwrap();
+    match line {
         Line::Dialogue(dialogue) => {
             match dialogue.name.as_str() {
-                "Narrator" => print!("{}", dialogue.text.italic()),
-                _ => print!("{}: {}", dialogue.name.bold().yellow(), dialogue.text),
+                "Narrator" => print!("{}", replace_tags_ansi(&dialogue.text).italic()),
+                _ => print!(
+                    "{}: {}",
+                    dialogue.name.bold().yellow(),
+                    replace_tags_ansi(&dialogue.text)
+                ),
             }
             await_key(input);
             true
@@ -82,7 +111,10 @@ fn handle_line(runner: &mut Runner, input: &mut String) -> bool {
             get_input(input);
             true
         }
-        _ => false,
+        _ => {
+            println!("line: {:?}", line);
+            false
+        }
     }
 }
 

@@ -1,8 +1,9 @@
 use crate::{
     error::{Error, Result},
     structs::{
-        Branches, Choice, Choices, Cmd, Comparator, Conditional, Dialogue, Line, Map, Operator,
-        Params, Passage, Passages, QualifiedName, State, StateMod, Story, StoryGetters, Value,
+        Branches, Cmd, Comparator, Conditional, Dialogue, Line, Map, Operator, Params, Passage,
+        Passages, QualifiedName, RawChoice, RawChoices, State, StateMod, Story, StoryGetters,
+        Value, GLOBAL,
     },
     traits::FromStr,
 };
@@ -15,7 +16,7 @@ pub struct Validator<'a> {
 impl<'a> Validator<'a> {
     pub fn new(story: &'a Story) -> Self {
         Self {
-            namespace: "",
+            namespace: GLOBAL,
             story,
         }
     }
@@ -25,16 +26,21 @@ impl<'a> Validator<'a> {
         Ok(())
     }
 
+    fn validate_character(&self, name: &str) -> Result<()> {
+        if self
+            .story
+            .character(&QualifiedName::from(self.namespace, name))
+            .is_none()
+        {
+            return Err(error!("Undefined character name {}", name));
+        }
+        Ok(())
+    }
+
     /// Validate that the dialogue contains valid text and configured characters only.
     fn validate_dialogue(&self, dialogue: &Map<String, String>) -> Result<()> {
         for (name, text) in dialogue {
-            if self
-                .story
-                .character(&QualifiedName::from(self.namespace, name))
-                .is_none()
-            {
-                return Err(error!("Undefined character name {}", name));
-            }
+            self.validate_character(&name)?;
             self.validate_text(&text)?;
         }
         Ok(())
@@ -74,11 +80,25 @@ impl<'a> Validator<'a> {
     /// Validates a command.
     fn validate_cmd(&self, cmd: &Cmd) -> Result<()> {
         for (command, params) in cmd {
+            let split: Vec<&str> = command.rsplit(".").collect();
+            let command_name = match split.as_slice() {
+                [command, character] => {
+                    self.validate_character(&character)?;
+                    command
+                }
+                [command] => command,
+                _ => {
+                    return Err(error!(
+                        "Command name error. Commands can only contain one '.' delimeter."
+                    ))
+                }
+            };
+
             match self
                 .story
-                .params(&QualifiedName::from(self.namespace, command))
+                .params(&QualifiedName::from(self.namespace, command_name))
             {
-                None => Err(error!("No such command '{}'.", command)),
+                None => Err(error!("No such command '{}'.", command_name)),
                 Some(Some(config_params)) => Self::validate_params(command, params, config_params),
                 Some(None) => Ok(()),
             }?
@@ -97,10 +117,10 @@ impl<'a> Validator<'a> {
     /// Validates a line of dialogue.
     fn validate_line(&self, line: &Line) -> Result<()> {
         match &line {
-            Line::_Dialogue(dialogue) => self.validate_dialogue(dialogue),
+            Line::RawDialogue(dialogue) => self.validate_dialogue(dialogue),
             Line::Branches(cond) => self.validate_branches(cond),
-            Line::Choices(choices) => self.validate_choices(choices),
-            Line::Goto(goto) => self.validate_goto(&goto.goto),
+            Line::RawChoices(choices) => self.validate_choices(choices),
+            Line::Call(call) => self.validate_goto(&call.passage),
             Line::SetCmd(cmd) => self.validate_state(&cmd.set),
             Line::Commands(cmds) => self.validate_cmds(&cmds),
             _ => Ok(()),
@@ -198,16 +218,19 @@ impl<'a> Validator<'a> {
     }
 
     /// Validates that the story contains the referenced passage.
-    fn validate_choices(&self, choices: &Choices) -> Result<()> {
+    fn validate_choices(&self, choices: &RawChoices) -> Result<()> {
         for (key, choice) in &choices.choices {
             match choice {
-                Choice::PassageName(passage_name) => self.validate_goto(passage_name)?,
-                Choice::Conditional(conditional) => {
-                    for (_choice_name, passage_name) in conditional {
+                RawChoice::PassageName(Some(passage_name)) => self.validate_goto(&passage_name)?,
+                RawChoice::Conditional(conditional) => {
+                    for (_choice_name, passage_name_opt) in conditional {
                         self.validate_conditional(key)?;
-                        self.validate_goto(passage_name)?;
+                        if let Some(passage_name) = passage_name_opt {
+                            self.validate_goto(&passage_name)?;
+                        }
                     }
                 }
+                _ => (),
             }
         }
         Ok(())
@@ -216,7 +239,10 @@ impl<'a> Validator<'a> {
     fn validate_passages(&self, passages: &Passages) -> Result<()> {
         for (passage_name, passage) in passages {
             if let Err(e) = self.validate_passage(passage) {
-                return Err(error!("Passage '{}': {}", passage_name, e));
+                return Err(error!(
+                    "Passage '{}:{}' {}",
+                    self.namespace, passage_name, e
+                ));
             }
         }
         Ok(())

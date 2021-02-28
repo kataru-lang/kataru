@@ -1,33 +1,50 @@
 ---
-namespace: train
+namespace: monster
 state:
   strength: 0
+  Train.visited: false
 
 ---
 Start:
-  - [clearScreen: {}]
-  - You walk into another room, where you find a monster!
+  # - [clearScreen: {}]
+  - Narrator: You walk into another room, where you find a monster!
+  - [Bobs.wave: {}]
   - What would you like to do?
   - choices:
+      attack:
+      engage:
       fight: Fight
+      prepare:
       train: Train
+      nothing:
       ...: Timeout
 
 Fight:
-  - You fight and fight and fight...
+  - Narrator: You fight and fight and fight...
   - if strength > 2:
       - And you finally defeat the monster!
       - Congrats!
-      - goto: End
     else:
       - But you weren't strong enough!
       - Should you try again?
       - choices:
+          yes:
+          fight:
+          keep fighting:
+          retry:
           try again: Fight
+          no:
+          go back:
+          prepare:
           train: Train
           ...: Timeout
 
 Train:
+  - if not Train.visited:
+      - Narrator: You arrive at the dojo.
+      - set: { Train.visited: true }
+    else:
+      - Narrator: You return to the dojo.
   - if strength < 3:
       - |
         *training noises*
@@ -44,4 +61,4 @@ Train:
 
 Timeout:
   - You took to long to decide! Looks like you need some training...
-  - goto: Train
+  - call: Train

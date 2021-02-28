@@ -18,7 +18,7 @@ pub struct Config {
     #[serde(default)]
     pub commands: Map<String, Option<Params>>,
     #[serde(default)]
-    pub characters: Map<String, CharacterData>,
+    pub characters: Map<String, Option<CharacterData>>,
     #[serde(default)]
     pub attributes: Map<String, Option<String>>,
 }

@@ -1,5 +1,4 @@
-use super::Map;
-use crate::Error;
+use crate::Result;
 
 mod file;
 mod text;
@@ -8,15 +7,11 @@ pub use file::{Load, LoadMessagePack, LoadYaml, Save, SaveMessagePack, SaveYaml}
 pub use text::{FromMessagePack, FromStr, FromYaml};
 
 /// Trait to merge two objects together. Used for maps.
-pub trait Merge {
-    fn copy_keys<V>(map: &Map<String, V>) -> Vec<String> {
-        let mut keys: Vec<String> = Vec::with_capacity(map.len());
-        for key in map.keys() {
-            keys.push(key.to_string());
-        }
-        keys
-    }
-    fn merge(&mut self, other: &mut Self) -> Result<(), Error>
-    where
-        Self: std::marker::Sized;
+pub trait Merge: Sized {
+    fn merge(&mut self, other: &mut Self) -> Result<()>;
+}
+
+/// Trait to merge two objects together. Used for maps.
+pub trait MoveValues: Sized {
+    fn move_values(other: &mut Self) -> Result<Self>;
 }

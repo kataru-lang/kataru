@@ -1,20 +1,18 @@
 ---
-namespace: ""
+namespace: global
 
 state:
-  name: "Player"
+  name: Player
 
 characters:
   Alice:
-    description: Main character.
   Bob:
-    description: Side kick.
   Narrator:
-    description: Narrator of the story.
 
 commands:
   clearScreen:
   save:
+  wave:
 
 attributes:
   wave:
@@ -37,25 +35,32 @@ Start:
     Hello ${name},
     are you ready for an <wave>epic</wave> story?
 
-  - [save: {}]
+  - call: Conversation
 
+  # Choices are represented as a mapping.
+  - choices:
+      keep going:
+      continue: investigate:Start
+      quit:
+      stop: Stop
+      ...: Timeout
+    timeout: 10.0
+
+  # After call to the selected choice, the runner returns to the next line.
+  - End of story. Thanks for playing!
+
+  # To loop, use goto.
+  - call: Start
+
+Stop:
+  - All done, huh?
+
+Conversation:
   # Character dialogue can be done using single-entry maps.
   - Alice: Hello, my name is Alice. This is how you write a dialogue line in Kataru!
   - Bob: Hi Alice, I'm Bob. Here is another line of dialogue. Isn't it nice how all character names are validated upon parsing?
   - Alice: It sure is, Bob!
   - Bob: Get ready though, soon you'll have to make a choice. Will you continue reading, or stop here?
 
-  # Choices are represented as a mapping.
-  - choices:
-      continue: inv:Start
-      stop: End
-      ...: Timeout
-    timeout: 10
-
-End:
-  - End of story. Thanks for playing!
-  - goto: Start
-
 Timeout:
   - No response, huh?
-  - goto: End

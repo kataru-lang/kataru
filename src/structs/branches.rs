@@ -24,7 +24,7 @@ impl Branchable for Branches {
                 skip_lines += flattened_len(lines) + 1;
             }
         }
-        bookmark.line += skip_lines;
+        bookmark.position.line += skip_lines;
         Ok(skip_lines)
     }
 
