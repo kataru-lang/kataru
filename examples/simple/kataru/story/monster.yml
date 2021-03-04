@@ -1,8 +1,9 @@
 ---
 namespace: monster
+
 state:
   strength: 0
-  Train.visited: false
+  ${passage}.visited: 0
 
 ---
 Start:
@@ -42,11 +43,10 @@ Fight:
           ...: Timeout
 
 Train:
-  - if not Train.visited:
-      - Narrator: You arrive at the dojo.
-      - set: { Train.visited: true }
-    else:
+  - if Train.visited > 1:
       - Narrator: You return to the dojo.
+    else:
+      - Narrator: You arrive at the dojo.
   - if strength < 3:
       - |
         *training noises*

@@ -1,4 +1,4 @@
-use super::{Entry, Map, QualifiedName, State, Story, Value};
+use super::{Map, QualifiedName, State, Story, Value};
 use crate::error::{Error, Result};
 use crate::{
     traits::{FromMessagePack, FromYaml, LoadYaml, SaveMessagePack},
@@ -67,17 +67,28 @@ impl<'a> Bookmark {
         }
     }
 
+    // Updates `state[var] = val` iff `var` not already in `state`.
+    fn default_val(state: &mut State, var: &str, val: &Value) {
+        if state.get(var).is_none() {
+            state.insert(var.to_string(), val.clone());
+        }
+    }
+
     pub fn init_state(&mut self, story: &Story) {
         for (namespace, section) in story {
-            match self.state.entry(namespace.clone()) {
-                Entry::Occupied(o) => {
-                    let state = o.into_mut();
-                    for (var, val) in &section.config.state {
-                        state.entry(var.clone()).or_insert(val.clone());
+            if self.state.get(namespace).is_none() {
+                self.state.insert(namespace.to_string(), State::default());
+            }
+
+            let namespace_state = self.state.get_mut(namespace).unwrap();
+            for (var, val) in &section.config.state {
+                if var.contains("${passage}") {
+                    for passage in section.passages.keys() {
+                        let replaced = format!("{}{}", passage, &var["${passage}".len()..]);
+                        Self::default_val(namespace_state, &replaced, &val);
                     }
-                }
-                Entry::Vacant(v) => {
-                    v.insert(section.config.state.clone());
+                } else {
+                    Self::default_val(namespace_state, &var, &val);
                 }
             }
         }

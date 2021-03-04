@@ -29,15 +29,21 @@ fn await_key(input: &mut String) {
     *input = String::new();
 }
 
+/// Validate the story.
+/// Return true iff story is valid.
 #[cfg(debug_assertions)]
-fn print_validation(story: &Story) {
-    // Validate the story.
+fn print_validation(story: &Story) -> bool {
     println!("{}", "Validating story...".bold().cyan());
-    let msg = match Validator::new(story).validate() {
-        Err(e) => format!("{}", e).red(),
-        Ok(_) => "Validated story successfully.".bold().green(),
-    };
-    println!("{}\n", msg);
+    match Validator::new(story).validate() {
+        Err(e) => {
+            println!("{}", format!("{}", e).red());
+            false
+        }
+        Ok(_) => {
+            println!("{}", "Validated story successfully.".bold().green());
+            true
+        }
+    }
 }
 
 fn run_command(command: &str, _params: &Map<String, Value>) {
@@ -129,8 +135,11 @@ fn main() {
     let story = Story::from_mp(include_bytes!("../target/story")).unwrap();
 
     #[cfg(debug_assertions)]
-    print_validation(&story);
+    if !print_validation(&story) {
+        return;
+    }
 
+    bookmark.init_state(&story);
     let mut runner = Runner::new(&mut bookmark, &story).unwrap();
     let mut input = String::new();
 

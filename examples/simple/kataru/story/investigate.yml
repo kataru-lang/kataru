@@ -1,10 +1,12 @@
 ---
 namespace: investigate
+
 state:
-  Fridge.visited: false
-  Computer.visited: false
-  Coffee.visited: false
-  Investigate.visisted: false
+  ${passage}.visited: 0
+
+onPassage:
+  set:
+    ${passage}.visited +: 1
 
 ---
 Start:
@@ -17,23 +19,28 @@ Investigate:
   - You stand in a room. Before you is a computer, a fridge, and a cup of coffee.
   - Would you like to investigate any of them?
   - choices:
-      if not Fridge.visited: { fridge: Fridge }
-      if not Coffee.visited: { coffee: Coffee }
-      if not Computer.visited: { computer: Computer }
+      if Fridge.visited < 1: { fridge: Fridge }
+      if Coffee.visited < 1: { coffee: Coffee }
+      if Computer.visited < 1: { computer: Computer }
+      yes: WhichOne
       no: Done
       ...: Done
   - call: Investigate
 
+WhichOne:
+  - Well, which one?
+  - choices:
+      if Fridge.visited < 1: { fridge: Fridge }
+      if Coffee.visited < 1: { coffee: Coffee }
+      if Computer.visited < 1: { computer: Computer }
+
 Coffee:
-  - set: { Coffee.visited: true }
   - It's a cup of coffee.
 
 Fridge:
-  - set: { Fridge.visited: true }
   - It's a fridge. There's some moldy cheese in there. Gross!
 
 Computer:
-  - set: { Computer.visited: true }
   - It's your computer. Wow, that desktop really needs some organization.
 
 Done:

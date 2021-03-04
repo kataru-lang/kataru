@@ -3,6 +3,7 @@ namespace: global
 
 state:
   name: Player
+  ${passage}.visited: 0
 
 characters:
   Alice:
@@ -12,10 +13,15 @@ characters:
 commands:
   clearScreen:
   save:
-  wave:
+  ${character}.wave:
 
 attributes:
   wave:
+
+onPassage:
+  set:
+    ${passage}.visited +: 1
+
 ---
 # Each passage is a key in the YAML file.
 Start:

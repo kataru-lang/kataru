@@ -1,7 +1,7 @@
 position:
   line: 0
   passage: Start
-  namespace: monster
+  namespace: global
 state:
   global:
     test: 0

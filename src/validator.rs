@@ -10,6 +10,7 @@ use crate::{
 
 pub struct Validator<'a> {
     namespace: &'a str,
+    passage: &'a str,
     story: &'a Story,
 }
 
@@ -17,6 +18,7 @@ impl<'a> Validator<'a> {
     pub fn new(story: &'a Story) -> Self {
         Self {
             namespace: GLOBAL,
+            passage: "",
             story,
         }
     }
@@ -80,23 +82,19 @@ impl<'a> Validator<'a> {
     /// Validates a command.
     fn validate_cmd(&self, cmd: &Cmd) -> Result<()> {
         for (command, params) in cmd {
-            let split: Vec<&str> = command.rsplit(".").collect();
+            let split: Vec<&str> = command.split(".").collect();
             let command_name = match split.as_slice() {
-                [command, character] => {
+                [character, command] => {
                     self.validate_character(&character)?;
-                    command
+                    format!("${{character}}.{}", command)
                 }
-                [command] => command,
-                _ => {
-                    return Err(error!(
-                        "Command name error. Commands can only contain one '.' delimeter."
-                    ))
-                }
+                [command] => command.to_string(),
+                _ => return Err(error!("Commands can only contain one '.' delimeter.")),
             };
 
             match self
                 .story
-                .params(&QualifiedName::from(self.namespace, command_name))
+                .params(&QualifiedName::from(self.namespace, &command_name))
             {
                 None => Err(error!("No such command '{}'.", command_name)),
                 Some(Some(config_params)) => Self::validate_params(command, params, config_params),
@@ -188,9 +186,42 @@ impl<'a> Validator<'a> {
 
     /// Validates a variable and returns a reference to it's value.
     fn validate_var(&self, var: &str) -> Result<&Value> {
-        match self.story.value(&QualifiedName::from(self.namespace, var)) {
-            Some(value) => Ok(value),
-            None => return Err(error!("No state variable named '{}'", var)),
+        let split: Vec<&str> = var.split(".").collect();
+        match split.as_slice() {
+            [prefix, suffix] => {
+                // First check passage variables.
+                let passage_var = format!("${{passage}}.{}", suffix);
+                if let Some(value) = self
+                    .story
+                    .value(&QualifiedName::from(self.namespace, &passage_var))
+                {
+                    self.validate_goto(prefix)?;
+                    return Ok(value);
+                }
+
+                // Then check character variables.
+                let character_var = format!("${{character}}.{}", suffix);
+                if let Some(value) = self
+                    .story
+                    .value(&QualifiedName::from(self.namespace, &character_var))
+                {
+                    self.validate_character(prefix)?;
+                    return Ok(value);
+                }
+
+                Err(error!(
+                    "Variable '{}' did not match any character or passage variables.",
+                    var
+                ))
+            }
+            [var] => {
+                if let Some(value) = self.story.value(&QualifiedName::from(self.namespace, &var)) {
+                    Ok(value)
+                } else {
+                    Err(error!("Variable '{}' was undefined.", var))
+                }
+            }
+            _ => Err(error!("Variables can only contain one '.' delimeter.")),
         }
     }
 
@@ -236,8 +267,9 @@ impl<'a> Validator<'a> {
         Ok(())
     }
 
-    fn validate_passages(&self, passages: &Passages) -> Result<()> {
+    fn validate_passages(&mut self, passages: &'a Passages) -> Result<()> {
         for (passage_name, passage) in passages {
+            self.passage = passage_name;
             if let Err(e) = self.validate_passage(passage) {
                 return Err(error!(
                     "Passage '{}:{}' {}",

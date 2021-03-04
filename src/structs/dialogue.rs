@@ -67,6 +67,7 @@ mod tests {
                         "attr".to_string() => None
                     },
                     characters: Map::new(),
+                    on_passage: None
                 },
                 passages: Map::new()
             }

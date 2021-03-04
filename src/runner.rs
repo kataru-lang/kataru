@@ -2,12 +2,13 @@ use crate::{
     error::{Error, Result},
     structs::{
         Bookmark, Branchable, Choices, Dialogue, Line, Passage, QualifiedName, Return, State,
-        StateUpdatable, Story, StoryGetters, GLOBAL,
+        StateUpdatable, Story, GLOBAL,
     },
     Value,
 };
 
 static RETURN: Line = Line::Return(Return { r#return: () });
+static EMPTY_PASSAGE: Passage = Vec::new();
 
 pub struct Runner<'r> {
     pub bookmark: &'r mut Bookmark,
@@ -24,31 +25,55 @@ pub struct Runner<'r> {
 impl<'r> Runner<'r> {
     pub fn new(bookmark: &'r mut Bookmark, story: &'r Story) -> Result<Self> {
         // Flatten dialogue lines
-        let passage = match story.passage(&QualifiedName::from(
-            &bookmark.position.namespace,
-            &bookmark.position.passage,
-        )) {
-            Some(passage) => passage,
-            None => {
-                return Err(error!(
-                    "Invalid passage '{}' in namespace '{}'",
-                    bookmark.position.passage, bookmark.position.namespace
-                ))
-            }
-        };
         let mut runner = Self {
             bookmark,
             story,
             line_num: 0,
             lines: vec![],
             line: Line::Continue,
-            passage,
+            passage: &EMPTY_PASSAGE,
             choices: Choices::default(),
             breaks: vec![],
             speaker: "".to_string(),
         };
-        runner.load_passage(passage);
+        runner.goto()?;
         Ok(runner)
+    }
+
+    /// Gets the next dialogue line from the story based on the user's input.
+    /// Internally, a single call to `next()` may result in multiple lines being processed,
+    /// i.e. when a choice is being made.
+    pub fn next(&mut self, input: &str) -> Result<&Line> {
+        self.line = self.process(input)?;
+        while self.line == Line::Continue {
+            self.line = self.process("")?;
+        }
+        Ok(&self.line)
+    }
+
+    /// Call the configured passage by putting return position on stack.
+    /// And goto the passage.
+    pub fn call(&mut self, passage: String) -> Result<()> {
+        self.bookmark.position.line += 1;
+
+        // Don't push this func onto the stack of the next line is just a return.
+        if let Line::Return(_) = self.lines[self.bookmark.position.line] {
+        } else {
+            self.bookmark.stack.push(self.bookmark.position.clone());
+        }
+
+        self.bookmark.position.passage = passage;
+        self.bookmark.position.line = 0;
+        self.goto()?;
+        Ok(())
+    }
+
+    /// Go to the passage specified in bookmark.
+    /// This public API method automatically triggers `run_on_passage`.
+    pub fn goto(&mut self) -> Result<()> {
+        self.load_bookmark_position()?;
+        self.run_on_passage()?;
+        Ok(())
     }
 
     /// Loads lines into a single flat array of references.
@@ -144,32 +169,40 @@ impl<'r> Runner<'r> {
         ))
     }
 
-    /// Goto to the configured passage.
+    /// Runs the `onPassage` set command.
+    fn run_on_passage(&mut self) -> Result<()> {
+        let namespace = &self.bookmark.position.namespace;
+
+        // First try to find the section specified namespace.
+        if let Some(section) = self.story.get(namespace) {
+            if let Some(set_cmd) = &section.config.on_passage {
+                return self.set_state(&set_cmd.set);
+            }
+            Ok(())
+        } else {
+            Err(error!("Invalid namespace '{}'", &namespace))
+        }
+    }
+
+    /// Gets the current passage based on the bookmark's position.
     /// Loads the lines into its flattened form.
     /// Automatically handles updating of namespace.
-    pub fn goto(&mut self) -> Result<()> {
-        self.passage = self.get_passage(QualifiedName::from(
+    fn load_bookmark_position(&mut self) -> Result<()> {
+        let qname = QualifiedName::from(
             &self.bookmark.position.namespace,
             &self.bookmark.position.passage,
-        ))?;
+        );
+        self.passage = self.get_passage(qname)?;
         self.load_passage(self.passage);
         Ok(())
     }
 
-    /// Call the configured passage by putting return position on stack.
-    /// And goto the passage.
-    pub fn call(&mut self, passage: String) -> Result<()> {
-        self.bookmark.position.line += 1;
-
-        // Don't push this func onto the stack of the next line is just a return.
-        if let Line::Return(_) = self.lines[self.bookmark.position.line] {
-        } else {
-            self.bookmark.stack.push(self.bookmark.position.clone());
-        }
-
-        self.bookmark.position.passage = passage;
-        self.bookmark.position.line = 0;
-        self.goto()?;
+    fn set_state(&mut self, state: &State) -> Result<()> {
+        let passage_name = self.bookmark.position.passage.clone();
+        let root_sets = self.bookmark.state()?.update(&state, &passage_name)?;
+        self.bookmark
+            .root_state()?
+            .update(&root_sets, &passage_name)?;
         Ok(())
     }
 
@@ -216,8 +249,7 @@ impl<'r> Runner<'r> {
                     for (var, _prompt) in &input_cmd.input {
                         let mut state = State::new();
                         state.insert(var.clone(), Value::String(input.to_string()));
-                        let root_sets = self.bookmark.state()?.update(&state)?;
-                        self.bookmark.root_state()?.update(&root_sets)?;
+                        self.set_state(&state)?
                     }
                     self.bookmark.position.line += 1;
                     Line::Continue
@@ -237,7 +269,7 @@ impl<'r> Runner<'r> {
             Line::Return(_) => match self.bookmark.stack.pop() {
                 Some(position) => {
                     self.bookmark.position = position;
-                    self.goto()?;
+                    self.load_bookmark_position()?;
                     Line::Continue
                 }
                 None => Line::End,
@@ -255,8 +287,11 @@ impl<'r> Runner<'r> {
                 line.clone()
             }
             Line::SetCmd(set) => {
-                let root_sets = self.bookmark.state()?.update(&set.set)?;
-                self.bookmark.root_state()?.update(&root_sets)?;
+                let passage_name = self.bookmark.position.passage.clone();
+                let root_sets = self.bookmark.state()?.update(&set.set, &passage_name)?;
+                self.bookmark
+                    .root_state()?
+                    .update(&root_sets, &passage_name)?;
                 self.bookmark.position.line += 1;
                 Line::Continue
             }
@@ -299,16 +334,5 @@ impl<'r> Runner<'r> {
         } else {
             self.process_line(input, self.lines[self.bookmark.position.line])
         }
-    }
-
-    /// Gets the next dialogue line from the story based on the user's input.
-    /// Internally, a single call to `next()` may result in multiple lines being processed,
-    /// i.e. when a choice is being made.
-    pub fn next(&mut self, input: &str) -> Result<&Line> {
-        self.line = self.process(input)?;
-        while self.line == Line::Continue {
-            self.line = self.process("")?;
-        }
-        Ok(&self.line)
     }
 }
