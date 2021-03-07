@@ -3,18 +3,20 @@ namespace: global
 
 state:
   name: Player
-  waitAmount: 7
   $passage.visited: 0
+  defaultScene: 7Mirrors
 
 characters:
-  Alice:
-  Bob:
-  Narrator:
+  Dahlia:
+  Lily:
+  Think:
 
 commands:
-  clearScreen:
-    wait: $waitAmount
-  $character.wave:
+  Save:
+  Wave:
+  LoadScene:
+    scene: $defaultScene
+    duration: 0
 
 attributes:
   wave:
@@ -26,48 +28,33 @@ onPassage:
 ---
 # Each passage is a key in the YAML file.
 Start:
-  # Commands can be called in the client using `[]`.
-  # The `{}` can be used for parameters, i.e. `command: {var1: 0`}.
-  - [clearScreen: {}]
-
   # A single text block can have many lines using `|`.
-  - Narrator: |
-      Welcome to Kataru!
-      「カタル」へようこそ!
-
-  - Kataru is a dialogue engine built completely on top of YAML with a focus on ease of implementation and simplicity of writing.
-
-  # If you want to ignore whitespace, use `>-`.
-  - >-
-    Hello {$name},
-    are you ready for an <wave>epic</wave> story?
-
-  - call: Conversation
-
-  # Choices are represented as a mapping.
+  - Dahlia: Hi there!
+  - What's up?
+  - [Save: {}]
+  - Lily: Oh, nothing much.
+  - How bout u?
+  - Dahlia: You know...
+  - sleeping lol
+  - Lily: Nice.
+  - Dahlia: Want to do something?
   - choices:
-      keep going:
-      continue: investigate:Start
-      quit:
-      stop: Stop
-      ...: Timeout
-    timeout: 10.0
+      sure!: DoSomething
+      nah...: DoNothing
+  - [Save: {}]
 
-  # After call to the selected choice, the runner returns to the next line.
-  - End of story. Thanks for playing!
+CheckDoor:
+  - if $DoSomething.visited < 1:
+      - Think: Can't go outside yet...
+    else:
+      - Think: You can go outside now!
+      - call: MirrorHub
 
-  # To loop, use goto.
-  - call: Start
+DoSomething:
+  - Lily: Yeah why not?
+  - Dahlia: Yay!!
+  - DoSomething.visited = $DoSomething.visited
 
-Stop:
-  - All done, huh?
-
-Conversation:
-  # Character dialogue can be done using single-entry maps.
-  - Alice: Hello, my name is Alice. This is how you write a dialogue line in Kataru!
-  - Bob: Hi Alice, I'm Bob. Here is another line of dialogue. Isn't it nice how all character names are validated upon parsing?
-  - Alice: It sure is, Bob!
-  - Bob: Get ready though, soon you'll have to make a choice. Will you continue reading, or stop here?
-
-Timeout:
-  - No response, huh?
+DoNothing:
+  - Lily: Sorry, I'm busy...
+  - Dahlia: :(

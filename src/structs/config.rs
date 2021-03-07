@@ -34,6 +34,9 @@ impl Merge for Config {
         self.commands.merge(&mut other.commands)?;
         self.state.merge(&mut other.state)?;
         self.attributes.merge(&mut other.attributes)?;
+        if self.on_passage.is_none() && other.on_passage.is_some() {
+            self.on_passage = other.on_passage.clone();
+        }
         Ok(())
     }
 }
