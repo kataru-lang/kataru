@@ -49,7 +49,7 @@ fn print_validation(story: &Story) -> bool {
 fn run_command(command: &str, _params: &Map<String, Value>) {
     match command {
         "clearScreen" => print!("{}[2J", 27 as char),
-        _ => println!("{}", "Unknown command".red()),
+        _ => println!("{}", format!("{}: {:#?}", command, _params).italic()),
     }
 }
 

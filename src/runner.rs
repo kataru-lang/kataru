@@ -4,7 +4,8 @@ use crate::{
         Bookmark, Branchable, Choices, Dialogue, Line, Passage, QualifiedName, Return, State,
         StateUpdatable, Story, GLOBAL,
     },
-    Value,
+    traits::CopyMerge,
+    Cmd, Params, StoryGetters, Value,
 };
 
 static RETURN: Line = Line::Return(Return { r#return: () });
@@ -29,11 +30,11 @@ impl<'r> Runner<'r> {
             bookmark,
             story,
             line_num: 0,
-            lines: vec![],
+            lines: Vec::new(),
             line: Line::Continue,
             passage: &EMPTY_PASSAGE,
             choices: Choices::default(),
-            breaks: vec![],
+            breaks: Vec::new(),
             speaker: "".to_string(),
         };
         runner.goto()?;
@@ -206,6 +207,17 @@ impl<'r> Runner<'r> {
         Ok(())
     }
 
+    fn get_default_params(&self, command_name: &str) -> Option<&Params> {
+        Some(
+            self.story
+                .params(&QualifiedName::from(
+                    &self.bookmark.position.namespace,
+                    command_name,
+                ))?
+                .as_ref()?,
+        )
+    }
+
     /// Processes a line.
     /// Returning Line::Continue signals to `next()` that another line should be processed
     /// before returning a line to the user.
@@ -282,9 +294,20 @@ impl<'r> Runner<'r> {
                 };
                 Line::Continue
             }
-            Line::Commands(_) => {
+            Line::Commands(commands) => {
                 self.bookmark.position.line += 1;
-                line.clone()
+                let mut full_commands: Vec<Cmd> = Vec::new();
+                for command in commands {
+                    for (command_name, params) in command {
+                        if let Some(default_params) = self.get_default_params(command_name) {
+                            let mut cmd = Cmd::new();
+                            let merged_params = params.copy_merge(default_params)?;
+                            cmd.insert(command_name.clone(), merged_params);
+                            full_commands.push(cmd);
+                        }
+                    }
+                }
+                Line::Commands(full_commands)
             }
             Line::SetCmd(set) => {
                 let passage_name = self.bookmark.position.passage.clone();

@@ -12,6 +12,11 @@ pub trait Merge: Sized {
 }
 
 /// Trait to merge two objects together. Used for maps.
+pub trait CopyMerge: Sized + Clone {
+    fn copy_merge(&self, other: &Self) -> Result<Self>;
+}
+
+/// Trait to move values from one object objects together. Used for maps.
 pub trait MoveValues: Sized {
     fn move_values(other: &mut Self) -> Result<Self>;
 }

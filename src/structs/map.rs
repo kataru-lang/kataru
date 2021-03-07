@@ -1,4 +1,4 @@
-use crate::traits::Merge;
+use crate::traits::{CopyMerge, Merge};
 use crate::{error::Result, traits::MoveValues};
 use std::collections::BTreeMap;
 
@@ -36,5 +36,17 @@ impl<V> Merge for Map<String, V> {
             }
         }
         Ok(())
+    }
+}
+
+impl<V: Clone> CopyMerge for Map<String, V> {
+    fn copy_merge(&self, other: &Self) -> Result<Self> {
+        let mut merged = self.clone();
+        for (key, value) in other {
+            if !merged.contains_key(key) {
+                merged.insert(key.to_string(), value.clone());
+            }
+        }
+        Ok(merged)
     }
 }

@@ -11,7 +11,7 @@ characters:
   Narrator:
 
 commands:
-  clearScreen:
+  clearScreen: { wait: 0 }
   save:
   ${character}.wave:
 
