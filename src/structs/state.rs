@@ -24,8 +24,8 @@ impl StateUpdatable for State {
             #[allow(unused_assignments)]
             let mut replaced = String::new();
             let mut text = key;
-            if key.starts_with("${passage}") {
-                replaced = format!("{}{}", passage, &text["${passage}".len()..]);
+            if key.starts_with("$passage") {
+                replaced = format!("${}{}", passage, &text["$passage".len()..]);
                 text = &replaced;
             }
 
@@ -51,12 +51,12 @@ impl<'a> FromStr<'a> for StateMod<'a> {
         let split: Vec<&str> = text.split(' ').collect();
         if split.len() == 1 {
             return Ok(Self {
-                var: split[0],
+                var: &split[0][1..],
                 op: Operator::SET,
             });
         } else if split.len() == 2 {
             return Ok(Self {
-                var: split[0],
+                var: &split[0][1..],
                 op: Operator::from_str(split[1])?,
             });
         }

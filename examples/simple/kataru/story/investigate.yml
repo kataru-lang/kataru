@@ -2,11 +2,11 @@
 namespace: investigate
 
 state:
-  ${passage}.visited: 0
+  $passage.visited: 0
 
 onPassage:
   set:
-    ${passage}.visited +: 1
+    $passage.visited +: 1
 
 ---
 Start:
@@ -19,9 +19,9 @@ Investigate:
   - You stand in a room. Before you is a computer, a fridge, and a cup of coffee.
   - Would you like to investigate any of them?
   - choices:
-      if Fridge.visited < 1: { fridge: Fridge }
-      if Coffee.visited < 1: { coffee: Coffee }
-      if Computer.visited < 1: { computer: Computer }
+      if $Fridge.visited < 1: { fridge: Fridge }
+      if $Coffee.visited < 1: { coffee: Coffee }
+      if $Computer.visited < 1: { computer: Computer }
       yes: WhichOne
       no: Done
       ...: Done
@@ -30,9 +30,9 @@ Investigate:
 WhichOne:
   - Well, which one?
   - choices:
-      if Fridge.visited < 1: { fridge: Fridge }
-      if Coffee.visited < 1: { coffee: Coffee }
-      if Computer.visited < 1: { computer: Computer }
+      if $Fridge.visited < 1: { fridge: Fridge }
+      if $Coffee.visited < 1: { coffee: Coffee }
+      if $Computer.visited < 1: { computer: Computer }
 
 Coffee:
   - It's a cup of coffee.

@@ -71,6 +71,7 @@ fn replace_tags_ansi(text: &str) -> String {
 }
 
 fn handle_line(runner: &mut Runner, input: &mut String) -> bool {
+    // println!("{:#?}", runner.bookmark);
     let line = runner.next(&input).unwrap();
     match line {
         Line::Dialogue(dialogue) => {

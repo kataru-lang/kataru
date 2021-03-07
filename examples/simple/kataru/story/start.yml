@@ -4,7 +4,7 @@ namespace: global
 state:
   name: Player
   waitAmount: 7
-  ${passage}.visited: 0
+  $passage.visited: 0
 
 characters:
   Alice:
@@ -13,16 +13,16 @@ characters:
 
 commands:
   clearScreen:
-    wait: ${waitAmount}
+    wait: $waitAmount
   save:
-  ${character}.wave:
+  $character.wave:
 
 attributes:
   wave:
 
 onPassage:
   set:
-    ${passage}.visited +: 1
+    $passage.visited +: 1
 
 ---
 # Each passage is a key in the YAML file.
@@ -40,7 +40,7 @@ Start:
 
   # If you want to ignore whitespace, use `>-`.
   - >-
-    Hello ${name},
+    Hello {$name},
     are you ready for an <wave>epic</wave> story?
 
   - call: Conversation

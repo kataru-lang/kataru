@@ -1,9 +1,4 @@
 position:
   line: 0
   passage: Start
-  namespace: global
-state:
-  global:
-    test: 0
-  intro:
-    var: 2
+  namespace: monster

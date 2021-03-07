@@ -35,29 +35,29 @@ impl<'a> Conditional<'a> {
 impl<'a> FromStr<'a> for Conditional<'a> {
     fn from_str(text: &'a str) -> Result<Self> {
         let split: Vec<&'a str> = text.split(' ').collect();
-        if split[0] == "if" {
+        if split[0] == "if" || split[0] == "elif" {
             if split.len() == 4 {
                 return Ok(Self {
-                    var: split[1],
+                    var: &split[1][1..],
                     cmp: Comparator::from_str(split[2])?,
                     val: Value::parse(split[3])?,
                 });
             } else if split.len() == 2 {
                 return Ok(Self {
-                    var: split[1],
+                    var: &split[1][1..],
                     cmp: Comparator::EQ,
                     val: Value::Bool(true),
                 });
             } else if split.len() == 3 && split[1] == "not" {
                 return Ok(Self {
-                    var: split[2],
+                    var: &split[2][1..],
                     cmp: Comparator::EQ,
                     val: Value::Bool(false),
                 });
             }
         }
         Err(error!(
-            "Conditionals must be of the form 'if VAR [<,<=,>,=>,==,] VALUE:' or 'if VAR', not '{}'",
+            "Conditionals must be of the form 'if $VAR [<,<=,>,=>,==,] VALUE:' or 'if [not] $VAR', not '{}'",
             text
         ))
     }
@@ -81,7 +81,7 @@ mod tests {
     /// Tests construction and comparison of conditional
     #[test]
     fn test_cond_cmp() {
-        let res = Conditional::from_str("if var > 5");
+        let res = Conditional::from_str("if $var > 5");
         assert!(res.is_ok(), "Parsing failed: {:?}", res.unwrap_err());
 
         let cond = res.unwrap();

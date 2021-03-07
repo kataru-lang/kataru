@@ -86,7 +86,7 @@ impl<'a> Validator<'a> {
             let command_name = match split.as_slice() {
                 [character, command] => {
                     self.validate_character(&character)?;
-                    format!("${{character}}.{}", command)
+                    format!("$character.{}", command)
                 }
                 [command] => command.to_string(),
                 _ => return Err(error!("Commands can only contain one '.' delimeter.")),
@@ -190,7 +190,7 @@ impl<'a> Validator<'a> {
         match split.as_slice() {
             [prefix, suffix] => {
                 // First check passage variables.
-                let passage_var = format!("${{passage}}.{}", suffix);
+                let passage_var = format!("$passage.{}", suffix);
                 if let Some(value) = self
                     .story
                     .value(&QualifiedName::from(self.namespace, &passage_var))
@@ -200,7 +200,7 @@ impl<'a> Validator<'a> {
                 }
 
                 // Then check character variables.
-                let character_var = format!("${{character}}.{}", suffix);
+                let character_var = format!("$character.{}", suffix);
                 if let Some(value) = self
                     .story
                     .value(&QualifiedName::from(self.namespace, &character_var))

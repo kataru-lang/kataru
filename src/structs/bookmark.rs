@@ -82,9 +82,9 @@ impl<'a> Bookmark {
 
             let namespace_state = self.state.get_mut(namespace).unwrap();
             for (var, val) in &section.config.state {
-                if var.contains("${passage}") {
+                if var.contains("$passage") {
                     for passage in section.passages.keys() {
-                        let replaced = format!("{}{}", passage, &var["${passage}".len()..]);
+                        let replaced = format!("{}{}", passage, &var["$passage".len()..]);
                         Self::default_val(namespace_state, &replaced, &val);
                     }
                 } else {

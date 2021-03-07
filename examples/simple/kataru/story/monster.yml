@@ -3,11 +3,11 @@ namespace: monster
 
 state:
   strength: 0
-  ${passage}.visited: 0
+  $passage.visited: 0
 
 ---
 Start:
-  # - [clearScreen: {}]
+  - [clearScreen: {}]
   - Narrator: You walk into another room, where you find a monster!
   - What would you like to do?
   - call: FightChoices
@@ -24,9 +24,12 @@ FightChoices:
 
 Fight:
   - Narrator: You fight and fight and fight...
-  - if strength > 2:
-      - And you finally defeat the monster!
-      - Congrats!
+  - if $strength > 2:
+      - And you totally destroyed that monster!
+      - Incredible!
+    elif $strength > 1:
+      - And you defeat the monster!
+      - Great!
     else:
       - But you weren't strong enough!
       - Should you try again?
@@ -43,16 +46,16 @@ Fight:
           ...: Timeout
 
 Train:
-  - if Train.visited > 1:
+  - if $Train.visited > 1:
       - Narrator: You return to the dojo.
     else:
       - Narrator: You arrive at the dojo.
-  - if strength < 3:
+  - if $strength < 3:
       - |
         *training noises*
       - set:
-          strength +: 1
-      - You trained and got stronger. You now have a strength score of ${strength}.
+          $strength +: 1
+      - You trained and got stronger. You now have a strength score of {$strength}.
     else:
       - You've already trained too much!
   - What would you like to do now?
