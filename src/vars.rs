@@ -1,12 +1,14 @@
 use crate::structs::Bookmark;
+use crate::{error::Result, Value};
 use regex::{Captures, Regex};
 use std::borrow::Cow;
 
+lazy_static! {
+    static ref VARS_RE: Regex = Regex::new(r"\$\{([:a-zA-Z0-9_\.]*)\}").unwrap();
+}
+
 /// This is a line with var=${var} and var2=${var2}
 pub fn replace_vars(text: &str, bookmark: &Bookmark) -> String {
-    lazy_static! {
-        static ref VARS_RE: Regex = Regex::new(r"\$\{([:a-zA-Z0-9_\.]*)\}").unwrap();
-    }
     VARS_RE
         .replace_all(&text, |cap: &Captures| {
             let var = &cap[1];
@@ -16,6 +18,14 @@ pub fn replace_vars(text: &str, bookmark: &Bookmark) -> String {
             }
         })
         .to_string()
+}
+
+pub fn replace_var(text: &str, bookmark: &Bookmark) -> Result<Option<Value>> {
+    if text.starts_with("${") && text.ends_with("}") {
+        Ok(Some(bookmark.value(&text[2..text.len() - 1])?.clone()))
+    } else {
+        Ok(None)
+    }
 }
 
 #[cfg(test)]

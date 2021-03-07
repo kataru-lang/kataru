@@ -3,6 +3,7 @@ namespace: global
 
 state:
   name: Player
+  waitAmount: 7
   ${passage}.visited: 0
 
 characters:
@@ -11,7 +12,8 @@ characters:
   Narrator:
 
 commands:
-  clearScreen: { wait: 0 }
+  clearScreen:
+    wait: ${waitAmount}
   save:
   ${character}.wave:
 

@@ -5,6 +5,7 @@ use crate::{
         StateUpdatable, Story, GLOBAL,
     },
     traits::CopyMerge,
+    vars::replace_var,
     Cmd, Params, StoryGetters, Value,
 };
 
@@ -218,6 +219,31 @@ impl<'r> Runner<'r> {
         )
     }
 
+    fn get_full_commands(&self, commands: &Vec<Cmd>) -> Result<Vec<Cmd>> {
+        let mut full_commands: Vec<Cmd> = Vec::new();
+        for command in commands {
+            for (command_name, params) in command {
+                if let Some(default_params) = self.get_default_params(command_name) {
+                    let mut cmd = Cmd::new();
+                    let mut merged_params = params.copy_merge(default_params)?;
+
+                    // If the params have variable names, replace with variable value.
+                    for (_var, val) in merged_params.iter_mut() {
+                        if let Value::String(text) = val {
+                            if let Some(replaced) = replace_var(text, &self.bookmark)? {
+                                *val = replaced;
+                            }
+                        }
+                    }
+
+                    cmd.insert(command_name.clone(), merged_params);
+                    full_commands.push(cmd);
+                }
+            }
+        }
+        Ok(full_commands)
+    }
+
     /// Processes a line.
     /// Returning Line::Continue signals to `next()` that another line should be processed
     /// before returning a line to the user.
@@ -296,17 +322,7 @@ impl<'r> Runner<'r> {
             }
             Line::Commands(commands) => {
                 self.bookmark.position.line += 1;
-                let mut full_commands: Vec<Cmd> = Vec::new();
-                for command in commands {
-                    for (command_name, params) in command {
-                        if let Some(default_params) = self.get_default_params(command_name) {
-                            let mut cmd = Cmd::new();
-                            let merged_params = params.copy_merge(default_params)?;
-                            cmd.insert(command_name.clone(), merged_params);
-                            full_commands.push(cmd);
-                        }
-                    }
-                }
+                let full_commands = self.get_full_commands(commands)?;
                 Line::Commands(full_commands)
             }
             Line::SetCmd(set) => {
