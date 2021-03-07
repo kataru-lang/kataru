@@ -223,9 +223,10 @@ impl<'r> Runner<'r> {
         let mut full_commands: Vec<Cmd> = Vec::new();
         for command in commands {
             for (command_name, params) in command {
+                let mut cmd = Cmd::new();
+                let mut merged_params = Params::new();
                 if let Some(default_params) = self.get_default_params(command_name) {
-                    let mut cmd = Cmd::new();
-                    let mut merged_params = params.copy_merge(default_params)?;
+                    merged_params = params.copy_merge(default_params)?;
 
                     // If the params have variable names, replace with variable value.
                     for (_var, val) in merged_params.iter_mut() {
@@ -235,10 +236,10 @@ impl<'r> Runner<'r> {
                             }
                         }
                     }
-
-                    cmd.insert(command_name.clone(), merged_params);
-                    full_commands.push(cmd);
                 }
+
+                cmd.insert(command_name.clone(), merged_params);
+                full_commands.push(cmd);
             }
         }
         Ok(full_commands)
