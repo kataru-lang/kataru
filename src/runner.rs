@@ -240,7 +240,17 @@ impl<'r> Runner<'r> {
             for (command_name, params) in command {
                 let mut cmd = Cmd::new();
                 let mut merged_params = Params::new();
-                if let Some(default_params) = self.get_default_params(command_name) {
+
+                let split: Vec<&str> = command_name.split(".").collect();
+                let normalized_name = match split.as_slice() {
+                    [_character, command_base] => {
+                        format!("$character.{}", command_base)
+                    }
+                    [command_base] => command_base.to_string(),
+                    _ => return Err(error!("Commands can only contain one '.' delimeter.")),
+                };
+
+                if let Some(default_params) = self.get_default_params(&normalized_name) {
                     merged_params = params.copy_merge(default_params)?;
 
                     // If the params have variable names, replace with variable value.

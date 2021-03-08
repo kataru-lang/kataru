@@ -1,0 +1,13 @@
+---
+namespace: global
+
+commands:
+  $character.Wave: { amount: 0 }
+
+characters:
+  Alice:
+
+---
+Start:
+  - [Alice.Wave: { amount: 1 }]
+  - [Alice.Wave: {}]
