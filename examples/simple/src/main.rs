@@ -46,9 +46,19 @@ fn print_validation(story: &Story) -> bool {
     }
 }
 
-fn run_command(command: &str, _params: &Map<String, Value>) {
+fn run_command(runner: &mut Runner, command: &str, _params: &Map<String, Value>) {
     match command {
-        "clearScreen" => print!("{}[2J", 27 as char),
+        "ClearScreen" => print!("{}[2J", 27 as char),
+        "SaveSnapshot" => {
+            runner.save_snapshot("test");
+            println!("Snapshot saved.");
+            println!("{}", format!("{:#?}", runner.bookmark.snapshots).italic());
+        }
+        "LoadSnapshot" => {
+            runner.load_snapshot("test").unwrap();
+            println!("Snapshot loaded.");
+            println!("{}", format!("{:#?}", runner.bookmark.stack).italic());
+        }
         _ => println!("{}", format!("{}: {:#?}", command, _params).italic()),
     }
 }
@@ -72,8 +82,8 @@ fn replace_tags_ansi(text: &str) -> String {
 
 fn handle_line(runner: &mut Runner, input: &mut String) -> bool {
     // println!("{:#?}", runner.bookmark);
-    let line = runner.next(&input).unwrap();
-    match line {
+    let line = runner.next(&input).unwrap().clone();
+    match &line {
         Line::Dialogue(dialogue) => {
             match dialogue.name.as_str() {
                 "Narrator" => print!("{}", replace_tags_ansi(&dialogue.text).italic()),
@@ -98,7 +108,7 @@ fn handle_line(runner: &mut Runner, input: &mut String) -> bool {
         Line::Commands(cmds) => {
             for cmd in cmds {
                 for (command, params) in cmd {
-                    run_command(command, params);
+                    run_command(runner, command, params);
                 }
             }
             true

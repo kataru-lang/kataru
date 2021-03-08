@@ -78,6 +78,14 @@ impl<'r> Runner<'r> {
         Ok(())
     }
 
+    pub fn save_snapshot(&mut self, name: &str) {
+        self.bookmark.save_snapshot(name)
+    }
+
+    pub fn load_snapshot(&mut self, name: &str) -> Result<()> {
+        self.bookmark.load_snapshot(name)
+    }
+
     /// Loads lines into a single flat array of references.
     /// Initializes breakpoint stack.
     fn load_passage(&mut self, lines: &'r [Line]) {

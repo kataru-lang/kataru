@@ -60,6 +60,7 @@ mod tests {
                 }
             },
             stack: Vec::new(),
+            snapshots: btreemap! {},
         };
         assert_eq!(
             replace_vars(

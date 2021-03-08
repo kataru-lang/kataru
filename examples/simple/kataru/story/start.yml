@@ -12,7 +12,8 @@ characters:
   Think:
 
 commands:
-  Save:
+  SaveSnapshot:
+  LoadSnapshot:
   Wave:
   LoadScene:
     scene: $defaultScene
@@ -31,17 +32,14 @@ Start:
   # A single text block can have many lines using `|`.
   - Dahlia: Hi there!
   - What's up?
-  - [Save: {}]
-  - Lily: Oh, nothing much.
-  - How bout u?
-  - Dahlia: You know...
-  - sleeping lol
-  - Lily: Nice.
+  - [SaveSnapshot: {}]
+  - After loading the snapshot, this line should show.
+  - Let's try loading it.
+  - [LoadSnapshot: {}]
   - Dahlia: Want to do something?
   - choices:
       sure!: DoSomething
       nah...: DoNothing
-  - [Save: {}]
 
 CheckDoor:
   - if $DoSomething.visited < 1:

@@ -25,6 +25,8 @@ pub struct Bookmark {
     pub position: Position,
     #[serde(default)]
     pub stack: Vec<Position>,
+    #[serde(default)]
+    pub snapshots: Map<String, Vec<Position>>,
 }
 
 impl<'a> Bookmark {
@@ -91,6 +93,25 @@ impl<'a> Bookmark {
                     Self::default_val(namespace_state, &var, &val);
                 }
             }
+        }
+    }
+
+    pub fn save_snapshot(&mut self, name: &str) {
+        self.stack.push(self.position.clone());
+        self.snapshots.insert(name.to_string(), self.stack.clone());
+    }
+
+    pub fn load_snapshot(&mut self, name: &str) -> Result<()> {
+        if let Some(stack) = self.snapshots.remove(name) {
+            self.stack = stack;
+            if let Some(position) = self.stack.pop() {
+                self.position = position;
+                Ok(())
+            } else {
+                Err(error!("Snapshot named '{}' was empty", name))
+            }
+        } else {
+            Err(error!("No snapshot named '{}'", name))
         }
     }
 }

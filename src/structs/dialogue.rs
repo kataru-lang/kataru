@@ -82,6 +82,7 @@ mod tests {
                 GLOBAL.to_string() => Map::new()
             },
             stack: Vec::new(),
+            snapshots: Map::new(),
         };
         let dialogue_map =
             btreemap! {"Character".to_string() => "Text <attr>annotated</attr>.".to_string()};
