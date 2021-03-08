@@ -83,7 +83,14 @@ impl<'r> Runner<'r> {
     }
 
     pub fn load_snapshot(&mut self, name: &str) -> Result<()> {
-        self.bookmark.load_snapshot(name)
+        self.bookmark.load_snapshot(name)?;
+        self.load_bookmark_position()?;
+
+        // Preload choices if loading a snapshot paused on choices.
+        if let Line::RawChoices(choices) = self.lines[self.bookmark.position.line] {
+            self.line = Line::Choices(Choices::get_valid(choices, &self.bookmark)?)
+        }
+        Ok(())
     }
 
     /// Loads lines into a single flat array of references.
