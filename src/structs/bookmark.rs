@@ -97,8 +97,9 @@ impl<'a> Bookmark {
     }
 
     pub fn save_snapshot(&mut self, name: &str) {
-        self.stack.push(self.position.clone());
-        self.snapshots.insert(name.to_string(), self.stack.clone());
+        let mut stack = self.stack.clone();
+        stack.push(self.position.clone());
+        self.snapshots.insert(name.to_string(), stack);
     }
 
     pub fn load_snapshot(&mut self, name: &str) -> Result<()> {
