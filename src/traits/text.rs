@@ -1,12 +1,23 @@
 use crate::error::{Error, Result};
 use serde::de::DeserializeOwned;
 
+use serde_yaml;
 /// Trait for parsable expressions.
-pub trait FromYaml: DeserializeOwned {
+pub trait FromYaml: DeserializeOwned + Default {
     fn from_yml(text: &str) -> Result<Self> {
+        if text.trim_start().is_empty() {
+            return Ok(Self::default());
+        }
+
         match serde_yaml::from_str(text) {
             Ok(config) => Ok(config),
-            Err(e) => Err(error!("Invalid YAML: {}", e)),
+            Err(e) => {
+                if format!("{:?}", e) == "EndOfStream" {
+                    Ok(Self::default())
+                } else {
+                    Err(error!("Invalid YAML: {}", e))
+                }
+            }
         }
     }
 }

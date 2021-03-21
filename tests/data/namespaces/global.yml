@@ -1,0 +1,20 @@
+---
+namespace: global
+
+commands:
+  GlobalCommand:
+    param: 0
+
+  $character.GlobalMethod:
+    param: 0
+
+characters:
+  GlobalCharacter:
+---
+Start:
+  - GlobalCharacter: Hello # GlobalCharacter.GlobalMethod: "Hello"
+  - [GlobalCharacter.GlobalMethod: {}] # GlobalCharacter.GlobalMethod()
+  - [GlobalCharacter.GlobalMethod: { param: 1 }]
+  - [GlobalCommand: {}]
+  - [GlobalCommand: { param: 1 }]
+  - call: namespace1:Start

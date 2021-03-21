@@ -32,7 +32,6 @@ impl FromYaml for Passages {
 pub type Story = Map<String, Section>;
 
 /// Each story getter returns an Option reference if the name is found.
-/// Also returns a boolean flag that is true if the name was found in root namespace.
 pub trait StoryGetters<'a> {
     fn character(&'a self, qname: &QualifiedName) -> Option<&'a Option<CharacterData>>;
     fn passage(&'a self, qname: &QualifiedName) -> Option<&'a Passage>;
@@ -89,11 +88,11 @@ impl LoadYaml for Story {
             .unwrap();
         for entry in glob(pattern).expect("Failed to read glob pattern") {
             if let Ok(path) = entry {
-                let mut section = Section::load_yml(path).unwrap();
+                let mut section = Section::load_yml(path)?;
                 let namespace = section.config.namespace.clone();
                 match story.get_mut(&namespace) {
                     Some(story_section) => {
-                        story_section.merge(&mut section).unwrap();
+                        story_section.merge(&mut section)?;
                     }
                     None => {
                         story.insert(namespace, section);

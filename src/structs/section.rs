@@ -1,10 +1,14 @@
 use crate::error::Error;
 use crate::structs::{CharacterData, Config, Params, Passage, Passages, Value};
 use crate::traits::{FromYaml, LoadYaml, Merge};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::path::Path;
 
+lazy_static! {
+    static ref SEPARATOR_RE: Regex = Regex::new(r"(\n|\n\r)---").unwrap();
+}
 pub static GLOBAL: &str = "global";
 
 /// A qualified name is a name in an explicit namespace.
@@ -33,7 +37,7 @@ impl QualifiedName {
     }
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Section {
     pub config: Config,
     pub passages: Passages,
@@ -67,14 +71,17 @@ impl FromYaml for Section {}
 impl LoadYaml for Section {
     fn load_yml<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self, Error> {
         let source = Self::load_string(path)?;
-        let split: Vec<&str> = source.split("---").collect();
-        if let [config_str, passages_str] = &split[1..] {
-            Ok(Self {
+        let split: Vec<&str> = SEPARATOR_RE.split(&source).collect();
+        match &split[..] {
+            [config_str, passages_str] => Ok(Self {
                 config: Config::from_yml(config_str)?,
                 passages: Passages::from_yml(passages_str)?,
-            })
-        } else {
-            Err(error!("Unable to parse file."))
+            }),
+            [config_str] => Ok(Self {
+                config: Config::from_yml(config_str)?,
+                passages: Passages::new(),
+            }),
+            _ => Err(error!("Unable to parse file.")),
         }
     }
 }

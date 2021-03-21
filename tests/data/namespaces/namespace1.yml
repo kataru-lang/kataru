@@ -1,0 +1,14 @@
+---
+namespace: namespace1
+
+commands:
+  $character.LocalMethod: { param: 0 }
+
+characters:
+  LocalCharacter:
+
+---
+Start:
+  - LocalCharacter: Hello #namespace1:LocalCharacter: "Hello"
+  - [LocalCharacter.LocalMethod: {}] # namespace1:LocalCharacter.LocalMethod
+  - [LocalCharacter.GlobalMethod: {}] # namespace1:LocalCharacter.GlobalMethod

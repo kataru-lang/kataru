@@ -234,6 +234,26 @@ impl<'r> Runner<'r> {
         )
     }
 
+    /// If `character` is local, then prepend the namespace to the character.command.
+    fn get_qualified_command(&self, character: &str, command_name: &str) -> String {
+        // If currently in global namespace, don't bother checking.
+        if self.bookmark.position.namespace == GLOBAL {
+            return format!("{}.{}", character, command_name);
+        }
+
+        // If this is a local character, then prepend the namespace to the command.
+        if let Some(section) = self.story.get(&self.bookmark.position.namespace) {
+            section.config.characters.contains_key(character);
+            format!(
+                "{}:{}.{}",
+                &self.bookmark.position.namespace, character, command_name
+            )
+        } else {
+            format!("{}.{}", character, command_name)
+        }
+    }
+
+    /// Get the vector of qualified commands with default parameters included.
     fn get_full_commands(&self, commands: &Vec<Cmd>) -> Result<Vec<Cmd>> {
         let mut full_commands: Vec<Cmd> = Vec::new();
         for command in commands {
@@ -242,11 +262,19 @@ impl<'r> Runner<'r> {
                 let mut merged_params = Params::new();
 
                 let split: Vec<&str> = command_name.split(".").collect();
-                let normalized_name = match split.as_slice() {
-                    [_character, command_base] => {
-                        format!("$character.{}", command_base)
+
+                // Handle character commands
+                let normalized_name: String;
+                let qualified_command: String;
+                match split.as_slice() {
+                    [character, command_name] => {
+                        normalized_name = format!("$character.{}", command_name);
+                        qualified_command = self.get_qualified_command(character, command_name);
                     }
-                    [command_base] => command_base.to_string(),
+                    [command_name] => {
+                        normalized_name = command_name.to_string();
+                        qualified_command = command_name.to_string();
+                    }
                     _ => return Err(error!("Commands can only contain one '.' delimeter.")),
                 };
 
@@ -263,7 +291,7 @@ impl<'r> Runner<'r> {
                     }
                 }
 
-                cmd.insert(command_name.clone(), merged_params);
+                cmd.insert(qualified_command, merged_params);
                 full_commands.push(cmd);
             }
         }

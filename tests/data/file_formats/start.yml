@@ -1,0 +1,5 @@
+---
+namespace: global
+---
+Start:
+  - Alice: Test story!

@@ -67,19 +67,36 @@ impl<'a> Validator<'a> {
     }
 
     /// Validates parameters for a function call.
-    fn validate_params(command: &str, params: &Params, config_params: &Params) -> Result<()> {
+    fn validate_params(command_name: &str, params: &Params, config_params: &Params) -> Result<()> {
         for (param, _val) in params {
             if !config_params.contains_key(param) {
                 return Err(error!(
                     "No such parameter '{}' for command '{}'",
-                    param, command
+                    param, command_name
                 ));
             }
         }
         Ok(())
     }
 
-    /// Validates a command.
+    fn validate_command(&self, namespace: &str, command_name: &str, params: &Params) -> Result<()> {
+        match self
+            .story
+            .params(&QualifiedName::from(namespace, &command_name))
+        {
+            None => {
+                if namespace == GLOBAL {
+                    Err(error!("No such command '{}'.", command_name))
+                } else {
+                    self.validate_command(GLOBAL, command_name, params)
+                }
+            }
+            Some(Some(config_params)) => Self::validate_params(command_name, params, config_params),
+            Some(None) => Ok(()),
+        }
+    }
+
+    /// Validates a list of commands in the Cmd object.
     fn validate_cmd(&self, cmd: &Cmd) -> Result<()> {
         for (command, params) in cmd {
             let split: Vec<&str> = command.split(".").collect();
@@ -92,14 +109,7 @@ impl<'a> Validator<'a> {
                 _ => return Err(error!("Commands can only contain one '.' delimeter.")),
             };
 
-            match self
-                .story
-                .params(&QualifiedName::from(self.namespace, &command_name))
-            {
-                None => Err(error!("No such command '{}'.", command_name)),
-                Some(Some(config_params)) => Self::validate_params(command, params, config_params),
-                Some(None) => Ok(()),
-            }?
+            self.validate_command(&self.namespace, &command_name, params)?;
         }
         Ok(())
     }

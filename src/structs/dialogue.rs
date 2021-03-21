@@ -1,6 +1,9 @@
 use super::{extract_attr, Attributes, Bookmark, Map, Story};
-use crate::error::{Error, Result};
 use crate::vars::replace_vars;
+use crate::{
+    error::{Error, Result},
+    GLOBAL,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -27,21 +30,23 @@ impl Dialogue {
 
     pub fn from_map(map: &Map<String, String>, story: &Story, bookmark: &Bookmark) -> Result<Self> {
         for (name, text) in map {
-            let (attributes, text) =
-                Self::extract_attr(&text, &bookmark.position.namespace, story)?;
-            return Ok(Self {
-                name: name.clone(),
-                text: replace_vars(&text, bookmark),
-                attributes: attributes,
-            });
+            return Self::from(name, text, story, bookmark);
         }
         Ok(Self::default())
     }
 
     pub fn from(name: &str, text: &str, story: &Story, bookmark: &Bookmark) -> Result<Self> {
         let (attributes, text) = Self::extract_attr(&text, &bookmark.position.namespace, story)?;
+
+        // For local characters, append the namespace to their name.
+        let name = if bookmark.position.namespace == GLOBAL {
+            name.to_string()
+        } else {
+            format!("{}:{}", &bookmark.position.namespace, name)
+        };
+
         Ok(Self {
-            name: name.to_string(),
+            name,
             text: replace_vars(&text, bookmark),
             attributes: attributes,
         })
