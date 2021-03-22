@@ -21,7 +21,7 @@ pub use packer::pack;
 pub use runner::Runner;
 pub use structs::{
     Bookmark, Branchable, Branches, CharacterData, Choices, Command, Comparator, Conditional,
-    Config, Dialogue, InputCmd, Line, Map, Operator, Params, Passage, Passages, Position, Section,
+    Config, Dialogue, Input, Line, Map, Operator, Params, Passage, Passages, Position, Section,
     SetCommand, State, StateMod, StateUpdatable, Story, StoryGetters, Value, GLOBAL,
 };
 pub use tagger::LineTag;

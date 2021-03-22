@@ -6,7 +6,6 @@ use std::ops::{AddAssign, SubAssign};
 #[derive(Debug, Clone, PartialEq, PartialOrd, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum Value {
-    None,
     String(String),
     Number(f64),
     Bool(bool),
@@ -15,7 +14,6 @@ pub enum Value {
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::None => write!(f, "None"),
             Self::String(v) => write!(f, "{}", v),
             Self::Number(v) => write!(f, "{}", v),
             Self::Bool(v) => write!(f, "{}", v),
@@ -36,7 +34,7 @@ impl SubAssign<&Self> for Value {
     fn sub_assign(&mut self, rhs: &Self) {
         match (&self, rhs) {
             (Value::Number(n1), Value::Number(n2)) => *self = Self::Number(*n1 - n2),
-            _ => *self = Self::None,
+            _ => *self = Self::Number(0 as f64),
         }
     }
 }

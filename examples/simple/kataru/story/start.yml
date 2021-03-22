@@ -12,12 +12,10 @@ characters:
   Think:
 
 commands:
-  SaveSnapshot:
-  LoadSnapshot:
-  Wave:
-  LoadScene:
-    scene: $defaultScene
-    duration: 0
+  SaveSnapshot: {}
+  LoadSnapshot: {}
+  Wave: {}
+  LoadScene: { scene: $defaultScene, duration: 0 }
 
 attributes:
   wave:
@@ -32,11 +30,13 @@ Start:
   # A single text block can have many lines using `|`.
   - Dahlia: Hi there!
   - What's up?
-  - [SaveSnapshot: {}]
+  - n:Lily.SaveSnapshot: {}
   - After loading the snapshot, this line should show.
   - Let's try loading it.
-  - [LoadSnapshot: {}]
+  - LoadSnapshot: {}
   - Dahlia: Want to do something?
+  - set:
+      $var: true
   - choices:
       sure!: DoSomething
       nah...: DoNothing

@@ -3,3 +3,5 @@ namespace: global
 ---
 Start:
   - Alice: Test story!
+  - choices:
+      loop: Start

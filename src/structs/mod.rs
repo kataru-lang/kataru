@@ -24,7 +24,7 @@ pub use comparator::Comparator;
 pub use conditional::Conditional;
 pub use config::{CharacterData, Config};
 pub use dialogue::Dialogue;
-pub use line::{Call, InputCmd, Line, Return, SetCommand};
+pub use line::{Call, Input, Line, Return, SetCommand};
 pub use map::{Entry, Map};
 pub use operator::Operator;
 pub use section::{QualifiedName, Section, GLOBAL};

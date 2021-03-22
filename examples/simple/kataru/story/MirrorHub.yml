@@ -6,4 +6,7 @@ onPassage:
     $passage.visited +: 1
 ---
 MirrorHub:
-  - [LoadScene: { scene: $defaultScene }]
+  - LoadScene: { scene: $defaultScene }
+
+MirrorHub:
+  - LoadScene: { scene: $defaultScene }

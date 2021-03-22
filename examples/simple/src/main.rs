@@ -1,5 +1,6 @@
 use colored::*;
 use kataru::*;
+use linear_map::LinearMap;
 use regex::{Captures, Regex};
 use std::{
     borrow::Cow,
@@ -46,7 +47,7 @@ fn print_validation(story: &Story) -> bool {
     }
 }
 
-fn run_command(runner: &mut Runner, command: &str, _params: &Map<String, Value>) {
+fn run_command(runner: &mut Runner, command: &str, _params: &LinearMap<String, Value>) {
     match command {
         "ClearScreen" => print!("{}[2J", 27 as char),
         "SaveSnapshot" => {
@@ -105,11 +106,9 @@ fn handle_line(runner: &mut Runner, input: &mut String) -> bool {
             get_input(input);
             true
         }
-        Line::Commands(cmds) => {
-            for cmd in cmds {
-                for (command, params) in cmd {
-                    run_command(runner, command, params);
-                }
+        Line::Command(cmd) => {
+            for (command, params) in cmd {
+                run_command(runner, command, params);
             }
             true
         }

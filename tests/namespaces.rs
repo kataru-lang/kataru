@@ -32,7 +32,7 @@ fn test_namespaces() {
         assert_eq!(
             line,
             &Line::Command(
-                btreemap! {"GlobalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::Number(0.)}}
+                btreemap! {"GlobalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::String("".to_string())}}
             )
         );
     }
@@ -42,7 +42,18 @@ fn test_namespaces() {
         assert_eq!(
             line,
             &Line::Command(
-                btreemap! {"GlobalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::Number(1.)}}
+                btreemap! {"GlobalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::String("test".to_string())}}
+            )
+        );
+    }
+
+    // Test only a string param
+    {
+        let line = runner.next("").unwrap();
+        assert_eq!(
+            line,
+            &Line::Command(
+                btreemap! {"GlobalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::String("test".to_string())}}
             )
         );
     }
@@ -112,7 +123,7 @@ fn test_namespaces() {
         assert_eq!(
             line,
             &Line::Command(
-                btreemap! {"namespace1:LocalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::Number(0.)}}
+                btreemap! {"namespace1:LocalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::String("".to_string())}}
             )
         );
     }

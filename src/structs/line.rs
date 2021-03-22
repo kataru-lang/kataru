@@ -18,7 +18,7 @@ pub struct SetCommand {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct InputCmd {
+pub struct Input {
     pub input: Map<String, String>,
 }
 
@@ -26,12 +26,12 @@ pub struct InputCmd {
 #[serde(untagged)]
 pub enum Line {
     Branches(Branches),
-    Input(InputCmd),
+    Input(Input),
     SetCommand(SetCommand),
-    Command(Command),
-    PositionalCommand(PositionalCommand),
     RawChoices(RawChoices),
     Choices(Choices),
+    Command(Command),
+    PositionalCommand(PositionalCommand),
     Call(Call),
     Return(Return),
     Text(String),

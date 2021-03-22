@@ -9,6 +9,7 @@ colored = "2.0.0"
 kataru = {path = "../.."}
 lazy_static = "1.4.0"
 regex = "1.4.3"
+linear-map = "1.2.0"
 
 [build-dependencies]
 kataru = {path = "../.."}
