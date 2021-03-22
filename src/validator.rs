@@ -1,7 +1,7 @@
 use crate::{
     error::{Error, Result},
     structs::{
-        Branches, Cmd, Comparator, Conditional, Dialogue, Line, Map, Operator, Params, Passage,
+        Branches, Command, Comparator, Conditional, Dialogue, Line, Map, Operator, Params, Passage,
         Passages, QualifiedName, RawChoice, RawChoices, State, StateMod, Story, StoryGetters,
         Value, GLOBAL,
     },
@@ -79,7 +79,12 @@ impl<'a> Validator<'a> {
         Ok(())
     }
 
-    fn validate_command(&self, namespace: &str, command_name: &str, params: &Params) -> Result<()> {
+    fn validate_namespace_command(
+        &self,
+        namespace: &str,
+        command_name: &str,
+        params: &Params,
+    ) -> Result<()> {
         match self
             .story
             .params(&QualifiedName::from(namespace, &command_name))
@@ -88,7 +93,7 @@ impl<'a> Validator<'a> {
                 if namespace == GLOBAL {
                     Err(error!("No such command '{}'.", command_name))
                 } else {
-                    self.validate_command(GLOBAL, command_name, params)
+                    self.validate_namespace_command(GLOBAL, command_name, params)
                 }
             }
             Some(Some(config_params)) => Self::validate_params(command_name, params, config_params),
@@ -97,7 +102,7 @@ impl<'a> Validator<'a> {
     }
 
     /// Validates a list of commands in the Cmd object.
-    fn validate_cmd(&self, cmd: &Cmd) -> Result<()> {
+    fn validate_command(&self, cmd: &Command) -> Result<()> {
         for (command, params) in cmd {
             let split: Vec<&str> = command.split(".").collect();
             let command_name = match split.as_slice() {
@@ -109,15 +114,7 @@ impl<'a> Validator<'a> {
                 _ => return Err(error!("Commands can only contain one '.' delimeter.")),
             };
 
-            self.validate_command(&self.namespace, &command_name, params)?;
-        }
-        Ok(())
-    }
-
-    /// Validates a list of commands.
-    fn validate_cmds(&self, cmds: &Vec<Cmd>) -> Result<()> {
-        for cmd in cmds {
-            self.validate_cmd(cmd)?
+            self.validate_namespace_command(&self.namespace, &command_name, params)?;
         }
         Ok(())
     }
@@ -126,11 +123,11 @@ impl<'a> Validator<'a> {
     fn validate_line(&self, line: &Line) -> Result<()> {
         match &line {
             Line::RawDialogue(dialogue) => self.validate_dialogue(dialogue),
-            Line::Branches(cond) => self.validate_branches(cond),
+            Line::Branches(branches) => self.validate_branches(branches),
             Line::RawChoices(choices) => self.validate_choices(choices),
             Line::Call(call) => self.validate_goto(&call.passage),
-            Line::SetCmd(cmd) => self.validate_state(&cmd.set),
-            Line::Commands(cmds) => self.validate_cmds(&cmds),
+            Line::SetCommand(set_command) => self.validate_state(&set_command.set),
+            Line::Command(command) => self.validate_command(&command),
             _ => Ok(()),
         }
     }

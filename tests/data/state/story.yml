@@ -1,0 +1,24 @@
+---
+namespace: global
+
+state:
+  var: 1
+
+commands:
+  $character.Wave: { amount: 0 }
+
+characters:
+  Alice:
+
+---
+Start:
+  - Alice: Test
+  - Alice.Wave: { amount: $var }
+  - set: { $var: 2 }
+  - Alice.Wave: { amount: $var }
+  - set: { $var -: 2 }
+  - Alice.Wave: { amount: $var }
+  - if $var > 0:
+      - Alice: $var gt 0
+    else:
+      - Alice: $var leq 0

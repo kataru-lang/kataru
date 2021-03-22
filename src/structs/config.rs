@@ -1,6 +1,6 @@
 use super::{Map, Params, State};
 use crate::traits::{FromYaml, Merge};
-use crate::{error::Error, SetCmd};
+use crate::{error::Error, SetCommand};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -23,7 +23,7 @@ pub struct Config {
     pub attributes: Map<String, Option<String>>,
     #[serde(default)]
     #[serde(rename = "onPassage")]
-    pub on_passage: Option<SetCmd>,
+    pub on_passage: Option<SetCommand>,
 }
 
 impl FromYaml for Config {}

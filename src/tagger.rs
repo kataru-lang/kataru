@@ -10,7 +10,7 @@ pub enum LineTag {
     InvalidChoice,
     Dialogue,
     Input,
-    Commands,
+    Command,
     None,
 }
 
@@ -20,7 +20,7 @@ impl LineTag {
             Some(line) => match line {
                 Line::Choices(_) => LineTag::Choices,
                 Line::Dialogue(_) => LineTag::Dialogue,
-                Line::Commands(_) => LineTag::Commands,
+                Line::Command(_) => LineTag::Command,
                 Line::Input(_) => LineTag::Input,
                 Line::InvalidChoice => LineTag::InvalidChoice,
                 _ => LineTag::None,

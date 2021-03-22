@@ -9,5 +9,5 @@
 
 # ---
 # Start:
-#   - [Alice.Wave: { amount: 1 }]
-#   - [Alice.Wave: {}]
+#   - Alice.Wave: { amount: 1 }
+#   - Alice.Wave: {}

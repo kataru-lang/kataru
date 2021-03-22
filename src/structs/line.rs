@@ -1,8 +1,5 @@
-use super::{Branches, Choices, Dialogue, Map, RawChoices, State, Value};
+use super::{Branches, Choices, Command, Dialogue, Map, PositionalCommand, RawChoices, State};
 use serde::{Deserialize, Serialize};
-
-pub type Params = Map<String, Value>;
-pub type Cmd = Map<String, Params>;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Call {
@@ -16,7 +13,7 @@ pub struct Return {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct SetCmd {
+pub struct SetCommand {
     pub set: State,
 }
 
@@ -30,8 +27,9 @@ pub struct InputCmd {
 pub enum Line {
     Branches(Branches),
     Input(InputCmd),
-    SetCmd(SetCmd),
-    Commands(Vec<Cmd>),
+    SetCommand(SetCommand),
+    Command(Command),
+    PositionalCommand(PositionalCommand),
     RawChoices(RawChoices),
     Choices(Choices),
     Call(Call),

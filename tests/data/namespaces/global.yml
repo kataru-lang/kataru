@@ -13,8 +13,8 @@ characters:
 ---
 Start:
   - GlobalCharacter: Hello # GlobalCharacter.GlobalMethod: "Hello"
-  - [GlobalCharacter.GlobalMethod: {}] # GlobalCharacter.GlobalMethod()
-  - [GlobalCharacter.GlobalMethod: { param: 1 }]
-  - [GlobalCommand: {}]
-  - [GlobalCommand: { param: 1 }]
+  - GlobalCharacter.GlobalMethod: {} # GlobalCharacter.GlobalMethod()
+  - GlobalCharacter.GlobalMethod: { param: 1 }
+  - GlobalCommand: {}
+  - GlobalCommand: { param: 1 }
   - call: namespace1:Start

@@ -51,7 +51,7 @@ impl Value {
         }
     }
 
-    fn from_yaml(yaml_value: serde_yaml::Value) -> Result<Self> {
+    pub fn from_yml(yaml_value: serde_yaml::Value) -> Result<Self> {
         match yaml_value {
             serde_yaml::Value::Bool(b) => Ok(Value::Bool(b)),
             serde_yaml::Value::String(s) => Ok(Value::String(s)),
@@ -62,7 +62,7 @@ impl Value {
 
     pub fn parse(text: &str) -> Result<Value> {
         match serde_yaml::from_str(&text) {
-            Ok(r) => Self::from_yaml(r),
+            Ok(r) => Self::from_yml(r),
             Err(e) => Err(error!("{}", e)),
         }
     }

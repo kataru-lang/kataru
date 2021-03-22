@@ -1,12 +1,10 @@
 use crate::{
     error::{Error, Result},
     structs::{
-        Bookmark, Branchable, Choices, Dialogue, Line, Passage, QualifiedName, Return, State,
-        StateUpdatable, Story, GLOBAL,
+        Bookmark, Branchable, Choices, CommandGetters, Dialogue, Line, Passage, QualifiedName,
+        Return, State, StateUpdatable, Story, GLOBAL,
     },
-    traits::CopyMerge,
-    vars::replace_var,
-    Cmd, Params, StoryGetters, Value,
+    Command, Value,
 };
 
 static RETURN: Line = Line::Return(Return { r#return: () });
@@ -223,81 +221,6 @@ impl<'r> Runner<'r> {
         Ok(())
     }
 
-    fn get_default_params(&self, command_name: &str) -> Option<&Params> {
-        Some(
-            self.story
-                .params(&QualifiedName::from(
-                    &self.bookmark.position.namespace,
-                    command_name,
-                ))?
-                .as_ref()?,
-        )
-    }
-
-    /// If `character` is local, then prepend the namespace to the character.command.
-    fn get_qualified_command(&self, character: &str, command_name: &str) -> String {
-        // If currently in global namespace, don't bother checking.
-        if self.bookmark.position.namespace == GLOBAL {
-            return format!("{}.{}", character, command_name);
-        }
-
-        // If this is a local character, then prepend the namespace to the command.
-        if let Some(section) = self.story.get(&self.bookmark.position.namespace) {
-            section.config.characters.contains_key(character);
-            format!(
-                "{}:{}.{}",
-                &self.bookmark.position.namespace, character, command_name
-            )
-        } else {
-            format!("{}.{}", character, command_name)
-        }
-    }
-
-    /// Get the vector of qualified commands with default parameters included.
-    fn get_full_commands(&self, commands: &Vec<Cmd>) -> Result<Vec<Cmd>> {
-        let mut full_commands: Vec<Cmd> = Vec::new();
-        for command in commands {
-            for (command_name, params) in command {
-                let mut cmd = Cmd::new();
-                let mut merged_params = Params::new();
-
-                let split: Vec<&str> = command_name.split(".").collect();
-
-                // Handle character commands
-                let normalized_name: String;
-                let qualified_command: String;
-                match split.as_slice() {
-                    [character, command_name] => {
-                        normalized_name = format!("$character.{}", command_name);
-                        qualified_command = self.get_qualified_command(character, command_name);
-                    }
-                    [command_name] => {
-                        normalized_name = command_name.to_string();
-                        qualified_command = command_name.to_string();
-                    }
-                    _ => return Err(error!("Commands can only contain one '.' delimeter.")),
-                };
-
-                if let Some(default_params) = self.get_default_params(&normalized_name) {
-                    merged_params = params.copy_merge(default_params)?;
-
-                    // If the params have variable names, replace with variable value.
-                    for (_var, val) in merged_params.iter_mut() {
-                        if let Value::String(text) = val {
-                            if let Some(replaced) = replace_var(text, &self.bookmark)? {
-                                *val = replaced;
-                            }
-                        }
-                    }
-                }
-
-                cmd.insert(qualified_command, merged_params);
-                full_commands.push(cmd);
-            }
-        }
-        Ok(full_commands)
-    }
-
     /// Processes a line.
     /// Returning Line::Continue signals to `next()` that another line should be processed
     /// before returning a line to the user.
@@ -374,12 +297,21 @@ impl<'r> Runner<'r> {
                 };
                 Line::Continue
             }
-            Line::Commands(commands) => {
+            Line::Command(command) => {
                 self.bookmark.position.line += 1;
-                let full_commands = self.get_full_commands(commands)?;
-                Line::Commands(full_commands)
+                let full_command = Command::get_full_command(&self.story, &self.bookmark, command)?;
+                Line::Command(full_command)
             }
-            Line::SetCmd(set) => {
+            Line::PositionalCommand(positional_command) => {
+                self.bookmark.position.line += 1;
+                let full_command = Command::get_full_positional_command(
+                    &self.story,
+                    &self.bookmark,
+                    positional_command,
+                )?;
+                Line::Command(full_command)
+            }
+            Line::SetCommand(set) => {
                 let passage_name = self.bookmark.position.passage.clone();
                 let root_sets = self.bookmark.state()?.update(&set.set, &passage_name)?;
                 self.bookmark

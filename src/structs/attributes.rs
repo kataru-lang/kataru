@@ -86,6 +86,11 @@ pub fn extract_attr(
     }
 
     // Push remaining text into the result.
+
+    if let Context::Open = context {
+        start -= 1;
+    }
+
     result.push_str(&text[start..]);
     for (attr, positions) in &attributes {
         if positions.len() % 2 != 0 {
@@ -140,6 +145,14 @@ mod tests {
             let text = "Test <attr1>text.";
             let err = extract_attr(text, &attrs).unwrap_err();
             assert_eq!(err.message, "Unmatched tag <attr1>");
+        }
+
+        // Test dangling <
+        {
+            let text = "Test < text.";
+            let (attributes, result) = extract_attr(text, &attrs).unwrap();
+            assert_eq!(&result, "Test < text.");
+            assert_eq!(attributes, Attributes::new());
         }
     }
 }

@@ -20,9 +20,9 @@ pub use error::{Error, Result};
 pub use packer::pack;
 pub use runner::Runner;
 pub use structs::{
-    Bookmark, Branchable, Branches, CharacterData, Choices, Cmd, Comparator, Conditional, Config,
-    Dialogue, InputCmd, Line, Map, Operator, Params, Passage, Passages, Position, Section, SetCmd,
-    State, StateMod, StateUpdatable, Story, StoryGetters, Value, GLOBAL,
+    Bookmark, Branchable, Branches, CharacterData, Choices, Command, Comparator, Conditional,
+    Config, Dialogue, InputCmd, Line, Map, Operator, Params, Passage, Passages, Position, Section,
+    SetCommand, State, StateMod, StateUpdatable, Story, StoryGetters, Value, GLOBAL,
 };
 pub use tagger::LineTag;
 pub use traits::{
