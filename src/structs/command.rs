@@ -2,7 +2,6 @@ use linear_map::LinearMap;
 
 use crate::{
     traits::CopyMerge, vars::replace_var, Bookmark, Error, Map, Result, Story, StoryGetters, Value,
-    GLOBAL,
 };
 
 use super::QualifiedName;
@@ -29,26 +28,6 @@ pub trait CommandGetters: Sized {
         )
     }
 
-    /// Returns true if a character is local
-    fn character_is_local(story: &Story, bookmark: &Bookmark, character: &str) -> bool {
-        if bookmark.position.namespace == GLOBAL {
-            return false;
-        }
-
-        // If this is a local character, then prepend the namespace to the command.
-        if let Some(section) = story.get(&bookmark.position.namespace) {
-            // println!(
-            //     "'{}' is in namespace '{}'",
-            //     character, &bookmark.position.namespace
-            // );
-            // println!("{:#?}", section.config);
-            if section.config.characters.contains_key(character) {
-                return true;
-            }
-        }
-        false
-    }
-
     /// If `character` is local, then prepend the namespace to the character.command.
     fn get_qualified_command(
         story: &Story,
@@ -57,7 +36,7 @@ pub trait CommandGetters: Sized {
         command_name: &str,
     ) -> String {
         // If currently in global namespace, don't bother checking.
-        if Self::character_is_local(story, bookmark, character) {
+        if bookmark.character_is_local(story, character) {
             format!(
                 "{}:{}.{}",
                 &bookmark.position.namespace, character, command_name

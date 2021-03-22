@@ -1,9 +1,6 @@
 use super::{extract_attr, Attributes, Bookmark, Map, Story};
+use crate::error::{Error, Result};
 use crate::vars::replace_vars;
-use crate::{
-    error::{Error, Result},
-    GLOBAL,
-};
 use serde::{Deserialize, Serialize};
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -39,10 +36,10 @@ impl Dialogue {
         let (attributes, text) = Self::extract_attr(&text, &bookmark.position.namespace, story)?;
 
         // For local characters, append the namespace to their name.
-        let name = if bookmark.position.namespace == GLOBAL {
-            name.to_string()
-        } else {
+        let name = if bookmark.character_is_local(story, name) {
             format!("{}:{}", &bookmark.position.namespace, name)
+        } else {
+            name.to_string()
         };
 
         Ok(Self {

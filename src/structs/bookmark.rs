@@ -115,6 +115,26 @@ impl<'a> Bookmark {
             Err(error!("No snapshot named '{}'", name))
         }
     }
+
+    /// Returns true if a character is local
+    pub fn character_is_local(&self, story: &Story, character: &str) -> bool {
+        if self.position.namespace == GLOBAL {
+            return false;
+        }
+
+        // If this is a local character, then prepend the namespace to the command.
+        if let Some(section) = story.get(&self.position.namespace) {
+            // println!(
+            //     "'{}' is in namespace '{}'",
+            //     character, &bookmark.position.namespace
+            // );
+            // println!("{:#?}", section.config);
+            if section.config.characters.contains_key(character) {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 impl FromYaml for Bookmark {}

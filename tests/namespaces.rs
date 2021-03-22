@@ -94,6 +94,18 @@ fn test_namespaces() {
         let line = runner.next("").unwrap();
         assert_eq!(
             line,
+            &Line::Dialogue(Dialogue {
+                name: "GlobalCharacter".to_string(),
+                text: "Hello".to_string(),
+                attributes: btreemap! {}
+            })
+        );
+    }
+
+    {
+        let line = runner.next("").unwrap();
+        assert_eq!(
+            line,
             &Line::Command(btreemap! {
                 "namespace1:LocalCharacter.LocalMethod".to_string() => linear_map! {
                     "param1".to_string() => Value::Number(1.),
