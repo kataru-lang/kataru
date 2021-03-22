@@ -127,4 +127,15 @@ fn test_namespaces() {
             )
         );
     }
+
+    // Make sure global characters don't get the namespace appended
+    {
+        let line = runner.next("").unwrap();
+        assert_eq!(
+            line,
+            &Line::Command(
+                btreemap! {"GlobalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::String("".to_string())}}
+            )
+        );
+    }
 }

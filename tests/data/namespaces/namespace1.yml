@@ -13,3 +13,4 @@ Start:
   - LocalCharacter.LocalMethod: { 1, two, true } # namespace1:LocalCharacter.LocalMethod
   - LocalCharacter.LocalMethod: { 1, two }
   - LocalCharacter.GlobalMethod: {} # namespace1:LocalCharacter.GlobalMethod
+  - GlobalCharacter.GlobalMethod: {}

@@ -29,6 +29,26 @@ pub trait CommandGetters: Sized {
         )
     }
 
+    /// Returns true if a character is local
+    fn character_is_local(story: &Story, bookmark: &Bookmark, character: &str) -> bool {
+        if bookmark.position.namespace == GLOBAL {
+            return false;
+        }
+
+        // If this is a local character, then prepend the namespace to the command.
+        if let Some(section) = story.get(&bookmark.position.namespace) {
+            // println!(
+            //     "'{}' is in namespace '{}'",
+            //     character, &bookmark.position.namespace
+            // );
+            // println!("{:#?}", section.config);
+            if section.config.characters.contains_key(character) {
+                return true;
+            }
+        }
+        false
+    }
+
     /// If `character` is local, then prepend the namespace to the character.command.
     fn get_qualified_command(
         story: &Story,
@@ -37,13 +57,7 @@ pub trait CommandGetters: Sized {
         command_name: &str,
     ) -> String {
         // If currently in global namespace, don't bother checking.
-        if bookmark.position.namespace == GLOBAL {
-            return format!("{}.{}", character, command_name);
-        }
-
-        // If this is a local character, then prepend the namespace to the command.
-        if let Some(section) = story.get(&bookmark.position.namespace) {
-            section.config.characters.contains_key(character);
+        if Self::character_is_local(story, bookmark, character) {
             format!(
                 "{}:{}.{}",
                 &bookmark.position.namespace, character, command_name
