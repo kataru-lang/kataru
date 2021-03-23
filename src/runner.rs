@@ -116,7 +116,7 @@ impl<'r> Runner<'r> {
                     self.breaks.pop();
                 }
                 Line::Branches(branches) => {
-                    self.breaks.push(line_num + branches.len());
+                    self.breaks.push(line_num + branches.length());
                 }
                 _ => (),
             }

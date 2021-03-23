@@ -18,7 +18,17 @@ Start:
   - Alice.Wave: { amount: $var }
   - set: { $var -: 2 }
   - Alice.Wave: { amount: $var }
-  - if $var > 0:
-      - Alice: $var gt 0
+  - if $var >= 0:
+      - Alice: $var geq 0
+      - choices:
+          Choice1: Choice1
+          Choice2: Choice2
     else:
-      - Alice: $var leq 0
+      - Alice: $var lt 0
+  - Alice: End
+
+Choice1:
+  - Alice: Choice1
+
+Choice2:
+  - Alice: Choice2
