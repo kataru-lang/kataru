@@ -2,5 +2,9 @@ use kataru::pack;
 
 fn main() {
     // Pack all story files into MessagePack binaries to be embedded in build.
-    pack("./kataru", "./target").unwrap();
+    pack(
+        "C:\\Users\\Joshi\\Dev\\Unity\\JongelaMirrors\\Assets\\Kataru",
+        "./target",
+    )
+    .unwrap();
 }
