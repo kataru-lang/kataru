@@ -4,11 +4,12 @@ use maplit::btreemap;
 /// Tests loading commented out story files and config-only story files.
 #[test]
 fn test_story2() {
-    let mut bookmark: Bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
     let story: Story = Story::load_yml("./tests/data/file_formats").unwrap();
-    Validator::new(&story).validate().unwrap();
-
+    let mut bookmark: Bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
     bookmark.init_state(&story);
+
+    Validator::new(&story, &bookmark).validate().unwrap();
+
     let mut runner: Runner = Runner::new(&mut bookmark, &story).unwrap();
 
     {

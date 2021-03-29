@@ -1,6 +1,5 @@
-use super::{Bookmark, Conditional, Map};
-use crate::traits::FromStr;
-use crate::{error::Result, traits::MoveValues};
+use super::{Bookmark, Map};
+use crate::{error::Result, traits::MoveValues, Value};
 use linear_map::LinearMap;
 use serde::{Deserialize, Serialize};
 
@@ -23,6 +22,15 @@ pub struct Choices {
     pub choices: Map<String, String>,
     #[serde(default)]
     pub timeout: f64,
+}
+
+fn get_bool_expr(expr: &str) -> &str {
+    let if_prefix = "if ";
+    if expr.starts_with(if_prefix) {
+        &expr[if_prefix.len()..]
+    } else {
+        ""
+    }
 }
 
 impl Choices {
@@ -55,7 +63,8 @@ impl Choices {
                 }
                 // Populate all choices are behind a true conditional.
                 RawChoice::Conditional(conditional) => {
-                    if !Conditional::from_str(key)?.eval(&bookmark)? {
+                    let bool_expr = get_bool_expr(key);
+                    if !Value::eval_bool_exprs(bool_expr, &bookmark)? {
                         continue;
                     }
                     for (choice_text, passage_name_opt) in conditional.iter().rev() {

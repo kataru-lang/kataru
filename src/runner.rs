@@ -96,6 +96,7 @@ impl<'r> Runner<'r> {
     fn load_passage(&mut self, lines: &'r [Line]) {
         self.lines = vec![];
         self.load_lines(lines);
+        println!("self.lines: {:#?}", self.lines);
         self.lines.push(&RETURN);
 
         self.breaks = vec![];
@@ -111,6 +112,7 @@ impl<'r> Runner<'r> {
             if line_num >= self.bookmark.position.line {
                 break;
             }
+
             match line {
                 Line::Break => {
                     self.breaks.pop();
@@ -272,6 +274,7 @@ impl<'r> Runner<'r> {
             }
             Line::Branches(branches) => {
                 let skipped_len = branches.take(&mut self.bookmark)?;
+                println!("Skipped length = {}", skipped_len);
                 let branch_len = branches.length();
                 self.breaks
                     .push(self.bookmark.position.line + branch_len - skipped_len);

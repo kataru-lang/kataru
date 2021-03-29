@@ -1,0 +1,11 @@
+---
+namespace: global
+
+state:
+  var1: false
+  var2: false
+
+---
+Start:
+  - if $var1:
+      - test

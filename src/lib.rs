@@ -20,9 +20,9 @@ pub use error::{Error, Result};
 pub use packer::pack;
 pub use runner::Runner;
 pub use structs::{
-    Bookmark, Branchable, Branches, CharacterData, Choices, Command, Comparator, Conditional,
-    Config, Dialogue, Input, Line, Map, Operator, Params, Passage, Passages, Position, Section,
-    SetCommand, State, StateMod, StateUpdatable, Story, StoryGetters, Value, GLOBAL,
+    Bookmark, Branchable, Branches, CharacterData, Choices, Command, Config, Dialogue, Input, Line,
+    Map, Operator, Params, Passage, Passages, Position, Section, SetCommand, State, StateMod,
+    StateUpdatable, Story, StoryGetters, Value, GLOBAL,
 };
 pub use tagger::LineTag;
 pub use traits::{
@@ -30,3 +30,4 @@ pub use traits::{
     SaveYaml,
 };
 pub use validator::Validator;
+pub use vars::{SINGLE_VAR_RE, VARS_RE};

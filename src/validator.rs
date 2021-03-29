@@ -1,25 +1,27 @@
 use crate::{
     error::{Error, Result},
     structs::{
-        Branches, Command, Comparator, Conditional, Dialogue, Line, Map, Operator, Params, Passage,
-        Passages, QualifiedName, RawChoice, RawChoices, State, StateMod, Story, StoryGetters,
-        Value, GLOBAL,
+        get_bool_expr, Branches, Command, Dialogue, Line, Map, Operator, Params, Passage, Passages,
+        QualifiedName, RawChoice, RawChoices, State, StateMod, Story, StoryGetters, Value, GLOBAL,
     },
     traits::FromStr,
+    Bookmark,
 };
 
 pub struct Validator<'a> {
     namespace: &'a str,
     passage: &'a str,
     story: &'a Story,
+    bookmark: &'a Bookmark,
 }
 
 impl<'a> Validator<'a> {
-    pub fn new(story: &'a Story) -> Self {
+    pub fn new(story: &'a Story, bookmark: &'a Bookmark) -> Self {
         Self {
             namespace: GLOBAL,
             passage: "",
             story,
+            bookmark,
         }
     }
 
@@ -49,10 +51,10 @@ impl<'a> Validator<'a> {
     }
 
     /// Validates a conditional statement.
-    fn validate_conditional(&self, expression: &str) -> Result<()> {
-        let cond = Conditional::from_str(expression)?;
-        let value = self.validate_var(cond.var)?;
-        Self::validate_cmp(&cond.val, value, cond.cmp)
+    fn validate_conditional(&self, expr: &str) -> Result<()> {
+        let bool_expr = get_bool_expr(expr);
+        Value::eval_bool_exprs(bool_expr, self.bookmark)?;
+        Ok(())
     }
 
     /// Validates conditional branches.
@@ -162,31 +164,6 @@ impl<'a> Validator<'a> {
                     "Comparators '+,-' can only be used on two numbers, not {:?} and {:?}.",
                     v1, v2
                 )),
-            },
-        }
-    }
-
-    /// Validates an comparator on a given value.
-    /// Any value supports assignment, but only Numbers can be added or subtracted.
-    fn validate_cmp(v1: &Value, v2: &Value, cmp: Comparator) -> Result<()> {
-        match cmp {
-            Comparator::EQ | Comparator::NEQ => {
-                if v1.same_type(v2) {
-                    Ok(())
-                } else {
-                    Err(error!(
-                        "Comparisons require values of the same type, not {:?} and {:?}",
-                        v1, v2
-                    ))
-                }
-            }
-            Comparator::LT | Comparator::LEQ | Comparator::GT | Comparator::GEQ => match (v1, v2) {
-                (Value::Number(_), Value::Number(_)) => Ok(()),
-                _ => Err(error!(
-                "Comparators '>,>=,<,<=' can only be used between two numbers, not {:?} and {:?}.",
-                v1,
-                v2
-            )),
             },
         }
     }

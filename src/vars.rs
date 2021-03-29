@@ -1,11 +1,16 @@
 use crate::structs::Bookmark;
-use crate::{error::Result, Value};
 use regex::{Captures, Regex};
 use std::borrow::Cow;
 
+static VARS_RE_STR: &str = r"\$((?:[A-Za-z]+:)?(?:\w+\.)?\w+)";
+
 lazy_static! {
-    static ref VARS_RE: Regex = Regex::new(r"\$([A-Za-z]+[:\w\.]*)\b").unwrap();
-    static ref BRACKET_VARS_RE: Regex = Regex::new(r"\{\$([A-Za-z]+[:\w\.]*)\}").unwrap();
+    static ref VARS_RE_STRING: String = format!(r"{}\b", VARS_RE_STR);
+    static ref SINGLE_VAR_RE_STRING: String = format!(r"^{}$", VARS_RE_STR);
+    static ref BRACKET_VARS_RE_STRING: String = format!(r"\{{{}\}}", VARS_RE_STR);
+    pub static ref VARS_RE: Regex = Regex::new(&VARS_RE_STRING).unwrap();
+    pub static ref SINGLE_VAR_RE: Regex = Regex::new(&SINGLE_VAR_RE_STRING).unwrap();
+    pub static ref BRACKET_VARS_RE: Regex = Regex::new(&BRACKET_VARS_RE_STRING).unwrap();
 }
 
 /// This is a line with var=${var} and var2=${var2}
@@ -27,14 +32,6 @@ pub fn replace_vars(text: &str, bookmark: &Bookmark) -> String {
             }
         })
         .to_string()
-}
-
-pub fn replace_var(text: &str, bookmark: &Bookmark) -> Result<Option<Value>> {
-    if text.starts_with("$") {
-        Ok(Some(bookmark.value(&text[1..text.len()])?.clone()))
-    } else {
-        Ok(None)
-    }
 }
 
 #[cfg(test)]

@@ -6,13 +6,12 @@ extern crate linear_map;
 /// Tests calling commands from other namespaces
 #[test]
 fn test_namespaces() {
-    let mut bookmark: Bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
     let story: Story = Story::load_yml("./tests/data/namespaces").unwrap();
-
-    println!("{:#?}", story);
-    Validator::new(&story).validate().unwrap();
-
+    let mut bookmark: Bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
     bookmark.init_state(&story);
+
+    Validator::new(&story, &bookmark).validate().unwrap();
+
     let mut runner: Runner = Runner::new(&mut bookmark, &story).unwrap();
 
     {

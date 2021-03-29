@@ -14,17 +14,28 @@ characters:
 Start:
   - Alice: Test
   - Alice.Wave: { amount: $var }
-  - set: { $var: 2 }
+  - set:
+      $var: 2
   - Alice.Wave: { amount: $var }
-  - set: { $var -: 2 }
+  - set:
+      $var -: 2
   - Alice.Wave: { amount: $var }
-  - if $var >= 0:
+  - if $var != 0:
       - Alice: $var geq 0
       - choices:
           Choice1: Choice1
           Choice2: Choice2
     else:
-      - Alice: $var lt 0
+      - Alice: $var neq 0
+      - choices:
+          Choice1: Choice1
+          Choice2: Choice2
+
+  - set:
+      $var: 4
+  - if $var > 3 and $var < 5:
+      - 3 < var < 5
+
   - Alice: End
 
 Choice1:

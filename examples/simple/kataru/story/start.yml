@@ -2,57 +2,21 @@
 namespace: global
 
 state:
-  name: Player
-  $passage.visited: 0
-  defaultScene: 7Mirrors
-
-characters:
-  Dahlia:
-  Lily:
-  Think:
+  var: 1
 
 commands:
-  SaveSnapshot: {}
-  LoadSnapshot: {}
-  Wave: {}
-  LoadScene: { scene: $defaultScene, duration: 0 }
+  $character.Wave: { amount: 0 }
 
-attributes:
-  wave:
-
-onPassage:
-  set:
-    $passage.visited +: 1
+characters:
+  Alice:
 
 ---
-# Each passage is a key in the YAML file.
 Start:
-  # A single text block can have many lines using `|`.
-  - Dahlia: Hi there!
-  - What's up?
-  - n:Lily.SaveSnapshot: {}
-  - After loading the snapshot, this line should show.
-  - Let's try loading it.
-  - LoadSnapshot: {}
-  - Dahlia: Want to do something?
-  - set:
-      $var: true
-  - choices:
-      sure!: DoSomething
-      nah...: DoNothing
+  - Alice: Test
+  - set: { $var: 2 }
 
-CheckDoor:
-  - if $DoSomething.visited < 1:
-      - Think: Can't go outside yet...
-    else:
-      - Think: You can go outside now!
-      - call: MirrorHub
+Choice1:
+  - Alice: Choice1
 
-DoSomething:
-  - Lily: Yeah why not?
-  - Dahlia: Yay!!
-  - DoSomething.visited = $DoSomething.visited
-
-DoNothing:
-  - Lily: Sorry, I'm busy...
-  - Dahlia: :(
+Choice2:
+  - Alice: Choice2

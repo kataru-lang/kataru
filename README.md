@@ -88,9 +88,9 @@ cmds:
 ---
 # Call them in a passage
 Passage:
-  - [clearScreen: {}] # Call with default parameters.
-  - [clearScreen: { duration: 1 }] # Call with overriden parameters.
-  - [clearScreen: {}, clearScreen: {}] # Call multiple commands in sequence.
+  - clearScreen: {} # Call with default parameters.
+  - clearScreen: { duration: 1 } # Call with overriden parameters.
+  - clearScreen: { 1 } # Call with positional parameters
 ```
 
 ## Understanding the `Bookmark`

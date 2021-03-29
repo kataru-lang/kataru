@@ -1,8 +1,6 @@
 use linear_map::LinearMap;
 
-use crate::{
-    traits::CopyMerge, vars::replace_var, Bookmark, Error, Map, Result, Story, StoryGetters, Value,
-};
+use crate::{traits::CopyMerge, Bookmark, Error, Map, Result, Story, StoryGetters, Value};
 
 use super::QualifiedName;
 
@@ -95,11 +93,8 @@ impl CommandGetters for Command {
 
                 // If the params have variable names, replace with variable value.
                 for (_var, val) in merged_params.iter_mut() {
-                    if let Value::String(text) = val {
-                        if let Some(replaced) = replace_var(text, bookmark)? {
-                            *val = replaced;
-                        }
-                    }
+                    println!("Eval in place {:?}", val);
+                    val.eval_in_place(bookmark)?;
                 }
             }
 

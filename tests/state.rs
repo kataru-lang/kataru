@@ -6,11 +6,14 @@ extern crate linear_map;
 /// Tests basic $character commands.
 #[test]
 fn test_state() {
-    let mut bookmark: Bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
     let story: Story = Story::load_yml("./tests/data/state").unwrap();
-    Validator::new(&story).validate().unwrap();
-
+    let mut bookmark: Bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
     bookmark.init_state(&story);
+
+    println!("{:#?}", bookmark);
+
+    Validator::new(&story, &bookmark).validate().unwrap();
+
     let mut runner: Runner = Runner::new(&mut bookmark, &story).unwrap();
 
     // Alice: Test
@@ -59,14 +62,14 @@ fn test_state() {
         );
     }
 
-    // Alice: 0 geq 0
+    // Alice: 0 neq 0
     {
         let line = runner.next("").unwrap();
         assert_eq!(
             line,
             &Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
-                text: "0 geq 0".to_string(),
+                text: "0 neq 0".to_string(),
                 attributes: btreemap! {}
             })
         );
@@ -95,6 +98,21 @@ fn test_state() {
             &Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "Choice1".to_string(),
+                attributes: btreemap! {}
+            })
+        );
+    }
+
+    // Set var = 4
+    // Check if > 3 and < 5
+    // 3 < var < 5
+    {
+        let line = runner.next("").unwrap();
+        assert_eq!(
+            line,
+            &Line::Dialogue(Dialogue {
+                name: "Alice".to_string(),
+                text: "3 < var < 5".to_string(),
                 attributes: btreemap! {}
             })
         );
