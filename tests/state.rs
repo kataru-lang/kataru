@@ -16,6 +16,17 @@ fn test_state() {
 
     let mut runner: Runner = Runner::new(&mut bookmark, &story).unwrap();
 
+    // Alice.Wave {amount: 1}
+    {
+        let line = runner.next("").unwrap();
+        assert_eq!(
+            line,
+            &Line::Command(
+                btreemap! {"TestBool".to_string() => linear_map! {"bool".to_string() => Value::Bool(false)}}
+            )
+        );
+    }
+
     // Alice: Test
     {
         let line = runner.next("").unwrap();

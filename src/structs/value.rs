@@ -74,7 +74,7 @@ impl Value {
             if let Value::Bool(bool) = bookmark.value(&cap[1])? {
                 return Ok(Some(*bool));
             } else {
-                return Err(error!("Invalid boolean variable '${}'", var));
+                return Err(error!("Invalid boolean variable '${}'", &cap[1]));
             }
         }
         Ok(None)
@@ -103,22 +103,25 @@ impl Value {
 
     /// A bool expr can be of the form `$var`, `not $var`, or `$var cmp X`.
     fn eval_bool_expr(expr: &str, bookmark: &Bookmark) -> Result<bool> {
+        // Handle negation
+        let mut negate = false;
+        let not_prefix = "not ";
+        let expr = if expr.starts_with(not_prefix) {
+            negate = true;
+            &expr[not_prefix.len()..]
+        } else {
+            expr
+        };
+
         // If singular $var expression
         if let Some(bool) = Self::eval_bool_var(expr, bookmark)? {
-            return Ok(bool);
+            return Ok(negate ^ bool);
         }
 
         // If $var CMP $var / $var CMP val
         let split: Vec<&str> = expr.split(' ').collect();
         match split.as_slice() {
-            ["not", var] => {
-                if let Some(bool) = Self::eval_bool_var(var, bookmark)? {
-                    Ok(!bool)
-                } else {
-                    Err(error!("Invalid boolean expr after 'not'."))
-                }
-            }
-            [var1, cmp, var2] => Self::eval_comparator(var1, var2, cmp, bookmark),
+            [var1, cmp, var2] => Ok(negate ^ Self::eval_comparator(var1, var2, cmp, bookmark)?),
             _ => Err(error!("Invalid boolean expr '{}'", expr)),
         }
     }

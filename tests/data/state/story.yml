@@ -2,16 +2,19 @@
 namespace: global
 
 state:
+  boolVar: true
   var: 1
 
 commands:
   $character.Wave: { amount: 0 }
+  TestBool: { bool: true }
 
 characters:
   Alice:
 
 ---
 Start:
+  - TestBool: { bool: not $boolVar }
   - Alice: Test
   - Alice.Wave: { amount: $var }
   - set:
