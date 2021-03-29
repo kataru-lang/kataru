@@ -7,7 +7,7 @@ fn test_dangleif() {
     let mut bookmark: Bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
     bookmark.init_state(&story);
 
-    Validator::new(&story, &bookmark).validate().unwrap();
+    Validator::new(&story, &mut bookmark).validate().unwrap();
 
     let mut runner: Runner = Runner::new(&mut bookmark, &story).unwrap();
 

@@ -12,7 +12,7 @@ fn test_state() {
 
     println!("{:#?}", bookmark);
 
-    Validator::new(&story, &bookmark).validate().unwrap();
+    Validator::new(&story, &mut bookmark).validate().unwrap();
 
     let mut runner: Runner = Runner::new(&mut bookmark, &story).unwrap();
 
