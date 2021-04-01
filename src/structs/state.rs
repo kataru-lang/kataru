@@ -5,41 +5,6 @@ use crate::{Map, Operator, Value};
 /// Typedef for state, which is a mapping of values.
 pub type State = Map<String, Value>;
 
-/// Trait to give state a `.update` function.
-pub trait StateUpdatable {
-    fn update(&mut self, state: &Self, passage: &str) -> Result<Self>
-    where
-        Self: Sized;
-}
-
-impl StateUpdatable for State {
-    /// Updates the state using a state modifier state_mod.
-    /// Note that state_mod may NOT contain any keys not present in state.
-    /// It's also assumed that all keys in state mod have been validated.
-    fn update(&mut self, state: &Self, passage: &str) -> Result<Self> {
-        let mut root_vars = Self::new();
-        for (key, value) in state {
-            // If contains ${passage} expansion, text should refer to the replaced text.
-            // Otherwise it should simply be the key.
-            #[allow(unused_assignments)]
-            let mut replaced = String::new();
-            let mut text = key;
-            if key.starts_with("$passage") {
-                replaced = format!("${}{}", passage, &text["$passage".len()..]);
-                text = &replaced;
-            }
-
-            let statemod = StateMod::from_str(text)?;
-            if self.contains_key(statemod.var) {
-                statemod.apply(self, value);
-            } else {
-                root_vars.insert(text.clone(), value.clone());
-            }
-        }
-        Ok(root_vars)
-    }
-}
-
 #[derive(Debug)]
 pub struct StateMod<'a> {
     pub var: &'a str,

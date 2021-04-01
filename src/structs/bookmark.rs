@@ -1,5 +1,9 @@
 use super::{Map, QualifiedName, State, Story, Value};
-use crate::error::{Error, Result};
+use crate::{
+    error::{Error, Result},
+    traits::FromStr,
+    StateMod,
+};
 use crate::{
     traits::{FromMessagePack, FromYaml, LoadYaml, SaveMessagePack},
     Load, LoadMessagePack, Save, SaveYaml, GLOBAL,
@@ -62,11 +66,40 @@ impl<'a> Bookmark {
         }
     }
 
-    pub fn root_state(&'a mut self) -> Result<&'a mut State> {
+    pub fn global_state(&'a mut self) -> Result<&'a mut State> {
         match self.state.get_mut(GLOBAL) {
             Some(state) => Ok(state),
-            None => Err(error!("No root namesapce")),
+            None => Err(error!("No global namespace")),
         }
+    }
+
+    /// Given a mapping of state changes, updates the bookmark's state.
+    /// `passage` is required for $passage variables.
+    pub fn set_state(&mut self, state: &State) -> Result<()> {
+        for (key, value) in state {
+            // If a expression, evaluate. TODO: avoid clone.
+            let mut value = value.clone();
+            value.eval_in_place(self)?;
+
+            // If contains ${passage} expansion, text should refer to the replaced text.
+            // Otherwise it should simply be the key.
+            let replaced: String;
+            let mut text = key;
+            if key.starts_with("$passage") {
+                replaced = format!("${}{}", &self.position.passage, &text["$passage".len()..]);
+                text = &replaced;
+            }
+
+            let statemod = StateMod::from_str(text)?;
+            let local_state = self.state()?;
+            if local_state.contains_key(statemod.var) {
+                statemod.apply(local_state, &value);
+            } else {
+                let global_state = self.global_state()?;
+                statemod.apply(global_state, &value);
+            }
+        }
+        Ok(())
     }
 
     // Updates `state[var] = val` iff `var` not already in `state`.
@@ -76,6 +109,7 @@ impl<'a> Bookmark {
         }
     }
 
+    /// Defaults bookmark state based on the story.
     pub fn init_state(&mut self, story: &Story) {
         for (namespace, section) in story {
             if self.state.get(namespace).is_none() {

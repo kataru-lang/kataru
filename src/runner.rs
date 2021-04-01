@@ -2,7 +2,7 @@ use crate::{
     error::{Error, Result},
     structs::{
         Bookmark, Branchable, Choices, CommandGetters, Dialogue, Line, Passage, QualifiedName,
-        Return, State, StateUpdatable, Story, GLOBAL,
+        Return, State, Story, GLOBAL,
     },
     Command, Value,
 };
@@ -193,7 +193,7 @@ impl<'r> Runner<'r> {
         // First try to find the section specified namespace.
         if let Some(section) = self.story.get(namespace) {
             if let Some(set_cmd) = &section.config.on_passage {
-                return self.set_state(&set_cmd.set);
+                return self.bookmark.set_state(&set_cmd.set);
             }
             Ok(())
         } else {
@@ -211,15 +211,6 @@ impl<'r> Runner<'r> {
         );
         self.passage = self.get_passage(qname)?;
         self.load_passage(self.passage);
-        Ok(())
-    }
-
-    fn set_state(&mut self, state: &State) -> Result<()> {
-        let passage_name = self.bookmark.position.passage.clone();
-        let root_sets = self.bookmark.state()?.update(&state, &passage_name)?;
-        self.bookmark
-            .root_state()?
-            .update(&root_sets, &passage_name)?;
         Ok(())
     }
 
@@ -266,7 +257,7 @@ impl<'r> Runner<'r> {
                     for (var, _prompt) in &input_cmd.input {
                         let mut state = State::new();
                         state.insert(var.clone(), Value::String(input.to_string()));
-                        self.set_state(&state)?
+                        self.bookmark.set_state(&state)?
                     }
                     self.bookmark.position.line += 1;
                     Line::Continue
@@ -315,11 +306,7 @@ impl<'r> Runner<'r> {
                 Line::Command(full_command)
             }
             Line::SetCommand(set) => {
-                let passage_name = self.bookmark.position.passage.clone();
-                let root_sets = self.bookmark.state()?.update(&set.set, &passage_name)?;
-                self.bookmark
-                    .root_state()?
-                    .update(&root_sets, &passage_name)?;
+                self.bookmark.set_state(&set.set)?;
                 self.bookmark.position.line += 1;
                 Line::Continue
             }

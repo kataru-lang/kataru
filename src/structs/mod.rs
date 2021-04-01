@@ -24,6 +24,6 @@ pub use line::{Call, Input, Line, Return, SetCommand};
 pub use map::{Entry, Map};
 pub use operator::Operator;
 pub use section::{QualifiedName, Section, GLOBAL};
-pub use state::{State, StateMod, StateUpdatable};
+pub use state::{State, StateMod};
 pub use story::{Passage, Passages, Story, StoryGetters};
 pub use value::Value;

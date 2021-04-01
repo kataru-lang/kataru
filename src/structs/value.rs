@@ -1,6 +1,7 @@
 use crate::{
+    contains_var,
     error::{Error, Result},
-    Bookmark, SINGLE_VAR_RE, VARS_RE,
+    extract_var, Bookmark,
 };
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -69,27 +70,35 @@ impl Value {
         }
     }
 
-    fn eval_bool_var(var: &str, bookmark: &Bookmark) -> Result<Option<bool>> {
-        for cap in SINGLE_VAR_RE.captures_iter(var) {
-            if let Value::Bool(bool) = bookmark.value(&cap[1])? {
-                return Ok(Some(*bool));
+    fn eval_bool_var(text: &str, bookmark: &Bookmark) -> Result<Option<bool>> {
+        if let Some(var) = extract_var(text) {
+            if let Value::Bool(bool) = Value::from_var(var, bookmark)? {
+                return Ok(Some(bool));
             } else {
-                return Err(error!("Invalid boolean variable '${}'", &cap[1]));
+                return Err(error!("Invalid boolean variable '${}'", var));
             }
         }
         Ok(None)
     }
 
-    fn get_compared_val(var: &str, bookmark: &Bookmark) -> Result<Value> {
-        for cap in SINGLE_VAR_RE.captures_iter(var) {
-            return Ok(bookmark.value(&cap[1])?.clone());
-        }
-        Value::parse(var)
+    /// Gets a value from a variable. Assumes that the $ has already be stripped.
+    fn from_var(var: &str, bookmark: &Bookmark) -> Result<Self> {
+        Ok(bookmark.value(var)?.clone())
     }
 
-    fn eval_comparator(var1: &str, var2: &str, cmp: &str, bookmark: &Bookmark) -> Result<bool> {
-        let val1 = Self::get_compared_val(var1, bookmark)?;
-        let val2 = Self::get_compared_val(var2, bookmark)?;
+    /// If `token` is a variable, returns that variable's value.
+    /// Otherwise parses `token` as a yaml literal.
+    /// Raises an error if unable to parse or if the varname doesn't exist.
+    fn from_token(token: &str, bookmark: &Bookmark) -> Result<Self> {
+        if let Some(var) = extract_var(token) {
+            return Self::from_var(var, bookmark);
+        }
+        Value::parse(token)
+    }
+
+    fn eval_comparator(token1: &str, token2: &str, cmp: &str, bookmark: &Bookmark) -> Result<bool> {
+        let val1 = Self::from_token(token1, bookmark)?;
+        let val2 = Self::from_token(token2, bookmark)?;
         match cmp {
             "==" => Ok(val1 == val2),
             "!=" => Ok(val1 != val2),
@@ -170,30 +179,52 @@ impl Value {
     /// Evaluates a string that may contain $variable expressions.
     /// If invalid expression, returns Ok(None).
     /// If the expression is valid, but contains invalid references, returns Err(...).
-    pub fn eval(expr: &str, bookmark: &Bookmark) -> Result<Option<Value>> {
+    pub fn eval(expr: &str, bookmark: &Bookmark) -> Result<Self> {
         // If just a single variable, return the value.
-        for cap in SINGLE_VAR_RE.captures_iter(expr) {
-            let value = bookmark.value(&cap[1])?.clone();
-            return Ok(Some(value));
+        if let Some(var) = extract_var(expr) {
+            return Ok(Self::from_var(var, bookmark)?);
         }
 
         // Otherwise try evaluating a boolean expression.
         let value = Value::Bool(Self::eval_bool_exprs(expr, bookmark)?);
-        Ok(Some(value))
+        Ok(value)
+    }
+
+    /// If this value is actually an expression that needs to be evaluated,
+    /// return Some(&str) containing the expression.
+    /// Otherwise return None.
+    pub fn get_expr(&self) -> Option<&str> {
+        if let Value::String(expr) = self {
+            if contains_var(expr) {
+                Some(&expr)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    /// If this value is a varaible, gets that variable's name.
+    /// Otherwise None.
+    pub fn get_var(&self) -> Option<&str> {
+        if let Value::String(text) = self {
+            if let Some(var) = extract_var(text) {
+                Some(&var)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 
     /// Attempts to evaluate a value as an expression.
     /// For all types except string, this is a no-op.
     /// If a string type is not a valid expression, does nothing.
     pub fn eval_in_place(&mut self, bookmark: &Bookmark) -> Result<()> {
-        if let Value::String(expr) = self {
-            // Only if the string can be treated as a valid expression do we replace.
-            if !VARS_RE.is_match(expr) {
-                return Ok(());
-            }
-            if let Some(new_val) = Self::eval(expr, bookmark)? {
-                *self = new_val;
-            }
+        if let Some(expr) = self.get_expr() {
+            *self = Self::eval(expr, bookmark)?
         }
         Ok(())
     }
@@ -228,27 +259,27 @@ mod tests {
         };
 
         {
-            let val = Value::eval("$var1", &bookmark).unwrap().unwrap();
+            let val = Value::eval("$var1", &bookmark).unwrap();
             assert_eq!(val, Value::Number(1.));
         }
 
         {
-            let val = Value::eval("$b0 and $b1", &bookmark).unwrap().unwrap();
+            let val = Value::eval("$b0 and $b1", &bookmark).unwrap();
             assert_eq!(val, Value::Bool(false));
         }
 
         {
-            let val = Value::eval("not $b0 and $b1", &bookmark).unwrap().unwrap();
+            let val = Value::eval("not $b0 and $b1", &bookmark).unwrap();
             assert_eq!(val, Value::Bool(true));
         }
 
         {
-            let val = Value::eval("$b0 or $b1", &bookmark).unwrap().unwrap();
+            let val = Value::eval("$b0 or $b1", &bookmark).unwrap();
             assert_eq!(val, Value::Bool(true));
         }
 
         {
-            let val = Value::eval("$b0 or not $b1", &bookmark).unwrap().unwrap();
+            let val = Value::eval("$b0 or not $b1", &bookmark).unwrap();
             assert_eq!(val, Value::Bool(false));
         }
     }

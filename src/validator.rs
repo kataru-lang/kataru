@@ -215,9 +215,11 @@ impl<'a> Validator<'a> {
     /// Validates the state only contains configured keys.
     fn validate_state(&self, state: &State) -> Result<()> {
         for (key, value) in state {
+            let mut value = value.clone();
+            value.eval_in_place(self.bookmark)?;
             let smod = StateMod::from_str(key)?;
             let state_value = self.validate_var(smod.var)?;
-            Self::validate_op(state_value, value, smod.op)?;
+            Self::validate_op(state_value, &value, smod.op)?;
         }
         Ok(())
     }

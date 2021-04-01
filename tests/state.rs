@@ -123,6 +123,21 @@ fn test_state() {
             line,
             &Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
+                text: "var > 3".to_string(),
+                attributes: btreemap! {}
+            })
+        );
+    }
+
+    // Set var = 4
+    // Check if > 3 and < 5
+    // 3 < var < 5
+    {
+        let line = runner.next("").unwrap();
+        assert_eq!(
+            line,
+            &Line::Dialogue(Dialogue {
+                name: "Alice".to_string(),
                 text: "3 < var < 5".to_string(),
                 attributes: btreemap! {}
             })

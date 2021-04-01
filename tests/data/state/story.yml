@@ -4,6 +4,8 @@ namespace: global
 state:
   boolVar: true
   var: 1
+  THREE: 3
+  FOUR: 4
 
 commands:
   $character.Wave: { amount: 0 }
@@ -35,7 +37,9 @@ Start:
           Choice2: Choice2
 
   - set:
-      $var: 4
+      $var: $FOUR
+  - if $var > $THREE:
+      - var > $THREE
   - if $var > 3 and $var < 5:
       - 3 < var < 5
 

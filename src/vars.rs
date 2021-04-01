@@ -34,6 +34,21 @@ pub fn replace_vars(text: &str, bookmark: &Bookmark) -> String {
         .to_string()
 }
 
+/// Returns Some(&str) when a variable was successfully extracted.
+/// Otherwise returns None.
+pub fn extract_var(text: &str) -> Option<&str> {
+    if SINGLE_VAR_RE.is_match(text) {
+        Some(&text[1..])
+    } else {
+        None
+    }
+}
+
+#[inline]
+pub fn contains_var(text: &str) -> bool {
+    VARS_RE.is_match(text)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
