@@ -1,16 +1,30 @@
 use linear_map::LinearMap;
 
-use crate::{traits::CopyMerge, Bookmark, Error, Map, Result, Story, StoryGetters, Value};
+use crate::{
+    traits::CopyMerge, util::ReversedClone, Bookmark, Error, Map, Result, Story, StoryGetters,
+    Value,
+};
 
 use super::QualifiedName;
 
 pub type Params = LinearMap<String, Value>;
 pub type Command = Map<String, Params>;
 
-pub type PositionalParams = serde_yaml::Mapping;
+pub type PositionalParams = Vec<Value>;
 pub type PositionalCommand = Map<String, PositionalParams>;
 
-pub trait CommandGetters: Sized {
+pub trait CommandGetters<K, V>: Sized
+where
+    for<'a> &'a Self: IntoIterator<Item = (&'a K, &'a V)>,
+{
+    fn get_first(&self) -> Result<(&K, &V)> {
+        for value in self {
+            return Ok(value);
+        }
+
+        Err(error!("Command was empty"))
+    }
+
     fn get_default_params<'s>(
         story: &'s Story,
         bookmark: &Bookmark,
@@ -66,80 +80,61 @@ pub trait CommandGetters: Sized {
     }
 
     /// Get the vector of qualified commands with default parameters included.
-    fn get_full_command(story: &Story, bookmark: &Bookmark, command: &Self) -> Result<Self>;
-
-    /// Get the qualified command with the parameters infered by their positions.
-    fn get_full_positional_command(
-        story: &Story,
-        bookmark: &Bookmark,
-        command: &PositionalCommand,
-    ) -> Result<Self>;
+    fn get_full_command(&self, story: &Story, bookmark: &Bookmark) -> Result<Command>;
 }
 
-impl CommandGetters for Command {
-    /// Get the vector of qualified commands with default parameters included.
-    fn get_full_command(story: &Story, bookmark: &Bookmark, command: &Self) -> Result<Self> {
-        for (command_name, params) in command {
-            let mut cmd = Command::new();
-            let mut merged_params = Params::new();
-
-            let (normalized_name, qualified_command) =
-                Self::get_command_components(story, bookmark, command_name)?;
-
-            if let Some(default_params) =
-                Command::get_default_params(story, bookmark, &normalized_name)
-            {
-                merged_params = params.copy_merge(default_params)?;
-
-                // If the params have variable names, replace with variable value.
-                for (_var, val) in merged_params.iter_mut() {
-                    println!("Eval in place {:?}", val);
-                    val.eval_in_place(bookmark)?;
-                }
-            }
-
-            cmd.insert(qualified_command, merged_params);
-            return Ok(cmd);
-        }
-        Err(error!("Empty command."))
-    }
-
+impl CommandGetters<String, PositionalParams> for PositionalCommand {
     /// Get the qualified command with the parameters infered by their positions.
-    fn get_full_positional_command(
-        story: &Story,
-        bookmark: &Bookmark,
-        command: &PositionalCommand,
-    ) -> Result<Self> {
-        for (command_name, params) in command {
-            let mut full_command = Command::new();
-            let mut merged_params = Params::new();
-            let (normalized_name, qualified_command) =
-                Self::get_command_components(story, bookmark, command_name)?;
+    fn get_full_command(&self, story: &Story, bookmark: &Bookmark) -> Result<Command> {
+        let (command_name, params) = self.get_first()?;
+        let mut full_command = Command::new();
+        let mut merged_params = Params::new();
+        let (normalized_name, qualified_command) =
+            Self::get_command_components(story, bookmark, command_name)?;
 
-            // Collect all values from the given positional params.
-            let mut values = Vec::new();
-            values.reserve(params.len());
-            for (yml_value, _null) in params {
-                values.push(Value::from_yml(yml_value.clone())?);
+        // Collect all values from the given positional params.
+        let mut values = params.reversed();
+
+        if let Some(default_params) = Command::get_default_params(story, bookmark, &normalized_name)
+        {
+            for (param, default_value) in default_params {
+                let value = if let Some(positional_value) = values.pop() {
+                    positional_value
+                } else {
+                    default_value.clone()
+                };
+                merged_params.insert(param.clone(), value);
             }
-            values.reverse();
-
-            if let Some(default_params) =
-                Command::get_default_params(story, bookmark, &normalized_name)
-            {
-                for (param, default_value) in default_params {
-                    let value = if let Some(positional_value) = values.pop() {
-                        positional_value
-                    } else {
-                        default_value.clone()
-                    };
-                    merged_params.insert(param.clone(), value);
-                }
-            }
-
-            full_command.insert(qualified_command, merged_params);
-            return Ok(full_command);
         }
-        Err(error!("Empty command."))
+
+        full_command.insert(qualified_command, merged_params);
+        Ok(full_command)
+    }
+}
+
+impl CommandGetters<String, Params> for Command {
+    /// Get the vector of qualified commands with default parameters included.
+    fn get_full_command(&self, story: &Story, bookmark: &Bookmark) -> Result<Self> {
+        let (command_name, params) = self.get_first()?;
+
+        let mut cmd = Command::new();
+        let mut merged_params = Params::new();
+
+        let (normalized_name, qualified_command) =
+            Self::get_command_components(story, bookmark, command_name)?;
+
+        if let Some(default_params) = Command::get_default_params(story, bookmark, &normalized_name)
+        {
+            merged_params = params.copy_merge(default_params)?;
+
+            // If the params have variable names, replace with variable value.
+            for (_var, val) in merged_params.iter_mut() {
+                println!("Eval in place {:?}", val);
+                val.eval_in_place(bookmark)?;
+            }
+        }
+
+        cmd.insert(qualified_command, merged_params);
+        Ok(cmd)
     }
 }

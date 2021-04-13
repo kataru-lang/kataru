@@ -15,7 +15,7 @@ Start:
   - GlobalCharacter: Hello # GlobalCharacter.GlobalMethod: "Hello"
   - GlobalCharacter.GlobalMethod: {} # GlobalCharacter.GlobalMethod()
   - GlobalCharacter.GlobalMethod: { param: "test" }
-  - GlobalCharacter.GlobalMethod: { test }
+  - GlobalCharacter.GlobalMethod: [test]
   - GlobalCommand: {}
   - GlobalCommand: { param: 1 }
   - call: namespace1:Start

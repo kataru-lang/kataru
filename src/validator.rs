@@ -55,7 +55,7 @@ impl<'a> Validator<'a> {
 
     /// Validates conditional branches.
     fn validate_branches(&self, branches: &Branches) -> Result<()> {
-        for (expression, lines) in branches {
+        for (expression, lines) in &branches.exprs {
             if expression != "else" {
                 self.validate_conditional(expression)?;
             }

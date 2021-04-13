@@ -4,7 +4,7 @@ use crate::{
         Bookmark, Branchable, Choices, CommandGetters, Dialogue, Line, Passage, QualifiedName,
         Return, State, Story, GLOBAL,
     },
-    Command, Value,
+    Value,
 };
 
 static RETURN: Line = Line::Return(Return { r#return: () });
@@ -133,7 +133,7 @@ impl<'r> Runner<'r> {
                     self.lines.push(&line);
 
                     // Add breaks after each line except for the last line
-                    let mut branches_it = branches.iter();
+                    let mut branches_it = branches.exprs.iter();
                     if let Some((_expression, branch_lines)) = branches_it.next() {
                         self.load_lines(branch_lines);
                     }
@@ -293,16 +293,13 @@ impl<'r> Runner<'r> {
             }
             Line::Command(command) => {
                 self.bookmark.position.line += 1;
-                let full_command = Command::get_full_command(&self.story, &self.bookmark, command)?;
+                let full_command = command.get_full_command(&self.story, &self.bookmark)?;
                 Line::Command(full_command)
             }
             Line::PositionalCommand(positional_command) => {
                 self.bookmark.position.line += 1;
-                let full_command = Command::get_full_positional_command(
-                    &self.story,
-                    &self.bookmark,
-                    positional_command,
-                )?;
+                let full_command =
+                    positional_command.get_full_command(&self.story, &self.bookmark)?;
                 Line::Command(full_command)
             }
             Line::SetCommand(set) => {

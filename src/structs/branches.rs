@@ -1,13 +1,39 @@
 use super::{Bookmark, Line};
 use crate::{error::Result, Value};
 use linear_map::LinearMap;
+use serde::{Deserialize, Serialize};
 
 pub trait Branchable {
     fn take(&self, bookmark: &mut Bookmark) -> Result<usize>;
     fn length(&self) -> usize;
 }
 
-pub type Branches = LinearMap<String, Vec<Line>>;
+#[derive(Deserialize)]
+pub struct BranchesShadow {
+    #[serde(flatten)]
+    exprs: LinearMap<String, Vec<Line>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(try_from = "BranchesShadow")]
+pub struct Branches {
+    #[serde(flatten)]
+    pub exprs: LinearMap<String, Vec<Line>>,
+}
+
+impl std::convert::TryFrom<BranchesShadow> for Branches {
+    type Error = &'static str;
+    fn try_from(shadow: BranchesShadow) -> std::result::Result<Self, Self::Error> {
+        for (key, _val) in &shadow.exprs {
+            if !(key.starts_with("if ") || key.starts_with("elif ") || key.starts_with("else")) {
+                return Err("Invalid.");
+            }
+        }
+        Ok(Self {
+            exprs: shadow.exprs,
+        })
+    }
+}
 
 pub fn get_bool_expr(expr: &str) -> &str {
     let if_prefix = "if ";
@@ -27,7 +53,7 @@ impl Branchable for Branches {
         let mut skip_lines = 1; // Skip the initial if line.
 
         let mut i = 0;
-        for (expr, lines) in self {
+        for (expr, lines) in &self.exprs {
             i += 1;
 
             // If we should execute this block
@@ -38,7 +64,7 @@ impl Branchable for Branches {
                 skip_lines += flattened_len(lines);
 
                 // If not the last section in the if block, add an extra skip for the Line::Break.
-                if i < self.len() {
+                if i < self.exprs.len() {
                     skip_lines += 1;
                 }
             }
@@ -50,7 +76,7 @@ impl Branchable for Branches {
     fn length(&self) -> usize {
         let mut length = 0;
 
-        for (_expression, branch_lines) in self {
+        for (_expr, branch_lines) in &self.exprs {
             length += 1 + flattened_len(branch_lines);
         }
         println!("length: {}", length);

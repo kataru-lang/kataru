@@ -10,6 +10,8 @@ fn test_namespaces() {
     let mut bookmark: Bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
     bookmark.init_state(&story);
 
+    println!("{:#?}", story);
+
     Validator::new(&story, &mut bookmark).validate().unwrap();
 
     let mut runner: Runner = Runner::new(&mut bookmark, &story).unwrap();
