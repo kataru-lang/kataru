@@ -125,6 +125,20 @@ fn test_namespaces() {
                 "namespace1:LocalCharacter.LocalMethod".to_string() => linear_map! {
                     "param1".to_string() => Value::Number(1.),
                     "param2".to_string() => Value::String("two".to_string()),
+                    "param3".to_string() => Value::Bool(true)
+                }
+            })
+        );
+    }
+
+    {
+        let line = runner.next("").unwrap();
+        assert_eq!(
+            line,
+            &Line::Command(btreemap! {
+                "namespace1:LocalCharacter.LocalMethod".to_string() => linear_map! {
+                    "param1".to_string() => Value::Number(1.),
+                    "param2".to_string() => Value::String("two".to_string()),
                     "param3".to_string() => Value::Bool(false)
                 }
             })

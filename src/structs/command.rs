@@ -98,11 +98,12 @@ impl CommandGetters<String, PositionalParams> for PositionalCommand {
         if let Some(default_params) = Command::get_default_params(story, bookmark, &normalized_name)
         {
             for (param, default_value) in default_params {
-                let value = if let Some(positional_value) = values.pop() {
+                let mut value = if let Some(positional_value) = values.pop() {
                     positional_value
                 } else {
                     default_value.clone()
                 };
+                value.eval_in_place(bookmark)?;
                 merged_params.insert(param.clone(), value);
             }
         }
