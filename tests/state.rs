@@ -16,144 +16,105 @@ fn test_state() {
 
     let mut runner: Runner = Runner::new(&mut bookmark, &story).unwrap();
 
-    // Alice.Wave {amount: 1}
-    {
-        let line = runner.next("").unwrap();
-        assert_eq!(
-            line,
-            &Line::Command(
-                btreemap! {"TestBool".to_string() => linear_map! {"bool".to_string() => Value::Bool(false)}}
-            )
-        );
-    }
-
-    // Alice: Test
-    {
-        let line = runner.next("").unwrap();
-        assert_eq!(
-            line,
-            &Line::Dialogue(Dialogue {
+    let tests = vec![
+        // TestBool: { bool: not $boolVar }
+        (
+            "",
+            Line::Command(
+                btreemap! {"TestBool".to_string() => linear_map! {"bool".to_string() => Value::Bool(false)}},
+            ),
+        ),
+        // Alice: Test
+        (
+            "",
+            Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "Test".to_string(),
-                attributes: btreemap! {}
-            })
-        );
-    }
-
-    // Alice.Wave {amount: 1}
-    {
-        let line = runner.next("").unwrap();
-        assert_eq!(
-            line,
-            &Line::Command(
-                btreemap! {"Alice.Wave".to_string() => linear_map! {"amount".to_string() => Value::Number(1.)}}
-            )
-        );
-    }
-
-    // Alice.Wave {amount: 2}
-    {
-        let line = runner.next("").unwrap();
-        assert_eq!(
-            line,
-            &Line::Command(
-                btreemap! {"Alice.Wave".to_string() => linear_map! {"amount".to_string() => Value::Number(2.)}}
-            )
-        );
-    }
-
-    // Alice.Wave {amount: 0}
-    {
-        let line = runner.next("").unwrap();
-        assert_eq!(
-            line,
-            &Line::Command(
-                btreemap! {"Alice.Wave".to_string() => linear_map! {"amount".to_string() => Value::Number(0.)}}
-            )
-        );
-    }
-
-    // Alice: 0 neq 0
-    {
-        let line = runner.next("").unwrap();
-        assert_eq!(
-            line,
-            &Line::Dialogue(Dialogue {
+                attributes: btreemap! {},
+            }),
+        ),
+        // Alice.Wave: { amount: $var } # $var = 1
+        (
+            "",
+            Line::Command(
+                btreemap! {"Alice.Wave".to_string() => linear_map! {"amount".to_string() => Value::Number(1.)}},
+            ),
+        ),
+        // Alice.Wave: { amount: $var } # $var = 2
+        (
+            "",
+            Line::Command(
+                btreemap! {"Alice.Wave".to_string() => linear_map! {"amount".to_string() => Value::Number(2.)}},
+            ),
+        ),
+        // Alice.Wave: { amount: $var } # $var = 2
+        (
+            "",
+            Line::Command(
+                btreemap! {"Alice.Wave".to_string() => linear_map! {"amount".to_string() => Value::Number(0.)}},
+            ),
+        ),
+        // Alice: $var neq 0
+        (
+            "",
+            Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "0 neq 0".to_string(),
-                attributes: btreemap! {}
-            })
-        );
-    }
-
-    // Alice: 0 geq 0
-    {
-        let line = runner.next("").unwrap();
-        assert_eq!(
-            line,
-            &Line::Choices(Choices {
+                attributes: btreemap! {},
+            }),
+        ),
+        // choices:
+        //   Choice1: Choice1
+        //   Choice2: Choice2
+        (
+            "",
+            Line::Choices(Choices {
                 choices: btreemap! {
                     "Choice1".to_string() => "Choice1".to_string(),
                     "Choice2".to_string() => "Choice2".to_string()
                 },
-                timeout: 0.
-            })
-        );
-    }
-
-    // Alice: Choice1
-    {
-        let line = runner.next("Choice1").unwrap();
-        assert_eq!(
-            line,
-            &Line::Dialogue(Dialogue {
+                timeout: 0.,
+            }),
+        ),
+        // Alice: Choice1
+        (
+            "Choice1",
+            Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "Choice1".to_string(),
-                attributes: btreemap! {}
-            })
-        );
-    }
-
-    // Set var = 4
-    // Check if > 3 and < 5
-    // 3 < var < 5
-    {
-        let line = runner.next("").unwrap();
-        assert_eq!(
-            line,
-            &Line::Dialogue(Dialogue {
+                attributes: btreemap! {},
+            }),
+        ),
+        // var > $THREE
+        (
+            "",
+            Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "var > 3".to_string(),
-                attributes: btreemap! {}
-            })
-        );
-    }
-
-    // Set var = 4
-    // Check if > 3 and < 5
-    // 3 < var < 5
-    {
-        let line = runner.next("").unwrap();
-        assert_eq!(
-            line,
-            &Line::Dialogue(Dialogue {
+                attributes: btreemap! {},
+            }),
+        ),
+        // 3 < var < 5
+        (
+            "",
+            Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "3 < var < 5".to_string(),
-                attributes: btreemap! {}
-            })
-        );
-    }
-
-    // Alice: End
-    {
-        let line = runner.next("").unwrap();
-        assert_eq!(
-            line,
-            &Line::Dialogue(Dialogue {
+                attributes: btreemap! {},
+            }),
+        ),
+        // Alice: End
+        (
+            "",
+            Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "End".to_string(),
-                attributes: btreemap! {}
-            })
-        );
+                attributes: btreemap! {},
+            }),
+        ),
+    ];
+
+    for (input, line) in &tests {
+        assert_eq!(runner.next(input).unwrap(), line);
     }
 }

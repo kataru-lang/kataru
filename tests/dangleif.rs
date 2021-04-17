@@ -11,6 +11,5 @@ fn test_dangleif() {
 
     let mut runner: Runner = Runner::new(&mut bookmark, &story).unwrap();
 
-    // Alice: Test
     runner.next("").unwrap();
 }

@@ -18,13 +18,13 @@ characters:
 Start:
   - TestBool: { bool: not $boolVar }
   - Alice: Test
-  - Alice.Wave: { amount: $var }
+  - Alice.Wave: { amount: $var } # $var = 1
   - set:
       $var: 2
-  - Alice.Wave: { amount: $var }
+  - Alice.Wave: { amount: $var } # $var = 2
   - set:
       $var -: 2
-  - Alice.Wave: { amount: $var }
+  - Alice.Wave: { amount: $var } # $var = 0
   - if $var != 0:
       - Alice: $var geq 0
       - choices:

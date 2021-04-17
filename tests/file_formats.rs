@@ -12,15 +12,16 @@ fn test_story2() {
 
     let mut runner: Runner = Runner::new(&mut bookmark, &story).unwrap();
 
-    {
-        let line = runner.next("").unwrap();
-        assert_eq!(
-            line,
-            &Line::Dialogue(Dialogue {
-                name: "Alice".to_string(),
-                text: "Test story!".to_string(),
-                attributes: btreemap! {}
-            })
-        );
+    let tests = vec![(
+        "",
+        Line::Dialogue(Dialogue {
+            name: "Alice".to_string(),
+            text: "Test story!".to_string(),
+            attributes: btreemap! {},
+        }),
+    )];
+
+    for (input, line) in &tests {
+        assert_eq!(runner.next(input).unwrap(), line);
     }
 }
