@@ -1,9 +1,6 @@
 use linear_map::LinearMap;
 
-use crate::{
-    traits::CopyMerge, util::ReversedClone, Bookmark, Error, Map, Result, Story, StoryGetters,
-    Value,
-};
+use crate::{traits::CopyMerge, Bookmark, Error, Map, Result, Story, StoryGetters, Value};
 
 use super::QualifiedName;
 
@@ -13,11 +10,38 @@ pub type Command = Map<String, Params>;
 pub type PositionalParams = Vec<Value>;
 pub type PositionalCommand = Map<String, PositionalParams>;
 
-pub trait CommandGetters<K, V>: Sized
+/// Trait for merging params with their defaults.
+pub trait MergeParams {
+    fn merge_params(&self, default_params: &Params) -> Result<Params>;
+}
+
+impl MergeParams for PositionalParams {
+    fn merge_params(&self, default_params: &Params) -> Result<Params> {
+        let mut merged_params = Params::new();
+        let mut it = self.iter();
+        for (param, default_value) in default_params {
+            let value = if let Some(positional_value) = it.next() {
+                positional_value.clone()
+            } else {
+                default_value.clone()
+            };
+            merged_params.insert(param.clone(), value);
+        }
+        Ok(merged_params)
+    }
+}
+
+impl MergeParams for Params {
+    fn merge_params(&self, default_params: &Params) -> Result<Params> {
+        self.copy_merge(default_params)
+    }
+}
+
+pub trait CommandGetters<ParamsT: MergeParams>: Sized
 where
-    for<'a> &'a Self: IntoIterator<Item = (&'a K, &'a V)>,
+    for<'a> &'a Self: IntoIterator<Item = (&'a String, &'a ParamsT)>,
 {
-    fn get_first(&self) -> Result<(&K, &V)> {
+    fn get_first(&self) -> Result<(&String, &ParamsT)> {
         for value in self {
             return Ok(value);
         }
@@ -80,62 +104,29 @@ where
     }
 
     /// Get the vector of qualified commands with default parameters included.
-    fn get_full_command(&self, story: &Story, bookmark: &Bookmark) -> Result<Command>;
-}
-
-impl CommandGetters<String, PositionalParams> for PositionalCommand {
-    /// Get the qualified command with the parameters infered by their positions.
     fn get_full_command(&self, story: &Story, bookmark: &Bookmark) -> Result<Command> {
         let (command_name, params) = self.get_first()?;
         let mut full_command = Command::new();
-        let mut merged_params = Params::new();
         let (normalized_name, qualified_command) =
             Self::get_command_components(story, bookmark, command_name)?;
 
-        // Collect all values from the given positional params.
-        let mut values = params.reversed();
-
         if let Some(default_params) = Command::get_default_params(story, bookmark, &normalized_name)
         {
-            for (param, default_value) in default_params {
-                let mut value = if let Some(positional_value) = values.pop() {
-                    positional_value
-                } else {
-                    default_value.clone()
-                };
-                value.eval_in_place(bookmark)?;
-                merged_params.insert(param.clone(), value);
+            // Merge params with their defaults.
+            let mut merged_params = params.merge_params(default_params)?;
+
+            // If the params have variable names, replace with variable value.
+            for (_var, val) in merged_params.iter_mut() {
+                val.eval_in_place(bookmark)?;
             }
+
+            full_command.insert(qualified_command, merged_params);
         }
 
-        full_command.insert(qualified_command, merged_params);
         Ok(full_command)
     }
 }
 
-impl CommandGetters<String, Params> for Command {
-    /// Get the vector of qualified commands with default parameters included.
-    fn get_full_command(&self, story: &Story, bookmark: &Bookmark) -> Result<Self> {
-        let (command_name, params) = self.get_first()?;
+impl CommandGetters<PositionalParams> for PositionalCommand {}
 
-        let mut cmd = Command::new();
-        let mut merged_params = Params::new();
-
-        let (normalized_name, qualified_command) =
-            Self::get_command_components(story, bookmark, command_name)?;
-
-        if let Some(default_params) = Command::get_default_params(story, bookmark, &normalized_name)
-        {
-            merged_params = params.copy_merge(default_params)?;
-
-            // If the params have variable names, replace with variable value.
-            for (_var, val) in merged_params.iter_mut() {
-                println!("Eval in place {:?}", val);
-                val.eval_in_place(bookmark)?;
-            }
-        }
-
-        cmd.insert(qualified_command, merged_params);
-        Ok(cmd)
-    }
-}
+impl CommandGetters<Params> for Command {}

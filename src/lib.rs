@@ -13,7 +13,6 @@ mod packer;
 mod structs;
 mod tagger;
 mod traits;
-mod util;
 mod validator;
 mod vars;
 
