@@ -1,5 +1,5 @@
 use super::{BinaryExpr, Node, UnaryExpr};
-use crate::{Bookmark, Result, Value};
+use crate::{Bookmark, Position, Result, Value};
 
 pub trait Evaluate {
     fn eval(&self, bookmark: &Bookmark) -> Result<Value>;
@@ -52,8 +52,30 @@ mod tests {
 
     #[test]
     fn test_eval() {
-        let bookmark = Bookmark::default();
-        let tests = vec![("1 + 2", Value::Number(3.))];
+        let bookmark = Bookmark {
+            position: Position {
+                namespace: "global".to_string(),
+                passage: "".to_string(),
+                line: 0,
+            },
+            state: btreemap! {
+                "local".to_string() => btreemap! {
+                    "var1".to_string() => Value::Number(1.0)
+                },
+                "global".to_string() => btreemap! {
+                    "var1".to_string() => Value::String("a".to_string()),
+                    "var2".to_string() => Value::Bool(false),
+                    "char.var1".to_string() => Value::String("b".to_string())
+                }
+            },
+            stack: Vec::new(),
+            snapshots: btreemap! {},
+        };
+        let tests = vec![
+            ("1 + 2", Value::Number(3.)),
+            ("not true", Value::Bool(false)),
+            ("$var2", Value::Bool(false)),
+        ];
         run_tests(tests, &bookmark)
     }
 }

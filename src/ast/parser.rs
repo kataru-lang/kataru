@@ -20,6 +20,7 @@ impl IntoAST for str {
             Ok(pairs) => pairs,
             Err(e) => return Err(error!("Pest parsing error: {:?}", e)),
         };
+        println!("{:#?}", pairs);
 
         for pair in pairs {
             if let Rule::Expr = pair.as_rule() {
@@ -41,7 +42,7 @@ impl FromPair for Node {
     fn from_pair(pair: Pair<Rule>, bookmark: &Bookmark) -> Result<Self> {
         match pair.into_inner().next() {
             Some(child) => child.into_node(bookmark),
-            None => Err(error!("Pest parsing error: node was None.")),
+            None => Err(error!("Pest parsing error: child.into_node failed.")),
         }
     }
 }
@@ -56,7 +57,9 @@ impl FromPair for UnaryExpr {
                 child: Box::new(child.into_node(bookmark)?),
             })
         } else {
-            Err(error!("Pest parsing error: node was None."))
+            Err(error!(
+                "Pest parsing error: UnaryExpr had null next result."
+            ))
         }
     }
 }
@@ -72,7 +75,9 @@ impl FromPair for BinaryExpr {
                 rhs: Box::new(rhs.into_node(bookmark)?),
             })
         } else {
-            Err(error!("Pest parsing error: node was None."))
+            Err(error!(
+                "Pest parsing error: BinaryExpr had null next result."
+            ))
         }
     }
 }
@@ -118,18 +123,13 @@ mod tests {
     fn test_unary_expr() {
         let bookmark = Bookmark::default();
         let tests = vec![
+            ("1", vec![Node::Value(Value::Number(1.))]),
+            ("-2", vec![Node::Value(Value::Number(-2.))]),
             (
-                "+1",
+                "not true",
                 vec![Node::UnaryExpr(UnaryExpr {
-                    op: Operator::Add,
-                    child: Box::new(Node::Value(Value::Number(1.))),
-                })],
-            ),
-            (
-                "-2",
-                vec![Node::UnaryExpr(UnaryExpr {
-                    op: Operator::Sub,
-                    child: Box::new(Node::Value(Value::Number(2.))),
+                    op: Operator::Not,
+                    child: Box::new(Node::Value(Value::Bool(true))),
                 })],
             ),
         ];

@@ -1,5 +1,4 @@
 use super::{Operator, Value};
-use crate::{Bookmark, Result};
 use std::fmt;
 
 mod eval;
@@ -34,7 +33,7 @@ pub struct UnaryExpr {
 
 impl fmt::Display for UnaryExpr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
-        write!(f, "{}{}", self.op, self.child)
+        write!(f, "{} {}", self.op, self.child)
     }
 }
 
@@ -50,12 +49,4 @@ impl fmt::Display for BinaryExpr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
         write!(f, "{} {} {}", self.lhs, self.op, self.rhs)
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_ast() {}
 }

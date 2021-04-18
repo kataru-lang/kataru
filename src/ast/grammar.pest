@@ -1,17 +1,36 @@
 Program = _{ SOI ~ Expr ~ EOF }
 
-Expr = { UnaryExpr | BinaryExpr }
-
-Term = _{Value | "(" ~ Expr ~ ")" }
-
+// Expressions
+Expr = { BinaryExpr | UnaryExpr | Leaf }
+Term = _{ Leaf | UnaryExpr | "(" ~ Expr ~ ")"}
 UnaryExpr = { Operator ~ Term }
-
 BinaryExpr = { Term ~ (Operator ~ Term)* }
 
-Operator = { "+" | "-" | "and" | "or" | "not" }
+// Operators
+NumericOperator = _{ "+" | "-" }
+BoolOperator = _{"and" | "or" | "not"}
+Comparator = _{"==" | "!=" | "<=" | "<" | ">=" | ">" }
+Operator = { NumericOperator | BoolOperator | Comparator }
 
-Value = @{ Operator? ~ ASCII_DIGIT+ }
+// Strings
+UnsafeStringChar = _{"\"" | "(" | ")" | NEWLINE}
+NonQuoteWhitespaceChar = _{!(UnsafeStringChar | WHITESPACE) ~ ANY}
+NonQuoteNewlineChar = _{!UnsafeStringChar ~ ANY}
+UnquotedString = _{ !Operator ~ NonQuoteWhitespaceChar+ }
+String = @{ NonQuoteNewlineChar* }
+QuotedString = _{"\"" ~ String ~ "\""}
 
+// Values
+Number = {NumericOperator? ~ ASCII_DIGIT+}
+Bool = _{ "true" | "false" }
+Value = @{ Number | Bool | UnquotedString }
+
+// Variables
+VariableRef = _{ "$" ~ Variable }
+Variable = @{ UnquotedString }
+
+Leaf = _{QuotedString | VariableRef | Value}
+
+// Override builtins
 WHITESPACE = _{ " " | "\t" }
-
 EOF = _{ EOI | ";" }
