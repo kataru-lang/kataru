@@ -29,6 +29,11 @@ pub trait FromStr<'a> {
         Self: std::marker::Sized;
 }
 
+/// Trait for parsable expressions.
+pub trait IntoStr {
+    fn into_str(&self) -> &str;
+}
+
 /// Trait for extract config/story from MessagePack bytes.
 pub trait FromMessagePack: DeserializeOwned {
     fn from_mp(bytes: &[u8]) -> Result<Self> {

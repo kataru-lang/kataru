@@ -4,7 +4,7 @@ mod file;
 mod text;
 
 pub use file::{Load, LoadMessagePack, LoadYaml, Save, SaveMessagePack, SaveYaml};
-pub use text::{FromMessagePack, FromStr, FromYaml};
+pub use text::{FromMessagePack, FromStr, FromYaml, IntoStr};
 
 /// Trait to merge two objects together. Used for maps.
 pub trait Merge: Sized {

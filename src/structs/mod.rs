@@ -22,7 +22,7 @@ pub use config::{CharacterData, Config};
 pub use dialogue::Dialogue;
 pub use line::{Call, Input, Line, Return, SetCommand};
 pub use map::{Entry, Map};
-pub use operator::Operator;
+pub use operator::{AssignOperator, Operator};
 pub use section::{QualifiedName, Section, GLOBAL};
 pub use state::{State, StateMod};
 pub use story::{Passage, Passages, Story, StoryGetters};

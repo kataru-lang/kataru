@@ -9,6 +9,7 @@ mod error;
 
 #[macro_use]
 mod runner;
+mod ast;
 mod packer;
 mod structs;
 mod tagger;
@@ -20,9 +21,9 @@ pub use error::{Error, Result};
 pub use packer::pack;
 pub use runner::Runner;
 pub use structs::{
-    Bookmark, Branchable, Branches, CharacterData, Choices, Command, Config, Dialogue, Input, Line,
-    Map, Operator, Params, Passage, Passages, Position, Section, SetCommand, State, StateMod,
-    Story, StoryGetters, Value, GLOBAL,
+    AssignOperator, Bookmark, Branchable, Branches, CharacterData, Choices, Command, Config,
+    Dialogue, Input, Line, Map, Operator, Params, Passage, Passages, Position, Section, SetCommand,
+    State, StateMod, Story, StoryGetters, Value, GLOBAL,
 };
 pub use tagger::LineTag;
 pub use traits::{

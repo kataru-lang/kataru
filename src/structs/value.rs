@@ -1,11 +1,11 @@
 use crate::{
     contains_var,
     error::{Error, Result},
-    extract_var, Bookmark,
+    extract_var, Bookmark, Operator,
 };
 use serde::{Deserialize, Serialize};
 use std::fmt;
-use std::ops::{AddAssign, SubAssign};
+use std::ops::{AddAssign, BitAndAssign, BitOrAssign, MulAssign, Not, SubAssign};
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Deserialize, Serialize)]
 #[serde(untagged)]
@@ -29,6 +29,7 @@ impl AddAssign<&Self> for Value {
     fn add_assign(&mut self, rhs: &Self) {
         match (&self, rhs) {
             (Value::Number(n1), Value::Number(n2)) => *self = Self::Number(n1 + n2),
+            (Value::String(s1), Value::String(s2)) => *self = Self::String(format!("{}{}", s1, s2)),
             _ => (),
         }
     }
@@ -38,7 +39,53 @@ impl SubAssign<&Self> for Value {
     fn sub_assign(&mut self, rhs: &Self) {
         match (&self, rhs) {
             (Value::Number(n1), Value::Number(n2)) => *self = Self::Number(*n1 - n2),
-            _ => *self = Self::Number(0 as f64),
+            _ => (),
+        }
+    }
+}
+
+impl MulAssign<&Self> for Value {
+    fn mul_assign(&mut self, rhs: &Self) {
+        match (&self, rhs) {
+            (Value::Number(n1), Value::Number(n2)) => *self = Self::Number(*n1 * n2),
+            _ => (),
+        }
+    }
+}
+
+impl MulAssign<f64> for Value {
+    fn mul_assign(&mut self, rhs: f64) {
+        match &self {
+            Value::Number(n1) => *self = Self::Number(n1 * rhs),
+            _ => (),
+        }
+    }
+}
+
+impl BitAndAssign<&Self> for Value {
+    fn bitand_assign(&mut self, rhs: &Self) {
+        match (&self, rhs) {
+            (Value::Bool(b1), Value::Bool(b2)) => *self = Self::Bool(*b1 & b2),
+            _ => (),
+        }
+    }
+}
+
+impl BitOrAssign<&Self> for Value {
+    fn bitor_assign(&mut self, rhs: &Self) {
+        match (&self, rhs) {
+            (Value::Bool(b1), Value::Bool(b2)) => *self = Self::Bool(*b1 | b2),
+            _ => (),
+        }
+    }
+}
+
+impl Not for Value {
+    type Output = Value;
+    fn not(self) -> Self::Output {
+        match self {
+            Value::Bool(b) => Self::Bool(!b),
+            _ => self,
         }
     }
 }
@@ -89,7 +136,7 @@ impl Value {
     /// If `token` is a variable, returns that variable's value.
     /// Otherwise parses `token` as a yaml literal.
     /// Raises an error if unable to parse or if the varname doesn't exist.
-    fn from_token(token: &str, bookmark: &Bookmark) -> Result<Self> {
+    pub fn from_token(token: &str, bookmark: &Bookmark) -> Result<Self> {
         if let Some(var) = extract_var(token) {
             return Self::from_var(var, bookmark);
         }
@@ -174,6 +221,62 @@ impl Value {
 
         // Default to try to parse the whole thing as a bool expression.
         Self::eval_bool_expr(expr, bookmark)
+    }
+
+    /// Combines two values in a binary operation.
+    /// Assumes that all types are already matched correctly.
+    pub fn combine(&mut self, op: Operator, other: &Self) {
+        match op {
+            Operator::Add => {
+                *self += other;
+            }
+            Operator::Sub => {
+                *self -= other;
+            }
+            Operator::And => {
+                *self &= other;
+            }
+            Operator::Or => {
+                *self |= other;
+            }
+            Operator::Eq => {
+                *self = Self::Bool(self == other);
+            }
+            Operator::Neq => {
+                *self = Self::Bool(self != other);
+            }
+            Operator::Lt => {
+                let const_self = &*self;
+                *self = Self::Bool(const_self < other);
+            }
+            Operator::Leq => {
+                let const_self = &*self;
+                *self = Self::Bool(const_self <= other);
+            }
+            Operator::Gt => {
+                let const_self = &*self;
+                *self = Self::Bool(const_self > other);
+            }
+            Operator::Geq => {
+                let const_self = &*self;
+                *self = Self::Bool(const_self >= other);
+            }
+            _ => {}
+        }
+    }
+
+    /// Applies with a unary operation.
+    /// Assumes that types are already matched correctly.
+    pub fn apply(&mut self, op: Operator) {
+        match op {
+            Operator::Sub => {
+                *self *= -1.;
+            }
+            Operator::Not => {
+                *self = !self.clone();
+            }
+            _ => {}
+        }
     }
 
     /// Evaluates a string that may contain $variable expressions.

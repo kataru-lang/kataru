@@ -1,8 +1,9 @@
 use crate::{
     error::{Error, Result},
     structs::{
-        get_bool_expr, Branches, Command, Dialogue, Line, Map, Operator, Params, Passage, Passages,
-        QualifiedName, RawChoice, RawChoices, State, StateMod, Story, StoryGetters, Value, GLOBAL,
+        get_bool_expr, AssignOperator, Branches, Command, Dialogue, Line, Map, Params, Passage,
+        Passages, QualifiedName, RawChoice, RawChoices, State, StateMod, Story, StoryGetters,
+        Value, GLOBAL,
     },
     traits::FromStr,
     Bookmark,
@@ -146,9 +147,9 @@ impl<'a> Validator<'a> {
 
     /// Validates an operator on a given value.
     /// Any value supports assignment, but only Numbers can be added or subtracted.
-    fn validate_op(v1: &Value, v2: &Value, op: Operator) -> Result<()> {
+    fn validate_assign(v1: &Value, v2: &Value, op: AssignOperator) -> Result<()> {
         match op {
-            Operator::SET => {
+            AssignOperator::None => {
                 if v1.same_type(v2) {
                     Ok(())
                 } else {
@@ -158,7 +159,7 @@ impl<'a> Validator<'a> {
                     ))
                 }
             }
-            Operator::ADD | Operator::SUB => match (v1, v2) {
+            AssignOperator::Add | AssignOperator::Sub => match (v1, v2) {
                 (Value::Number(_), Value::Number(_)) => Ok(()),
                 _ => Err(error!(
                     "Comparators '+,-' can only be used on two numbers, not {:?} and {:?}.",
@@ -167,7 +168,6 @@ impl<'a> Validator<'a> {
             },
         }
     }
-
     /// Validates a variable and returns a reference to it's value.
     fn validate_var(&self, var: &str) -> Result<&Value> {
         let split: Vec<&str> = var.split(".").collect();
@@ -219,7 +219,7 @@ impl<'a> Validator<'a> {
             value.eval_in_place(self.bookmark)?;
             let smod = StateMod::from_str(key)?;
             let state_value = self.validate_var(smod.var)?;
-            Self::validate_op(state_value, &value, smod.op)?;
+            Self::validate_assign(state_value, &value, smod.op)?;
         }
         Ok(())
     }
