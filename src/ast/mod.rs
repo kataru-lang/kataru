@@ -1,7 +1,9 @@
-use crate::{Bookmark, Error, Operator, Result, Value};
-use pest::iterators::{Pair, Pairs};
-use pest::prec_climber::{self, Assoc, Operator as PrecOp, PrecClimber};
-use pest::{state, ParseResult, Parser, ParserState};
+use crate::{Bookmark, Error, Result, Value};
+use pest::{
+    iterators::Pair,
+    prec_climber::{Assoc, Operator as PrecOp, PrecClimber},
+    Parser,
+};
 
 lazy_static! {
     /// Static climber to be reused each `eval` call.
