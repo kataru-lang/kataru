@@ -5,7 +5,10 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use std::fmt;
-use std::ops::{AddAssign, BitAndAssign, BitOrAssign, MulAssign, Not, SubAssign};
+use std::ops::{
+    Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, Div, DivAssign, Mul, MulAssign, Neg,
+    Not, Sub, SubAssign,
+};
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Deserialize, Serialize)]
 #[serde(untagged)]
@@ -25,30 +28,48 @@ impl fmt::Display for Value {
     }
 }
 
-impl AddAssign<&Self> for Value {
-    fn add_assign(&mut self, rhs: &Self) {
-        match (&self, rhs) {
-            (Value::Number(n1), Value::Number(n2)) => *self = Self::Number(n1 + n2),
-            (Value::String(s1), Value::String(s2)) => *self = Self::String(format!("{}{}", s1, s2)),
-            _ => (),
-        }
+impl AddAssign<Self> for Value {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = match (&self, rhs) {
+            (Value::Number(n1), Value::Number(n2)) => Self::Number(n1 + n2),
+            (Value::String(s1), Value::String(ref s2)) => Self::String(format!("{}{}", s1, s2)),
+            _ => return,
+        };
     }
 }
 
-impl SubAssign<&Self> for Value {
-    fn sub_assign(&mut self, rhs: &Self) {
-        match (&self, rhs) {
-            (Value::Number(n1), Value::Number(n2)) => *self = Self::Number(*n1 - n2),
-            _ => (),
-        }
+impl Add<Self> for Value {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self::Output {
+        let mut result = self.clone();
+        result += rhs;
+        result
     }
 }
 
-impl MulAssign<&Self> for Value {
-    fn mul_assign(&mut self, rhs: &Self) {
-        match (&self, rhs) {
-            (Value::Number(n1), Value::Number(n2)) => *self = Self::Number(*n1 * n2),
-            _ => (),
+impl SubAssign<Self> for Value {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = match (&self, rhs) {
+            (Value::Number(n1), Value::Number(n2)) => Self::Number(n1 - n2),
+            _ => return,
+        };
+    }
+}
+
+impl Sub<Self> for Value {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self::Output {
+        let mut result = self.clone();
+        result -= rhs;
+        result
+    }
+}
+
+impl MulAssign<Self> for Value {
+    fn mul_assign(&mut self, rhs: Self) {
+        *self = match (&self, rhs) {
+            (Value::Number(n1), Value::Number(n2)) => Self::Number(n1 * n2),
+            _ => return,
         }
     }
 }
@@ -62,21 +83,89 @@ impl MulAssign<f64> for Value {
     }
 }
 
-impl BitAndAssign<&Self> for Value {
-    fn bitand_assign(&mut self, rhs: &Self) {
-        match (&self, rhs) {
-            (Value::Bool(b1), Value::Bool(b2)) => *self = Self::Bool(*b1 & b2),
+impl Mul<Self> for Value {
+    type Output = Self;
+    fn mul(self, rhs: Self) -> Self::Output {
+        let mut result = self.clone();
+        result *= rhs;
+        result
+    }
+}
+
+impl DivAssign<Self> for Value {
+    fn div_assign(&mut self, rhs: Self) {
+        *self = match (&self, rhs) {
+            (Value::Number(n1), Value::Number(n2)) => {
+                if n2 == 0. {
+                    Self::Number(0.)
+                } else {
+                    Self::Number(n1 / n2)
+                }
+            }
+            _ => return,
+        }
+    }
+}
+
+impl DivAssign<f64> for Value {
+    fn div_assign(&mut self, rhs: f64) {
+        match &self {
+            Value::Number(n1) => {
+                *self = {
+                    if rhs == 0. {
+                        Self::Number(0.)
+                    } else {
+                        Self::Number(n1 / rhs)
+                    }
+                }
+            }
             _ => (),
         }
     }
 }
 
-impl BitOrAssign<&Self> for Value {
-    fn bitor_assign(&mut self, rhs: &Self) {
-        match (&self, rhs) {
-            (Value::Bool(b1), Value::Bool(b2)) => *self = Self::Bool(*b1 | b2),
-            _ => (),
+impl Div<Self> for Value {
+    type Output = Self;
+    fn div(self, rhs: Self) -> Self::Output {
+        let mut result = self.clone();
+        result /= rhs;
+        result
+    }
+}
+
+impl BitAndAssign<Self> for Value {
+    fn bitand_assign(&mut self, rhs: Self) {
+        *self = match (&self, rhs) {
+            (Value::Bool(b1), Value::Bool(b2)) => Self::Bool(b1 & b2),
+            _ => return,
         }
+    }
+}
+
+impl BitAnd<Self> for Value {
+    type Output = Self;
+    fn bitand(self, rhs: Self) -> Self::Output {
+        let mut result = self.clone();
+        result &= rhs;
+        result
+    }
+}
+
+impl BitOrAssign<Self> for Value {
+    fn bitor_assign(&mut self, rhs: Self) {
+        *self = match (&self, rhs) {
+            (Value::Bool(b1), Value::Bool(b2)) => Self::Bool(b1 | b2),
+            _ => return,
+        }
+    }
+}
+
+impl BitOr<Self> for Value {
+    type Output = Self;
+    fn bitor(self, rhs: Self) -> Self::Output {
+        let mut result = self.clone();
+        result |= rhs;
+        result
     }
 }
 
@@ -85,6 +174,16 @@ impl Not for Value {
     fn not(self) -> Self::Output {
         match self {
             Value::Bool(b) => Self::Bool(!b),
+            _ => self,
+        }
+    }
+}
+
+impl Neg for Value {
+    type Output = Value;
+    fn neg(self) -> Self::Output {
+        match self {
+            Value::Number(n) => Self::Number(-n),
             _ => self,
         }
     }
@@ -110,7 +209,7 @@ impl Value {
     }
 
     /// Parses a single piece of text into a value;
-    pub fn parse(text: &str) -> Result<Self> {
+    pub fn from_str(text: &str) -> Result<Self> {
         match serde_yaml::from_str(&text) {
             Ok(r) => Self::from_yml(r),
             Err(e) => Err(error!("{}", e)),
@@ -129,7 +228,8 @@ impl Value {
     }
 
     /// Gets a value from a variable. Assumes that the $ has already be stripped.
-    fn from_var(var: &str, bookmark: &Bookmark) -> Result<Self> {
+    pub fn from_var(var: &str, bookmark: &Bookmark) -> Result<Self> {
+        println!("from var: {}", var);
         Ok(bookmark.value(var)?.clone())
     }
 
@@ -137,10 +237,11 @@ impl Value {
     /// Otherwise parses `token` as a yaml literal.
     /// Raises an error if unable to parse or if the varname doesn't exist.
     pub fn from_token(token: &str, bookmark: &Bookmark) -> Result<Self> {
+        println!("from token: {}", token);
         if let Some(var) = extract_var(token) {
             return Self::from_var(var, bookmark);
         }
-        Value::parse(token)
+        Value::from_str(token)
     }
 
     fn eval_comparator(token1: &str, token2: &str, cmp: &str, bookmark: &Bookmark) -> Result<bool> {
@@ -225,7 +326,7 @@ impl Value {
 
     /// Combines two values in a binary operation.
     /// Assumes that all types are already matched correctly.
-    pub fn combine(&mut self, op: Operator, other: &Self) {
+    pub fn combine(&mut self, op: Operator, other: Self) {
         match op {
             Operator::Add => {
                 *self += other;
@@ -240,26 +341,26 @@ impl Value {
                 *self |= other;
             }
             Operator::Eq => {
-                *self = Self::Bool(self == other);
+                *self = Self::Bool(self == &other);
             }
             Operator::Neq => {
-                *self = Self::Bool(self != other);
+                *self = Self::Bool(self != &other);
             }
             Operator::Lt => {
                 let const_self = &*self;
-                *self = Self::Bool(const_self < other);
+                *self = Self::Bool(const_self < &other);
             }
             Operator::Leq => {
                 let const_self = &*self;
-                *self = Self::Bool(const_self <= other);
+                *self = Self::Bool(const_self <= &other);
             }
             Operator::Gt => {
                 let const_self = &*self;
-                *self = Self::Bool(const_self > other);
+                *self = Self::Bool(const_self > &other);
             }
             Operator::Geq => {
                 let const_self = &*self;
-                *self = Self::Bool(const_self >= other);
+                *self = Self::Bool(const_self >= &other);
             }
             _ => {}
         }

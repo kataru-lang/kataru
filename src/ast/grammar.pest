@@ -1,27 +1,39 @@
 Program = _{ SOI ~ Expr ~ EOF }
 
 // Expressions
-Expr = { BinaryExpr | UnaryExpr | Leaf }
-Term = _{ Leaf | UnaryExpr | "(" ~ Expr ~ ")"}
-UnaryExpr = { Operator ~ Term }
-BinaryExpr = { Term ~ (Operator ~ Term)* }
+Expr = _{ UnaryExpr | BinaryExpr }
+UnaryExpr = { UnaryOperator ~ Term }
+BinaryExpr = { (Term ~ BinaryOperator)* ~ Term }
+Term = _{ Atom | "(" ~ Expr ~ ")" }
 
 // Operators
-NumericOperator = _{ "+" | "-" }
-BoolOperator = _{"and" | "or" | "not"}
-Comparator = _{"==" | "!=" | "<=" | "<" | ">=" | ">" }
-Operator = { NumericOperator | BoolOperator | Comparator }
+Operator = _{UnaryOperator | BinaryOperator}
+UnaryOperator = _{ Not | Add | Sub }
+BinaryOperator = _{ Add | Sub | Mul | Div | And | Or | Eq | Neq | Leq | Lt | Geq | Gt}
+Not = { "not" }
+Add = { "+" }
+Sub = { "-" }
+Mul = { "*" }
+Div = { "/" }
+And = { "and" }
+Or = { "or" }
+Eq = { "==" }
+Neq = { "!=" }
+Leq = { "<=" }
+Lt = { "<" }
+Geq = { ">=" }
+Gt = { ">" }
 
 // Strings
 UnsafeStringChar = _{"\"" | "(" | ")" | NEWLINE}
 NonQuoteWhitespaceChar = _{!(UnsafeStringChar | WHITESPACE) ~ ANY}
 NonQuoteNewlineChar = _{!UnsafeStringChar ~ ANY}
-UnquotedString = _{ !Operator ~ NonQuoteWhitespaceChar+ }
+UnquotedString = _{ !UnaryOperator ~ NonQuoteWhitespaceChar+ }
 String = @{ NonQuoteNewlineChar* }
 QuotedString = _{"\"" ~ String ~ "\""}
 
 // Values
-Number = {NumericOperator? ~ ASCII_DIGIT+}
+Number = {(Add | Sub)? ~ ASCII_DIGIT+}
 Bool = _{ "true" | "false" }
 Value = @{ Number | Bool | UnquotedString }
 
@@ -29,7 +41,7 @@ Value = @{ Number | Bool | UnquotedString }
 VariableRef = _{ "$" ~ Variable }
 Variable = @{ UnquotedString }
 
-Leaf = _{QuotedString | VariableRef | Value}
+Atom = _{QuotedString | VariableRef | Value}
 
 // Override builtins
 WHITESPACE = _{ " " | "\t" }

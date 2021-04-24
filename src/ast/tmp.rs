@@ -1,164 +1,201 @@
-use pest::{self, Parser};
+// pest. The Elegant Parser
+// Copyright (c) 2018 Dragoș Tiselice
+//
+// Licensed under the Apache License, Version 2.0
+// <LICENSE-APACHE or http://www.apache.org/licenses/LICENSE-2.0> or the MIT
+// license <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+// option. All files in the project carrying such notice may not be copied,
+// modified, or distributed except according to those terms.
 
-use crate::ast::{Node, Operator};
+#[macro_use]
+extern crate pest;
 
-// ANCHOR: parser
-#[derive(pest_derive::Parser)]
-#[grammar = "grammar.pest"]
-struct CalcParser;
-// ANCHOR_END: parser
+use pest::error::Error;
+use pest::iterators::{Pair, Pairs};
+use pest::prec_climber::{Assoc, Operator, PrecClimber};
+use pest::{state, ParseResult, Parser, ParserState};
 
-// ANCHOR: parse_source
-pub fn parse(source: &str) -> std::result::Result<Vec<Node>, pest::error::Error<Rule>> {
-    let mut ast = vec![];
-    let pairs = CalcParser::parse(Rule::Program, source)?;
-    for pair in pairs {
-        if let Rule::Expr = pair.as_rule() {
-            ast.push(build_ast_from_expr(pair));
-        }
-    }
-    Ok(ast)
-}
-// ANCHOR_END: parse_source
-
-fn build_ast_from_expr(pair: pest::iterators::Pair<Rule>) -> Node {
-    match pair.as_rule() {
-        Rule::Expr => build_ast_from_expr(pair.into_inner().next().unwrap()),
-        Rule::UnaryExpr => {
-            let mut pair = pair.into_inner();
-            let op = pair.next().unwrap();
-            let child = pair.next().unwrap();
-            let child = build_ast_from_term(child);
-            parse_unary_expr(op, child)
-        }
-        Rule::BinaryExpr => {
-            let mut pair = pair.into_inner();
-            let lhspair = pair.next().unwrap();
-            let lhs = build_ast_from_term(lhspair);
-            let op = pair.next().unwrap();
-            let rhspair = pair.next().unwrap();
-            let rhs = build_ast_from_term(rhspair);
-            parse_binary_expr(op, lhs, rhs)
-        }
-        unknown => panic!("Unknown expr: {:?}", unknown),
-    }
+#[allow(dead_code, non_camel_case_types)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+enum Rule {
+    expression,
+    primary,
+    number,
+    plus,
+    minus,
+    times,
+    divide,
+    modulus,
+    power,
 }
 
-fn build_ast_from_term(pair: pest::iterators::Pair<Rule>) -> Node {
-    match pair.as_rule() {
-        Rule::Int => {
-            let istr = pair.as_str();
-            let (sign, istr) = match &istr[..1] {
-                "-" => (-1, &istr[1..]),
-                _ => (1, &istr[..]),
-            };
-            let int: i32 = istr.parse().unwrap();
-            Node::Int(sign * int)
-        }
-        Rule::Expr => build_ast_from_expr(pair),
-        unknown => panic!("Unknown term: {:?}", unknown),
-    }
-}
+struct CalculatorParser;
 
-fn parse_unary_expr(pair: pest::iterators::Pair<Rule>, child: Node) -> Node {
-    Node::UnaryExpr {
-        op: match pair.as_str() {
-            "+" => Operator::Plus,
-            "-" => Operator::Minus,
+impl Parser<Rule> for CalculatorParser {
+    fn parse(rule: Rule, input: &str) -> Result<Pairs<Rule>, Error<Rule>> {
+        fn expression(state: Box<ParserState<Rule>>) -> ParseResult<Box<ParserState<Rule>>> {
+            state.rule(Rule::expression, |s| {
+                s.sequence(|s| {
+                    primary(s).and_then(|s| {
+                        s.repeat(|s| {
+                            s.sequence(|s| {
+                                plus(s)
+                                    .or_else(|s| minus(s))
+                                    .or_else(|s| times(s))
+                                    .or_else(|s| divide(s))
+                                    .or_else(|s| modulus(s))
+                                    .or_else(|s| power(s))
+                                    .and_then(|s| primary(s))
+                            })
+                        })
+                    })
+                })
+            })
+        }
+
+        fn primary(state: Box<ParserState<Rule>>) -> ParseResult<Box<ParserState<Rule>>> {
+            state
+                .sequence(|s| {
+                    s.match_string("(")
+                        .and_then(|s| expression(s))
+                        .and_then(|s| s.match_string(")"))
+                })
+                .or_else(|s| number(s))
+        }
+
+        fn number(state: Box<ParserState<Rule>>) -> ParseResult<Box<ParserState<Rule>>> {
+            state.rule(Rule::number, |s| {
+                s.sequence(|s| {
+                    s.optional(|s| s.match_string("-")).and_then(|s| {
+                        s.match_string("0").or_else(|s| {
+                            s.sequence(|s| {
+                                s.match_range('1'..'9')
+                                    .and_then(|s| s.repeat(|s| s.match_range('0'..'9')))
+                            })
+                        })
+                    })
+                })
+            })
+        }
+
+        fn plus(state: Box<ParserState<Rule>>) -> ParseResult<Box<ParserState<Rule>>> {
+            state.rule(Rule::plus, |s| s.match_string("+"))
+        }
+
+        fn minus(state: Box<ParserState<Rule>>) -> ParseResult<Box<ParserState<Rule>>> {
+            state.rule(Rule::minus, |s| s.match_string("-"))
+        }
+
+        fn times(state: Box<ParserState<Rule>>) -> ParseResult<Box<ParserState<Rule>>> {
+            state.rule(Rule::times, |s| s.match_string("*"))
+        }
+
+        fn divide(state: Box<ParserState<Rule>>) -> ParseResult<Box<ParserState<Rule>>> {
+            state.rule(Rule::divide, |s| s.match_string("/"))
+        }
+
+        fn modulus(state: Box<ParserState<Rule>>) -> ParseResult<Box<ParserState<Rule>>> {
+            state.rule(Rule::modulus, |s| s.match_string("%"))
+        }
+
+        fn power(state: Box<ParserState<Rule>>) -> ParseResult<Box<ParserState<Rule>>> {
+            state.rule(Rule::power, |s| s.match_string("^"))
+        }
+
+        state(input, |state| match rule {
+            Rule::expression => expression(state),
             _ => unreachable!(),
-        },
-        child: Box::new(child),
+        })
     }
 }
 
-fn parse_binary_expr(pair: pest::iterators::Pair<Rule>, lhs: Node, rhs: Node) -> Node {
-    Node::BinaryExpr {
-        op: match pair.as_str() {
-            "+" => Operator::Plus,
-            "-" => Operator::Minus,
-            _ => unreachable!(),
-        },
-        lhs: Box::new(lhs),
-        rhs: Box::new(rhs),
+fn consume<'i>(pair: Pair<'i, Rule>, climber: &PrecClimber<Rule>) -> i32 {
+    let primary = |pair| consume(pair, climber);
+    let infix = |lhs: i32, op: Pair<Rule>, rhs: i32| match op.as_rule() {
+        Rule::plus => lhs + rhs,
+        Rule::minus => lhs - rhs,
+        Rule::times => lhs * rhs,
+        Rule::divide => lhs / rhs,
+        Rule::modulus => lhs % rhs,
+        Rule::power => lhs.pow(rhs as u32),
+        _ => unreachable!(),
+    };
+
+    match pair.as_rule() {
+        Rule::expression => climber.climb(pair.into_inner(), primary, infix),
+        Rule::number => pair.as_str().parse().unwrap(),
+        _ => unreachable!(),
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn basics() {
-        assert!(parse("b").is_err());
-    }
+#[test]
+fn number() {
+    parses_to! {
+        parser: CalculatorParser,
+        input: "-12",
+        rule: Rule::expression,
+        tokens: [
+            expression(0, 3, [
+                number(0, 3)
+            ])
+        ]
+    };
+}
 
-    #[test]
-    fn unary_expr() {
-        let plus_one = parse("+1");
-        assert!(plus_one.is_ok());
-        assert_eq!(
-            plus_one.clone().unwrap(),
-            vec![Node::UnaryExpr {
-                op: Operator::Plus,
-                child: Box::new(Node::Int(1))
-            }]
-        );
-        assert_eq!(format!("{}", plus_one.unwrap()[0]), "+1");
+#[test]
+fn parens() {
+    parses_to! {
+        parser: CalculatorParser,
+        input: "((-12))",
+        rule: Rule::expression,
+        tokens: [
+            expression(0, 7, [
+                expression(1, 6, [
+                    expression(2, 5, [
+                        number(2, 5)
+                    ])
+                ])
+            ])
+        ]
+    };
+}
 
-        let neg_two = parse("-2");
-        assert!(neg_two.is_ok());
-        assert_eq!(
-            neg_two.clone().unwrap(),
-            vec![Node::UnaryExpr {
-                op: Operator::Minus,
-                child: Box::new(Node::Int(2))
-            }]
-        );
-        assert_eq!(format!("{}", neg_two.unwrap()[0]), "-2");
-    }
-    #[test]
-    fn binary_expr() {
-        let sum = parse("1 + 2");
-        assert!(sum.is_ok());
-        assert_eq!(
-            sum.clone().unwrap(),
-            vec![Node::BinaryExpr {
-                op: Operator::Plus,
-                lhs: Box::new(Node::Int(1)),
-                rhs: Box::new(Node::Int(2))
-            }]
-        );
-        assert_eq!(format!("{}", sum.unwrap()[0]), "1 + 2");
-        let minus = parse("1   -  \t  2");
-        assert!(minus.is_ok());
-        assert_eq!(
-            minus.clone().unwrap(),
-            vec![Node::BinaryExpr {
-                op: Operator::Minus,
-                lhs: Box::new(Node::Int(1)),
-                rhs: Box::new(Node::Int(2))
-            }]
-        );
-        assert_eq!(format!("{}", minus.unwrap()[0]), "1 - 2");
-        // fails as there's no rhs:
-        // let paran_sum = parse("(1 + 2)");
-        // assert!(paran_sum.is_ok());
-    }
+#[test]
+fn expression() {
+    parses_to! {
+        parser: CalculatorParser,
+        input: "-12+3*(4-9)^7^2",
+        rule: Rule::expression,
+        tokens: [
+            expression(0, 15, [
+                number(0, 3),
+                plus(3, 4),
+                number(4, 5),
+                times(5, 6),
+                expression(7, 10, [
+                    number(7, 8),
+                    minus(8, 9),
+                    number(9, 10)
+                ]),
+                power(11, 12),
+                number(12, 13),
+                power(13, 14),
+                number(14, 15)
+            ])
+        ]
+    };
+}
 
-    #[test]
-    fn nested_expr() {
-        fn test_expr(expected: &str, src: &str) {
-            assert_eq!(
-                expected,
-                parse(src)
-                    .unwrap()
-                    .iter()
-                    .fold(String::new(), |acc, arg| acc + &format!("{}", &arg))
-            );
-        }
+#[test]
+fn prec_climb() {
+    let climber = PrecClimber::new(vec![
+        Operator::new(Rule::plus, Assoc::Left) | Operator::new(Rule::minus, Assoc::Left),
+        Operator::new(Rule::times, Assoc::Left)
+            | Operator::new(Rule::divide, Assoc::Left)
+            | Operator::new(Rule::modulus, Assoc::Left),
+        Operator::new(Rule::power, Assoc::Right),
+    ]);
 
-        test_expr("1 + 2 + 3", "(1 + 2) + 3");
-        test_expr("1 + 2 + 3", "1 + (2 + 3)");
-        test_expr("1 + 2 + 3 + 4", "1 + (2 + (3 + 4))");
-        test_expr("1 + 2 + 3 - 4", "(1 + 2) + (3 - 4)");
-    }
+    let pairs = CalculatorParser::parse(Rule::expression, "-12+3*(4-9)^3^2/9%7381");
+    assert_eq!(-1_525, consume(pairs.unwrap().next().unwrap(), &climber));
 }

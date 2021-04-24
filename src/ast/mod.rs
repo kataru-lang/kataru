@@ -1,52 +1,147 @@
-use super::{Operator, Value};
-use std::fmt;
+use crate::{Bookmark, Error, Operator, Result, Value};
+use pest::iterators::{Pair, Pairs};
+use pest::prec_climber::{self, Assoc, Operator as PrecOp, PrecClimber};
+use pest::{state, ParseResult, Parser, ParserState};
 
-mod eval;
-mod parser;
+lazy_static! {
+    /// Static climber to be reused each `eval` call.
+    /// Defines order of operations (PEMDAS, then comparator, then conjunctions).
+    static ref CLIMBER: PrecClimber<Rule> = PrecClimber::new(vec![
+        PrecOp::new(Rule::Add, Assoc::Left) | PrecOp::new(Rule::Sub, Assoc::Left),
+        PrecOp::new(Rule::Mul, Assoc::Left) | PrecOp::new(Rule::Div, Assoc::Left),
+        PrecOp::new(Rule::Eq, Assoc::Left)
+            | PrecOp::new(Rule::Neq, Assoc::Left)
+            | PrecOp::new(Rule::Lt, Assoc::Left)
+            | PrecOp::new(Rule::Leq, Assoc::Left)
+            | PrecOp::new(Rule::Gt, Assoc::Left)
+            | PrecOp::new(Rule::Geq, Assoc::Left),
+        PrecOp::new(Rule::And, Assoc::Left) | PrecOp::new(Rule::Or, Assoc::Left),
+    ]);
+}
+/// Pest parser generated from ast/grammar.pest.
+#[derive(pest_derive::Parser)]
+#[grammar = "ast/grammar.pest"]
+struct ExprParser;
 
-pub use parser::IntoAST;
-
-/// AST `Node` created from pest pairs by `parser`.
-#[derive(Debug, PartialEq)]
-pub enum Node {
-    Value(Value),
-    UnaryExpr(UnaryExpr),
-    BinaryExpr(BinaryExpr),
+/// Evaluates an expression `expr`. Uses `bookmark` for $variable lookup.
+pub fn eval(expr: &str, bookmark: &Bookmark) -> Result<Value> {
+    let pair = ExprParser::parse(Rule::Expr, expr).unwrap().next().unwrap();
+    eval_expr(pair, bookmark)
 }
 
-impl fmt::Display for Node {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
-        match self {
-            Node::Value(n) => write!(f, "{}", n),
-            Node::UnaryExpr(expr) => write!(f, "{}", expr),
-            Node::BinaryExpr(expr) => write!(f, "{}", expr),
+/// Evaluates an expression from a `Pair` tree.
+fn eval_expr<'i>(pair: Pair<'i, Rule>, bookmark: &Bookmark) -> Result<Value> {
+    // Define lambdas for use by precedence climber.
+    let primary = |pair| eval_expr(pair, bookmark);
+    let infix = |lhs: Result<Value>, op: Pair<Rule>, rhs: Result<Value>| {
+        if let (Ok(lhs), Ok(rhs)) = (lhs, rhs) {
+            eval_binary_expr(lhs, op, rhs)
+        } else {
+            Err(error!("No global namespace"))
+        }
+    };
+
+    match pair.as_rule() {
+        Rule::BinaryExpr => CLIMBER.climb(pair.into_inner(), primary, infix),
+        Rule::UnaryExpr => {
+            let mut it = pair.into_inner();
+            let op = it.next();
+            let inner = it.next();
+
+            if let (Some(op_pair), Some(inner_pair)) = (op, inner) {
+                let value = eval_expr(inner_pair, bookmark)?;
+                eval_unary_expr(op_pair, value)
+            } else {
+                Err(error!("Invalid Unary"))
+            }
+        }
+        Rule::Variable => Value::from_var(pair.as_str(), bookmark),
+        Rule::Value | Rule::String => Value::from_str(pair.as_str()),
+        _ => {
+            return Ok(Value::Number(0.));
         }
     }
 }
 
-/// Expression with a single operand.
-#[derive(Debug, PartialEq)]
-pub struct UnaryExpr {
-    op: Operator,
-    child: Box<Node>,
+/// Evaluates a binary expression.
+fn eval_binary_expr(lhs: Value, op: Pair<Rule>, rhs: Value) -> Result<Value> {
+    let result = match op.as_rule() {
+        Rule::Add => lhs + rhs,
+        Rule::Sub => lhs - rhs,
+        Rule::Mul => lhs * rhs,
+        Rule::Div => lhs / rhs,
+        Rule::And => lhs & rhs,
+        Rule::Or => lhs | rhs,
+        Rule::Lt => Value::Bool(lhs < rhs),
+        Rule::Leq => Value::Bool(lhs <= rhs),
+        Rule::Gt => Value::Bool(lhs > rhs),
+        Rule::Geq => Value::Bool(lhs >= rhs),
+        Rule::Eq => Value::Bool(lhs == rhs),
+        Rule::Neq => Value::Bool(lhs != rhs),
+        _ => {
+            return Err(error!("Invalid binary expression."));
+        }
+    };
+    Ok(result)
 }
 
-impl fmt::Display for UnaryExpr {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
-        write!(f, "{} {}", self.op, self.child)
-    }
+/// Evaluates a unary expression.
+fn eval_unary_expr(op: Pair<Rule>, value: Value) -> Result<Value> {
+    let result = match op.as_rule() {
+        Rule::Not => !value,
+        Rule::Add => value,
+        Rule::Sub => -value,
+        _ => return Err(error!("Invalid unary expression.")),
+    };
+    Ok(result)
 }
 
-/// Expression with two operands.
-#[derive(Debug, PartialEq)]
-pub struct BinaryExpr {
-    op: Operator,
-    lhs: Box<Node>,
-    rhs: Box<Node>,
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{Bookmark, Position, Value};
 
-impl fmt::Display for BinaryExpr {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
-        write!(f, "{} {} {}", self.lhs, self.op, self.rhs)
+    #[test]
+    fn parse_expr() {
+        let bookmark = Bookmark {
+            position: Position {
+                namespace: "test".to_string(),
+                passage: "".to_string(),
+                line: 0,
+            },
+            state: btreemap! {
+                "test".to_string() => btreemap! {
+                    "var1".to_string() => Value::Number(1.0)
+                },
+                "global".to_string() => btreemap! {
+                    "b0".to_string() => Value::Bool(false),
+                    "b1".to_string() => Value::Bool(true),
+                    "var2".to_string() => Value::String("a".to_string()),
+                    "char.var1".to_string() => Value::String("b".to_string())
+                }
+            },
+            stack: Vec::new(),
+            snapshots: btreemap! {},
+        };
+
+        let tests = vec![
+            ("value", Value::String("value".to_string())),
+            ("1 + 2", Value::Number(3.)),
+            ("2 * 1 + 4", Value::Number(6.)),
+            ("2 * (1 + 4)", Value::Number(10.)),
+            ("- (1 / 3)", Value::Number(-1. / 3.)),
+            ("true and false", Value::Bool(false)),
+            ("true or false", Value::Bool(true)),
+            ("1 < 2", Value::Bool(true)),
+            ("$var2 == a", Value::Bool(true)),
+            ("$var2 != a", Value::Bool(false)),
+            ("$char.var1 == b", Value::Bool(true)),
+            ("a + b", Value::String("ab".to_string())),
+            ("not true", Value::Bool(false)),
+        ];
+
+        for (expr, expected) in tests {
+            assert_eq!(expected, eval(expr, &bookmark).unwrap());
+        }
     }
 }

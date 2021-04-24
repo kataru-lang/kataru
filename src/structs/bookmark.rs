@@ -93,10 +93,10 @@ impl<'a> Bookmark {
             let statemod = StateMod::from_str(text)?;
             let local_state = self.state()?;
             if local_state.contains_key(statemod.var) {
-                statemod.apply(local_state, &value);
+                statemod.apply(local_state, value);
             } else {
                 let global_state = self.global_state()?;
-                statemod.apply(global_state, &value);
+                statemod.apply(global_state, value);
             }
         }
         Ok(())
