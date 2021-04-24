@@ -1,5 +1,6 @@
-use super::{CharacterData, Line, Map, Params, QualifiedName, Section, Value};
+use super::{CharacterData, Line, Map, Params, QualifiedName, Section};
 use crate::traits::SaveYaml;
+use crate::Value;
 use crate::{
     error::{Error, Result},
     GLOBAL,

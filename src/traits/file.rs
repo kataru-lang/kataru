@@ -27,7 +27,7 @@ pub trait LoadYaml: FromYaml {
     fn load_yml<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self> {
         match Self::load_string(path) {
             Ok(source) => Self::from_yml(&source),
-            Err(e) => Err(error!("{}", e.message)),
+            Err(e) => Err(error!("Error loading YAML: {}", e)),
         }
     }
 }

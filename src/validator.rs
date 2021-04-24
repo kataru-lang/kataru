@@ -1,12 +1,11 @@
 use crate::{
     error::{Error, Result},
     structs::{
-        get_bool_expr, AssignOperator, Branches, Command, Dialogue, Line, Map, Params, Passage,
-        Passages, QualifiedName, RawChoice, RawChoices, State, StateMod, Story, StoryGetters,
-        Value, GLOBAL,
+        AssignOperator, Branches, Command, Dialogue, Line, Map, Params, Passage, Passages,
+        QualifiedName, RawChoice, RawChoices, State, StateMod, Story, StoryGetters, GLOBAL,
     },
     traits::FromStr,
-    Bookmark,
+    Bookmark, Value,
 };
 
 pub struct Validator<'a> {
@@ -49,8 +48,7 @@ impl<'a> Validator<'a> {
 
     /// Validates a conditional statement.
     fn validate_conditional(&self, expr: &str) -> Result<()> {
-        let bool_expr = get_bool_expr(expr);
-        Value::eval_bool_exprs(bool_expr, self.bookmark)?;
+        Value::from_conditional(expr, self.bookmark)?;
         Ok(())
     }
 
@@ -216,7 +214,7 @@ impl<'a> Validator<'a> {
     fn validate_state(&self, state: &State) -> Result<()> {
         for (key, value) in state {
             let mut value = value.clone();
-            value.eval_in_place(self.bookmark)?;
+            value.eval_as_expr(self.bookmark)?;
             let smod = StateMod::from_str(key)?;
             let state_value = self.validate_var(smod.var)?;
             Self::validate_assign(state_value, &value, smod.op)?;

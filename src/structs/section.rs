@@ -1,6 +1,9 @@
-use crate::error::Error;
-use crate::structs::{CharacterData, Config, Params, Passage, Passages, Value};
-use crate::traits::{FromYaml, LoadYaml, Merge};
+use crate::{
+    error::Error,
+    structs::{CharacterData, Config, Params, Passage, Passages},
+    traits::{FromYaml, LoadYaml, Merge},
+    Value,
+};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fmt;

@@ -10,7 +10,7 @@ fn test_state() {
     let mut bookmark: Bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
     bookmark.init_state(&story);
 
-    println!("{:#?}", bookmark);
+    // println!("{:#?}", bookmark);
 
     Validator::new(&story, &mut bookmark).validate().unwrap();
 

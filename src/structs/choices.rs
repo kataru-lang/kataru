@@ -24,15 +24,6 @@ pub struct Choices {
     pub timeout: f64,
 }
 
-fn get_bool_expr(expr: &str) -> &str {
-    let if_prefix = "if ";
-    if expr.starts_with(if_prefix) {
-        &expr[if_prefix.len()..]
-    } else {
-        ""
-    }
-}
-
 impl Choices {
     pub fn from(other: &mut Self) -> Result<Self> {
         Ok(Self {
@@ -63,8 +54,7 @@ impl Choices {
                 }
                 // Populate all choices are behind a true conditional.
                 RawChoice::Conditional(conditional) => {
-                    let bool_expr = get_bool_expr(key);
-                    if !Value::eval_bool_exprs(bool_expr, &bookmark)? {
+                    if !Value::from_conditional(key, bookmark)? {
                         continue;
                     }
                     for (choice_text, passage_name_opt) in conditional.iter().rev() {

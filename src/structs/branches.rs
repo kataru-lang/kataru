@@ -35,18 +35,6 @@ impl std::convert::TryFrom<BranchesShadow> for Branches {
     }
 }
 
-pub fn get_bool_expr(expr: &str) -> &str {
-    let if_prefix = "if ";
-    let elif_prefix = "elif ";
-    if expr.starts_with(if_prefix) {
-        &expr[if_prefix.len()..]
-    } else if expr.starts_with(elif_prefix) {
-        &expr[elif_prefix.len()..]
-    } else {
-        ""
-    }
-}
-
 impl Branchable for Branches {
     /// Evaluates the conditionals in a given branch and takes the first one that evaluates to true.
     fn take(&self, bookmark: &mut Bookmark) -> Result<usize> {
@@ -57,7 +45,7 @@ impl Branchable for Branches {
             i += 1;
 
             // If we should execute this block
-            if expr == "else" || Value::eval_bool_exprs(get_bool_expr(expr), bookmark)? {
+            if expr == "else" || Value::from_conditional(expr, bookmark)? {
                 break;
             } else {
                 // Skip all contained lines plus the break that's inserted at the end.
@@ -79,7 +67,6 @@ impl Branchable for Branches {
         for (_expr, branch_lines) in &self.exprs {
             length += 1 + flattened_len(branch_lines);
         }
-        println!("length: {}", length);
         length
     }
 }

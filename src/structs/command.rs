@@ -117,7 +117,7 @@ where
 
             // If the params have variable names, replace with variable value.
             for (_var, val) in merged_params.iter_mut() {
-                val.eval_in_place(bookmark)?;
+                val.eval_as_expr(bookmark)?;
             }
 
             full_command.insert(qualified_command, merged_params);

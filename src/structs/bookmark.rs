@@ -1,12 +1,9 @@
-use super::{Map, QualifiedName, State, Story, Value};
+use super::{Map, QualifiedName, State, Story};
 use crate::{
     error::{Error, Result},
     traits::FromStr,
-    StateMod,
-};
-use crate::{
     traits::{FromMessagePack, FromYaml, LoadYaml, SaveMessagePack},
-    Load, LoadMessagePack, Save, SaveYaml, GLOBAL,
+    Load, LoadMessagePack, Save, SaveYaml, StateMod, Value, GLOBAL,
 };
 use serde::{Deserialize, Serialize};
 
@@ -79,7 +76,7 @@ impl<'a> Bookmark {
         for (key, value) in state {
             // If a expression, evaluate. TODO: avoid clone.
             let mut value = value.clone();
-            value.eval_in_place(self)?;
+            value.eval_as_expr(self)?;
 
             // If contains ${passage} expansion, text should refer to the replaced text.
             // Otherwise it should simply be the key.

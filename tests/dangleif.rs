@@ -4,6 +4,7 @@ use kataru::{Bookmark, LoadYaml, Runner, Story, Validator};
 #[test]
 fn test_dangleif() {
     let story: Story = Story::load_yml("./tests/data/dangleif").unwrap();
+    // println!("story: {:#?}", story);
     let mut bookmark: Bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
     bookmark.init_state(&story);
 

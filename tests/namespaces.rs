@@ -10,7 +10,7 @@ fn test_namespaces() {
     let mut bookmark: Bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
     bookmark.init_state(&story);
 
-    println!("{:#?}", story);
+    // println!("{:#?}", story);
 
     Validator::new(&story, &mut bookmark).validate().unwrap();
 
@@ -86,7 +86,7 @@ fn test_namespaces() {
             "",
             Line::Command(btreemap! {
                 "namespace1:LocalCharacter.LocalMethod".to_string() => linear_map! {
-                    "param1".to_string() => Value::Number(1.),
+                    "param1".to_string() => Value::Number(3.),
                     "param2".to_string() => Value::String("two".to_string()),
                     "param3".to_string() => Value::Bool(true)
                 }

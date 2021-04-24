@@ -112,47 +112,37 @@ mod tests {
             "attr2".to_string() => None
         };
 
-        // Test valid single attribute.
-        {
-            let text = "Test <attr1>text</attr1>.";
-            let (attributes, result) = extract_attr(text, &attrs).unwrap();
-            assert_eq!(&result, "Test text.");
-            assert_eq!(
-                attributes,
-                btreemap! {
-                    "attr1".to_string() => vec![5 as usize, 9]
-                }
-            );
-        }
+        let tests: Vec<(&str, Result<(Attributes, String)>)> = vec![
+            (
+                "Test <attr1>text</attr1>.",
+                Ok((
+                    btreemap! {
+                        "attr1".to_string() => vec![5 as usize, 9]
+                    },
+                    "Test text.".to_string(),
+                )),
+            ),
+            (
+                "Test <b>text</b>.",
+                Ok((Attributes::new(), "Test <b>text</b>.".to_string())),
+            ),
+            (
+                "Test </attr1>text</attr1>.",
+                Err(Error::Generic("Invalid closing tag </attr1>".to_string())),
+            ),
+            (
+                "Test <attr1>text.",
+                Err(Error::Generic("Unmatched tag <attr1>".to_string())),
+            ),
+            (
+                "Test < text.",
+                Ok((Attributes::new(), "Test < text.".to_string())),
+            ),
+        ];
 
-        // Test invalid attribute
-        {
-            let text = "Test <b>text</b>.";
-            let (attributes, result) = extract_attr(text, &attrs).unwrap();
-            assert_eq!(&result, "Test <b>text</b>.");
-            assert_eq!(attributes, Attributes::new());
-        }
-
-        // Test invalid closing
-        {
-            let text = "Test </attr1>text</attr1>.";
-            let err = extract_attr(text, &attrs).unwrap_err();
-            assert_eq!(err.message, "Invalid closing tag </attr1>");
-        }
-
-        // Test missing closing
-        {
-            let text = "Test <attr1>text.";
-            let err = extract_attr(text, &attrs).unwrap_err();
-            assert_eq!(err.message, "Unmatched tag <attr1>");
-        }
-
-        // Test dangling <
-        {
-            let text = "Test < text.";
-            let (attributes, result) = extract_attr(text, &attrs).unwrap();
-            assert_eq!(&result, "Test < text.");
-            assert_eq!(attributes, Attributes::new());
+        for (text, expected) in tests {
+            let result = extract_attr(text, &attrs);
+            assert_eq!(result, expected);
         }
     }
 }

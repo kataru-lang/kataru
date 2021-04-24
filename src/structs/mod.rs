@@ -11,11 +11,10 @@ mod operator;
 mod section;
 mod state;
 mod story;
-mod value;
 
 pub use attributes::{extract_attr, Attributes};
 pub use bookmark::{Bookmark, Position};
-pub use branches::{get_bool_expr, Branchable, Branches};
+pub use branches::{Branchable, Branches};
 pub use choices::{Choices, RawChoice, RawChoices};
 pub use command::{Command, CommandGetters, Params, PositionalCommand, PositionalParams};
 pub use config::{CharacterData, Config};
@@ -26,4 +25,3 @@ pub use operator::{AssignOperator, Operator};
 pub use section::{QualifiedName, Section, GLOBAL};
 pub use state::{State, StateMod};
 pub use story::{Passage, Passages, Story, StoryGetters};
-pub use value::Value;
