@@ -4,7 +4,7 @@ Program = _{ SOI ~ Expr ~ EOF }
 Expr = _{ UnaryExpr | BinaryExpr }
 UnaryExpr = { UnaryOperator ~ Term }
 BinaryExpr = { (Term ~ BinaryOperator)* ~ Term }
-Term = _{ Atom | "(" ~ Expr ~ ")" }
+Term = _{ Atom | UnaryExpr | "(" ~ Expr ~ ")" }
 
 // Operators
 Operator = _{UnaryOperator | BinaryOperator}
