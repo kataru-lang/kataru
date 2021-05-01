@@ -25,6 +25,10 @@ pub struct Choices {
 }
 
 impl Choices {
+    pub fn remove(&mut self, choice: &str) -> Option<String> {
+        self.choices.remove(choice)
+    }
+
     pub fn from(other: &mut Self) -> Result<Self> {
         Ok(Self {
             choices: Map::move_values(&mut other.choices)?,

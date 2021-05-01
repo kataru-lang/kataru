@@ -34,6 +34,10 @@ pub type Story = Map<String, Section>;
 
 /// Each story getter returns an Option reference if the name is found.
 pub trait StoryGetters<'a> {
+    fn section_for_passage(
+        &'a self,
+        qname: &mut QualifiedName,
+    ) -> Result<(&'a Section, &'a Passage)>;
     fn character(&'a self, qname: &QualifiedName) -> Option<&'a Option<CharacterData>>;
     fn passage(&'a self, qname: &QualifiedName) -> Option<&'a Passage>;
     fn value(&'a self, qname: &QualifiedName) -> Option<&'a Value>;
@@ -41,6 +45,45 @@ pub trait StoryGetters<'a> {
 }
 
 impl<'a> StoryGetters<'a> for Story {
+    /// Attempts to get a section containing the passage matching `qname`.
+    /// First checks in the specified namespace, and falls back to root namespace if not found.
+    ///
+    /// Note that passage name could be:
+    /// 1. a local name (unquallified), in which case namespace stays the same.
+    /// 2. a qualified name pointing to another section, in which case we switch namespace.
+    /// 3. a global name, in which we must changed namespace to root.
+    fn section_for_passage(
+        &'a self,
+        qname: &mut QualifiedName,
+    ) -> Result<(&'a Section, &'a Passage)> {
+        // First try to find the section specified namespace.
+        if let Some(section) = self.get(&qname.namespace) {
+            if let Some(passage) = section.passage(&qname.name) {
+                // Case 2: name is not local, so switch namespace.
+                return Ok((section, passage));
+            }
+        } else {
+            return Err(error!("Invalid namespace '{}'", &qname.namespace));
+        }
+
+        // Fall back to try global namespace.
+        if let Some(section) = self.get(GLOBAL) {
+            if let Some(passage) = section.passage(&qname.name) {
+                // Case 3: passage could not be found in local/specified namespace, so switch to global.
+                qname.namespace = GLOBAL.to_string();
+                return Ok((section, passage));
+            }
+        } else {
+            return Err(error!("No global namespace"));
+        }
+
+        // Return error if there is no passage name in either namespace.
+        Err(error!(
+            "Passage name '{}' could not be found in '{}' nor global namespace",
+            qname.name, qname.namespace
+        ))
+    }
+
     fn character(&'a self, qname: &QualifiedName) -> Option<&'a Option<CharacterData>> {
         match self.get(&qname.namespace)?.character(&qname.name) {
             Some(data) => Some(data),
@@ -90,13 +133,13 @@ impl LoadYaml for Story {
         for entry in glob(pattern).expect("Failed to read glob pattern") {
             if let Ok(path) = entry {
                 let mut section = Section::load_yml(path)?;
-                let namespace = section.config.namespace.clone();
-                match story.get_mut(&namespace) {
+                let namespace = section.namespace();
+                match story.get_mut(namespace) {
                     Some(story_section) => {
                         story_section.merge(&mut section)?;
                     }
                     None => {
-                        story.insert(namespace, section);
+                        story.insert(namespace.to_string(), section);
                     }
                 };
             }

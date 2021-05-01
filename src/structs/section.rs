@@ -2,7 +2,7 @@ use crate::{
     error::Error,
     structs::{CharacterData, Config, Params, Passage, Passages},
     traits::{FromYaml, LoadYaml, Merge},
-    Value,
+    Map, SetCommand, Value,
 };
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -42,20 +42,65 @@ impl QualifiedName {
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Section {
-    pub config: Config,
+    config: Config,
     pub passages: Passages,
 }
 
 impl<'a> Section {
+    #[cfg(test)]
+    pub fn new(config: Config) -> Self {
+        Self {
+            config,
+            passages: Passages::new(),
+        }
+    }
+
+    #[inline]
+    pub fn has_character(&self, character: &str) -> bool {
+        self.config.characters.contains_key(character)
+    }
+
+    #[inline]
+    pub fn state(&self) -> &Map<String, Value> {
+        &self.config.state
+    }
+
+    #[inline]
+    pub fn attributes(&self) -> &Map<String, Option<String>> {
+        &self.config.attributes
+    }
+
+    #[inline]
+    pub fn on_exit(&self) -> &Option<SetCommand> {
+        &self.config.on_exit
+    }
+
+    #[inline]
+    pub fn on_enter(&self) -> &Option<SetCommand> {
+        &self.config.on_enter
+    }
+
+    #[inline]
     pub fn passage(&'a self, name: &str) -> Option<&'a Passage> {
         self.passages.get(name)
     }
+
+    #[inline]
+    pub fn namespace(&'a self) -> &str {
+        &self.config.namespace
+    }
+
+    #[inline]
     pub fn params(&'a self, name: &str) -> Option<&'a Option<Params>> {
         self.config.commands.get(name)
     }
+
+    #[inline]
     pub fn character(&'a self, name: &str) -> Option<&'a Option<CharacterData>> {
         self.config.characters.get(name)
     }
+
+    #[inline]
     pub fn value(&'a self, name: &str) -> Option<&'a Value> {
         self.config.state.get(name)
     }

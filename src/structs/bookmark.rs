@@ -3,7 +3,7 @@ use crate::{
     error::{Error, Result},
     traits::FromStr,
     traits::{FromMessagePack, FromYaml, LoadYaml, SaveMessagePack},
-    Load, LoadMessagePack, Passage, Save, SaveYaml, StateMod, Value, GLOBAL,
+    Load, LoadMessagePack, Save, SaveYaml, StateMod, Value, GLOBAL,
 };
 use serde::{Deserialize, Serialize};
 
@@ -98,43 +98,9 @@ impl<'a> Bookmark {
         self.position = position;
     }
 
-    /// Attempts to get a passage matching `qname`.
-    /// First checks in the specified namespace, and falls back to root namespace if not found.
-    ///
-    /// Note that passage name could be:
-    /// 1. a local name (unquallified), in which case namespace stays the same.
-    /// 2. a qualified name pointing to another section, in which case we switch namespace.
-    /// 3. a global name, in which we must changed namespace to root.
-    pub fn goto_passage(&mut self, qname: QualifiedName, story: &'a Story) -> Result<&'a Passage> {
-        // First try to find the section specified namespace.
-        if let Some(section) = story.get(&qname.namespace) {
-            if let Some(passage) = section.passage(&qname.name) {
-                // Case 2: name is not local, so switch namespace.
-                self.position.namespace = qname.namespace;
-                self.position.passage = qname.name;
-                return Ok(passage);
-            }
-        } else {
-            return Err(error!("Invalid namespace '{}'", &qname.namespace));
-        }
-
-        // Fall back to try global namespace.
-        if let Some(global_section) = story.get(GLOBAL) {
-            if let Some(passage) = global_section.passage(&qname.name) {
-                // Case 3: passage could not be found in local/specified namespace, so switch to global.
-                self.position.namespace = GLOBAL.to_string();
-                self.position.passage = qname.name;
-                return Ok(passage);
-            }
-        } else {
-            return Err(error!("No global namespace"));
-        }
-
-        // Return error if there is no passage name in either namespace.
-        Err(error!(
-            "Passage name '{}' could not be found in '{}' nor global namespace",
-            qname.name, qname.namespace
-        ))
+    pub fn update_position(&mut self, qname: QualifiedName) {
+        self.position.namespace = qname.namespace;
+        self.position.passage = qname.name;
     }
 
     /// Gets the value for a given variable.
@@ -197,6 +163,7 @@ impl<'a> Bookmark {
             }
 
             let statemod = StateMod::from_str(text)?;
+            println!("statemod: {:?}", statemod);
             let local_state = self.state()?;
             if local_state.contains_key(statemod.var) {
                 statemod.apply(local_state, value);
@@ -223,7 +190,7 @@ impl<'a> Bookmark {
             }
 
             let namespace_state = self.state.get_mut(namespace).unwrap();
-            for (var, val) in &section.config.state {
+            for (var, val) in section.state() {
                 if var.contains("$passage") {
                     for passage in section.passages.keys() {
                         let replaced = format!("{}{}", passage, &var["$passage".len()..]);
@@ -267,7 +234,7 @@ impl<'a> Bookmark {
         // The character is local if the section exists and the character
         // is defined in the section.
         if let Some(section) = story.get(self.namespace()) {
-            if section.config.characters.contains_key(character) {
+            if section.has_character(character) {
                 return true;
             }
         }

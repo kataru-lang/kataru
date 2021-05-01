@@ -121,6 +121,15 @@ fn test_state() {
                 attributes: btreemap! {},
             }),
         ),
+        // Alice: Alice: Exited Choice1Intermediate $Choice1Intermediate.exited times.
+        (
+            "",
+            Line::Dialogue(Dialogue {
+                name: "Alice".to_string(),
+                text: "Exited Choice1Intermediate 1 times.".to_string(),
+                attributes: btreemap! {},
+            }),
+        ),
         // Alice: End
         (
             "",

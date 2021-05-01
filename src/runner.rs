@@ -2,7 +2,7 @@ use crate::{
     error::{Error, Result},
     structs::{
         Bookmark, Branchable, Choices, CommandGetters, Dialogue, Line, Passage, QualifiedName,
-        Return, State, Story,
+        Return, State, Story, StoryGetters,
     },
     Section, Value,
 };
@@ -61,7 +61,11 @@ impl<'r> Runner<'r> {
     /// that this section has no `on_exit` callback.
     fn can_optimize_tail_call(&self) -> bool {
         if let Line::Return(_) = self.lines[self.bookmark.line()] {
-            return self.section.config.on_exit.is_none();
+            println!(
+                "checking if can optimize tail call: {}",
+                self.section.on_exit().is_none()
+            );
+            return self.section.on_exit().is_none();
         }
         false
     }
@@ -163,40 +167,30 @@ impl<'r> Runner<'r> {
 
     /// Runs the `onEnter` set command.
     fn run_on_enter(&mut self) -> Result<()> {
-        let namespace = self.bookmark.namespace();
-
-        // First try to find the section specified namespace.
-        if let Some(section) = self.story.get(namespace) {
-            if let Some(set_cmd) = &section.config.on_enter {
-                return self.bookmark.set_state(&set_cmd.set);
-            }
-            Ok(())
-        } else {
-            Err(error!("Invalid namespace '{}'", &namespace))
+        if let Some(set_cmd) = &self.section.on_enter() {
+            return self.bookmark.set_state(&set_cmd.set);
         }
+        Ok(())
     }
 
     /// Runs the `onEnter` set command.
     fn run_on_exit(&mut self) -> Result<()> {
-        let namespace = self.bookmark.namespace();
-
-        // First try to find the section specified namespace.
-        if let Some(section) = self.story.get(namespace) {
-            if let Some(set_cmd) = &section.config.on_exit {
-                return self.bookmark.set_state(&set_cmd.set);
-            }
-            Ok(())
-        } else {
-            Err(error!("Invalid namespace '{}'", &namespace))
+        if let Some(set_cmd) = &self.section.on_exit() {
+            return self.bookmark.set_state(&set_cmd.set);
         }
+        Ok(())
     }
 
     /// Gets the current passage based on the bookmark's position.
     /// Loads the lines into its flattened form.
     /// Automatically handles updating of namespace.
     fn load_bookmark_position(&mut self) -> Result<()> {
-        let qname = QualifiedName::from(self.bookmark.namespace(), self.bookmark.passage());
-        self.passage = self.bookmark.goto_passage(qname, self.story)?;
+        let mut qname = QualifiedName::from(self.bookmark.namespace(), self.bookmark.passage());
+        let (section, passage) = self.story.section_for_passage(&mut qname)?;
+        self.section = section;
+        self.passage = passage;
+        self.bookmark.update_position(qname);
+
         self.load_passage(self.passage);
         Ok(())
     }
@@ -329,7 +323,7 @@ impl<'r> Runner<'r> {
     fn process(&mut self, input: &str) -> Result<Line> {
         if self.bookmark.line() >= self.lines.len() {
             Err(error!(
-                "Invalid line number {} in passage {}",
+                "Invalid line number {} in passage '{}'",
                 self.bookmark.line(),
                 self.bookmark.passage()
             ))
