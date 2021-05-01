@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 pub trait Branchable {
     fn take(&self, bookmark: &mut Bookmark) -> Result<usize>;
-    fn length(&self) -> usize;
+    fn len(&self) -> usize;
 }
 
 #[derive(Deserialize)]
@@ -49,10 +49,14 @@ impl Branchable for Branches {
                 break;
             } else {
                 // Skip all contained lines plus the break that's inserted at the end.
+                let flatlen = flattened_len(lines);
+                println!("flatlen: {}", flatlen);
+                println!("lines: {:#?}", lines);
                 skip_lines += flattened_len(lines);
 
                 // If not the last section in the if block, add an extra skip for the Line::Break.
                 if i < self.exprs.len() {
+                    println!("add skip");
                     skip_lines += 1;
                 }
             }
@@ -61,22 +65,88 @@ impl Branchable for Branches {
         Ok(skip_lines)
     }
 
-    fn length(&self) -> usize {
-        let mut length = 0;
-
+    /// A branch has one line containing the branch,
+    /// plus one break for each consecutive expression,
+    /// plus the length of all of its contained lines.
+    fn len(&self) -> usize {
+        let mut length = self.exprs.len();
         for (_expr, branch_lines) in &self.exprs {
-            length += 1 + flattened_len(branch_lines);
+            length += flattened_len(branch_lines);
         }
         length
     }
 }
 
+/// All lines take up 1 except for branches,
+/// which need their length recursively computed.
 fn flattened_len(lines: &[Line]) -> usize {
-    let mut length = lines.len();
+    let mut length = 0;
     for line in lines {
         if let Line::Branches(branches) = line {
-            length += branches.length();
+            length += branches.len();
+        } else {
+            length += 1
         }
     }
     length
+}
+
+#[cfg(test)]
+mod tests {
+    use linear_map::linear_map;
+
+    use super::{Branchable, Branches, Line};
+
+    #[test]
+    fn test_branches_length() {
+        let branches = Branches {
+            exprs: linear_map! {
+                "if true".to_string() => vec![
+                    Line::Text("test".to_string())
+                ]
+            },
+        };
+        assert_eq!(branches.len(), 2);
+
+        let branches = Branches {
+            exprs: linear_map! {
+                "if true".to_string() => vec![
+                    Line::Text("test".to_string())],
+                "elif true".to_string() => vec![
+                    Line::Text("test".to_string())]
+            },
+        };
+        assert_eq!(branches.len(), 4);
+
+        let branches = Branches {
+            exprs: linear_map! {
+                "if true".to_string() => vec![
+                    Line::Branches(Branches {
+                        exprs: linear_map! {
+                            "if true".to_string() => vec![
+                                Line::Text("test".to_string())
+                                ]
+                        },
+                    })
+                ]
+            },
+        };
+        assert_eq!(branches.len(), 3);
+
+        let branches = Branches {
+            exprs: linear_map! {
+                "if true".to_string() => vec![
+                    Line::Branches(Branches {
+                        exprs: linear_map! {
+                            "if true".to_string() => vec![
+                                Line::Text("test".to_string())],
+                            "elif true".to_string() => vec![
+                                Line::Text("test".to_string())]
+                        },
+                    })
+                ]
+            },
+        };
+        assert_eq!(branches.len(), 5);
+    }
 }

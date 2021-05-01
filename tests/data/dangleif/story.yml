@@ -5,7 +5,31 @@ state:
   var1: false
   var2: false
 
+characters:
+  Alice:
+
 ---
 Start:
+  - call: SingleIf
+  - call: NestedIf
+  - Alice: Success!
+
+SingleIf:
+  # flattens to:
+  # - branch
+  # - text
+
+  # flow should be:
+  # evaluate to false
   - if $var1:
-      - test
+      - Alice: I shouldn't say this.
+  # implicit return:
+
+NestedIf:
+  # flattens to:
+  # - branch
+  # - branch
+  # - text
+  - if $var1:
+      - if $var2:
+          - Alice: I shouldn't say this either.

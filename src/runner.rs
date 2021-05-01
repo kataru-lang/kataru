@@ -117,7 +117,7 @@ impl<'r> Runner<'r> {
                     self.breaks.pop();
                 }
                 Line::Branches(branches) => {
-                    self.breaks.push(line_num + branches.length());
+                    self.breaks.push(line_num + branches.len());
                 }
                 _ => (),
             }
@@ -264,7 +264,7 @@ impl<'r> Runner<'r> {
             }
             Line::Branches(branches) => {
                 let skipped_len = branches.take(&mut self.bookmark)?;
-                let branch_len = branches.length();
+                let branch_len = branches.len();
                 self.breaks
                     .push(self.bookmark.position.line + branch_len - skipped_len);
                 Line::Continue
