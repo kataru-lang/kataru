@@ -9,7 +9,7 @@ pub struct CharacterData {
     pub description: String,
 }
 
-#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Config {
     #[serde(default)]
     pub namespace: String,

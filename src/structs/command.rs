@@ -1,6 +1,6 @@
 use linear_map::LinearMap;
 
-use crate::{traits::CopyMerge, Bookmark, Error, Map, Result, Story, StoryGetters, Value};
+use crate::{traits::CopyMerge, Bookmark, Error, Map, Result, Story, Value};
 
 use super::QualifiedName;
 

@@ -2,7 +2,7 @@ use crate::{
     error::{Error, Result},
     structs::{
         AssignOperator, Branches, Command, Dialogue, Line, Map, Params, Passage, Passages,
-        QualifiedName, RawChoice, RawChoices, State, StateMod, Story, StoryGetters, GLOBAL,
+        QualifiedName, RawChoice, RawChoices, State, StateMod, Story, GLOBAL,
     },
     traits::FromStr,
     Bookmark, Value,
@@ -265,7 +265,7 @@ impl<'a> Validator<'a> {
     /// Validates an entire story for valid passage references, HTML, conditionals.
     pub fn validate(&mut self) -> Result<()> {
         let original_position = self.bookmark.position().clone();
-        for (namespace, namespace_val) in self.story {
+        for (namespace, namespace_val) in &self.story.sections {
             self.bookmark.set_namespace(namespace.to_string());
             self.validate_passages(&namespace_val.passages)?;
         }

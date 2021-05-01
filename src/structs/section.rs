@@ -40,7 +40,7 @@ impl QualifiedName {
     }
 }
 
-#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Section {
     config: Config,
     pub passages: Passages,

@@ -2,7 +2,7 @@ use crate::{
     error::{Error, Result},
     structs::{
         Bookmark, Branchable, Choices, CommandGetters, Dialogue, Line, Passage, QualifiedName,
-        Return, State, Story, StoryGetters,
+        Return, State, Story,
     },
     Section, Value,
 };

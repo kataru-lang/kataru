@@ -183,7 +183,7 @@ impl<'a> Bookmark {
 
     /// Defaults bookmark state based on the story.
     pub fn init_state(&mut self, story: &Story) {
-        for (namespace, section) in story {
+        for (namespace, section) in &story.sections {
             if self.state.get(namespace).is_none() {
                 self.state.insert(namespace.to_string(), State::default());
             }
@@ -232,7 +232,7 @@ impl<'a> Bookmark {
 
         // The character is local if the section exists and the character
         // is defined in the section.
-        if let Some(section) = story.get(self.namespace()) {
+        if let Some(section) = story.sections.get(self.namespace()) {
             if section.has_character(character) {
                 return true;
             }

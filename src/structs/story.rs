@@ -1,15 +1,12 @@
 use super::{CharacterData, Line, Map, Params, QualifiedName, Section};
-use crate::traits::SaveYaml;
-use crate::Value;
 use crate::{
     error::{Error, Result},
-    GLOBAL,
-};
-use crate::{
-    traits::{FromMessagePack, FromYaml, Load, LoadYaml, Merge, Save, SaveMessagePack},
-    LoadMessagePack,
+    traits::SaveYaml,
+    traits::{FromMessagePack, FromYaml, Load, LoadYaml, Save, SaveMessagePack},
+    LoadMessagePack, Merge, Value, GLOBAL,
 };
 use glob::glob;
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 pub type Passage = Vec<Line>;
@@ -30,21 +27,18 @@ impl FromYaml for Passages {
     }
 }
 
-pub type Story = Map<String, Section>;
-
-/// Each story getter returns an Option reference if the name is found.
-pub trait StoryGetters<'a> {
-    fn section_for_passage(
-        &'a self,
-        qname: &mut QualifiedName,
-    ) -> Result<(&'a Section, &'a Passage)>;
-    fn character(&'a self, qname: &QualifiedName) -> Option<&'a Option<CharacterData>>;
-    fn passage(&'a self, qname: &QualifiedName) -> Option<&'a Passage>;
-    fn value(&'a self, qname: &QualifiedName) -> Option<&'a Value>;
-    fn params(&'a self, qname: &QualifiedName) -> Option<&'a Option<Params>>;
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize, Default)]
+pub struct Story {
+    pub sections: Map<String, Section>,
 }
 
-impl<'a> StoryGetters<'a> for Story {
+impl<'a> Story {
+    pub fn new() -> Self {
+        Self {
+            sections: Map::new(),
+        }
+    }
+
     /// Attempts to get a section containing the passage matching `qname`.
     /// First checks in the specified namespace, and falls back to root namespace if not found.
     ///
@@ -52,12 +46,12 @@ impl<'a> StoryGetters<'a> for Story {
     /// 1. a local name (unquallified), in which case namespace stays the same.
     /// 2. a qualified name pointing to another section, in which case we switch namespace.
     /// 3. a global name, in which we must changed namespace to root.
-    fn section_for_passage(
+    pub fn section_for_passage(
         &'a self,
         qname: &mut QualifiedName,
     ) -> Result<(&'a Section, &'a Passage)> {
         // First try to find the section specified namespace.
-        if let Some(section) = self.get(&qname.namespace) {
+        if let Some(section) = self.sections.get(&qname.namespace) {
             if let Some(passage) = section.passage(&qname.name) {
                 // Case 2: name is not local, so switch namespace.
                 return Ok((section, passage));
@@ -67,7 +61,7 @@ impl<'a> StoryGetters<'a> for Story {
         }
 
         // Fall back to try global namespace.
-        if let Some(section) = self.get(GLOBAL) {
+        if let Some(section) = self.sections.get(GLOBAL) {
             if let Some(passage) = section.passage(&qname.name) {
                 // Case 3: passage could not be found in local/specified namespace, so switch to global.
                 qname.namespace = GLOBAL.to_string();
@@ -84,31 +78,31 @@ impl<'a> StoryGetters<'a> for Story {
         ))
     }
 
-    fn character(&'a self, qname: &QualifiedName) -> Option<&'a Option<CharacterData>> {
-        match self.get(&qname.namespace)?.character(&qname.name) {
+    pub fn character(&'a self, qname: &QualifiedName) -> Option<&'a Option<CharacterData>> {
+        match self.sections.get(&qname.namespace)?.character(&qname.name) {
             Some(data) => Some(data),
-            None => self.get(GLOBAL)?.character(&qname.name),
+            None => self.sections.get(GLOBAL)?.character(&qname.name),
         }
     }
 
-    fn passage(&'a self, qname: &QualifiedName) -> Option<&'a Passage> {
-        match self.get(&qname.namespace)?.passage(&qname.name) {
+    pub fn passage(&'a self, qname: &QualifiedName) -> Option<&'a Passage> {
+        match self.sections.get(&qname.namespace)?.passage(&qname.name) {
             Some(data) => Some(data),
-            None => self.get(GLOBAL)?.passage(&qname.name),
+            None => self.sections.get(GLOBAL)?.passage(&qname.name),
         }
     }
 
-    fn value(&'a self, qname: &QualifiedName) -> Option<&'a Value> {
-        match self.get(&qname.namespace)?.value(&qname.name) {
+    pub fn value(&'a self, qname: &QualifiedName) -> Option<&'a Value> {
+        match self.sections.get(&qname.namespace)?.value(&qname.name) {
             Some(data) => Some(data),
-            None => self.get(GLOBAL)?.value(&qname.name),
+            None => self.sections.get(GLOBAL)?.value(&qname.name),
         }
     }
 
-    fn params(&'a self, qname: &QualifiedName) -> Option<&'a Option<Params>> {
-        match self.get(&qname.namespace)?.params(&qname.name) {
+    pub fn params(&'a self, qname: &QualifiedName) -> Option<&'a Option<Params>> {
+        match self.sections.get(&qname.namespace)?.params(&qname.name) {
             Some(data) => Some(data),
-            None => self.get(GLOBAL)?.params(&qname.name),
+            None => self.sections.get(GLOBAL)?.params(&qname.name),
         }
     }
 }
@@ -134,12 +128,12 @@ impl LoadYaml for Story {
             if let Ok(path) = entry {
                 let mut section = Section::load_yml(path)?;
                 let namespace = section.namespace();
-                match story.get_mut(namespace) {
+                match story.sections.get_mut(namespace) {
                     Some(story_section) => {
                         story_section.merge(&mut section)?;
                     }
                     None => {
-                        story.insert(namespace.to_string(), section);
+                        story.sections.insert(namespace.to_string(), section);
                     }
                 };
             }

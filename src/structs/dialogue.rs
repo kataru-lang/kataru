@@ -16,7 +16,7 @@ impl Dialogue {
         namespace: &str,
         story: &Story,
     ) -> Result<(Attributes, String)> {
-        match story.get(namespace) {
+        match story.sections.get(namespace) {
             Some(section) => extract_attr(text, section.attributes()),
             None => Err(error!(
                 "No such namespace '{}', required for checking attributes in '{}'",
@@ -58,16 +58,18 @@ mod tests {
     #[test]
     fn test_dialogue() {
         let namespace = GLOBAL.to_string();
-        let story = btreemap! {
-            GLOBAL.to_string() => Section::new(
-                Config {
-                    namespace,
-                    attributes: btreemap! {
-                        "attr".to_string() => None
-                    },
-                    ..Config::default()
-                }
-            )
+        let story = Story {
+            sections: btreemap! {
+                GLOBAL.to_string() => Section::new(
+                    Config {
+                        namespace,
+                        attributes: btreemap! {
+                            "attr".to_string() => None
+                        },
+                        ..Config::default()
+                    }
+                )
+            },
         };
         let bookmark = Bookmark::new(btreemap! {
             GLOBAL.to_string() => Map::new()
