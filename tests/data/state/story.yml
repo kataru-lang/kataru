@@ -19,8 +19,7 @@ Start:
   - TestBool: { bool: not $boolVar }
   - Alice: Test
   - Alice.Wave: { amount: $var } # $var = 1
-  - set:
-      $var: 2
+  - set: { $var: 2 } # tests
   - Alice.Wave: { amount: $var } # $var = 2
   - set:
       $var -: $THREE - 1

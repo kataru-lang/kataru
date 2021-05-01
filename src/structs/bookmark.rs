@@ -46,12 +46,12 @@ impl<'a> Bookmark {
                 return Ok(val);
             }
         } else {
-            return Err(error!("No state for root namespace"));
+            return Err(error!("No state for global namespace"));
         }
 
         // Return error if there is no passage name in either namespace.
         Err(error!(
-            "Variable '{}' could not be found in '{}' nor root namespace state",
+            "Variable '{}' could not be found in '{}' nor global namespace state",
             qname.name, qname.namespace
         ))
     }

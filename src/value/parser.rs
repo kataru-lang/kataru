@@ -42,12 +42,10 @@ impl Value {
     fn eval_expr<'i>(pair: Pair<'i, Rule>, bookmark: &Bookmark) -> Result<Value> {
         // Define lambdas for use by precedence climber.
         let primary = |pair| Self::eval_expr(pair, bookmark);
-        let infix = |lhs: Result<Value>, op: Pair<Rule>, rhs: Result<Value>| {
-            if let (Ok(lhs), Ok(rhs)) = (lhs, rhs) {
-                Self::eval_binary_expr(lhs, op, rhs)
-            } else {
-                Err(error!("Invalid expression."))
-            }
+        let infix = |lhs: Result<Value>, op: Pair<Rule>, rhs: Result<Value>| match (lhs, rhs) {
+            (Ok(lhs), Ok(rhs)) => Self::eval_binary_expr(lhs, op, rhs),
+            (Ok(_), Err(rhs_err)) => Err(rhs_err),
+            (Err(lhs_err), _) => Err(lhs_err),
         };
 
         match pair.as_rule() {
