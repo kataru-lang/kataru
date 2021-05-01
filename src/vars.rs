@@ -52,28 +52,21 @@ pub fn contains_var(text: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Position, Value};
+    use crate::Value;
 
     #[test]
     fn test_str_replace() {
-        let bookmark = Bookmark {
-            position: Position {
-                namespace: "test".to_string(),
-                passage: "".to_string(),
-                line: 0,
+        let mut bookmark = Bookmark::new(btreemap! {
+            "test".to_string() => btreemap! {
+                "var1".to_string() => Value::Number(1.0)
             },
-            state: btreemap! {
-                "test".to_string() => btreemap! {
-                    "var1".to_string() => Value::Number(1.0)
-                },
-                "global".to_string() => btreemap! {
-                    "var2".to_string() => Value::String("a".to_string()),
-                    "char.var1".to_string() => Value::String("b".to_string())
-                }
-            },
-            stack: Vec::new(),
-            snapshots: btreemap! {},
-        };
+            "global".to_string() => btreemap! {
+                "var2".to_string() => Value::String("a".to_string()),
+                "char.var1".to_string() => Value::String("b".to_string())
+            }
+        });
+        bookmark.set_namespace("test".to_string());
+
         assert_eq!(
             replace_vars(
                 "var1 = {$var1}, var2 = {$global:var2}, char.var1 = $char.var1. Tickets cost $10.",

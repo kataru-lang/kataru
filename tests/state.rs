@@ -103,6 +103,24 @@ fn test_state() {
                 attributes: btreemap! {},
             }),
         ),
+        // Alice: Alice: Visited Choice1 $Choice1.visited times.
+        (
+            "",
+            Line::Dialogue(Dialogue {
+                name: "Alice".to_string(),
+                text: "Visited Choice1 1 times.".to_string(),
+                attributes: btreemap! {},
+            }),
+        ),
+        // Alice: Alice: Exited Choice1 $Choice1.exited times.
+        (
+            "",
+            Line::Dialogue(Dialogue {
+                name: "Alice".to_string(),
+                text: "Exited Choice1 1 times.".to_string(),
+                attributes: btreemap! {},
+            }),
+        ),
         // Alice: End
         (
             "",

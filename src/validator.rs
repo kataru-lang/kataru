@@ -19,17 +19,14 @@ impl<'a> Validator<'a> {
     }
 
     fn validate_text(&self, text: &str) -> Result<()> {
-        Dialogue::extract_attr(text, &self.bookmark.position.namespace, self.story)?;
+        Dialogue::extract_attr(text, self.bookmark.namespace(), self.story)?;
         Ok(())
     }
 
     fn validate_character(&self, name: &str) -> Result<()> {
         if self
             .story
-            .character(&QualifiedName::from(
-                &self.bookmark.position.namespace,
-                name,
-            ))
+            .character(&QualifiedName::from(self.bookmark.namespace(), name))
             .is_none()
         {
             return Err(error!("Undefined character name {}", name));
@@ -111,11 +108,7 @@ impl<'a> Validator<'a> {
                 _ => return Err(error!("Commands can only contain one '.' delimeter.")),
             };
 
-            self.validate_namespace_command(
-                &self.bookmark.position.namespace,
-                &command_name,
-                params,
-            )?;
+            self.validate_namespace_command(&self.bookmark.namespace(), &command_name, params)?;
         }
         Ok(())
     }
@@ -174,7 +167,7 @@ impl<'a> Validator<'a> {
                 // First check passage variables.
                 let passage_var = format!("$passage.{}", suffix);
                 if let Some(value) = self.story.value(&QualifiedName::from(
-                    &self.bookmark.position.namespace,
+                    self.bookmark.namespace(),
                     &passage_var,
                 )) {
                     self.validate_goto(prefix)?;
@@ -184,7 +177,7 @@ impl<'a> Validator<'a> {
                 // Then check character variables.
                 let character_var = format!("$character.{}", suffix);
                 if let Some(value) = self.story.value(&QualifiedName::from(
-                    &self.bookmark.position.namespace,
+                    self.bookmark.namespace(),
                     &character_var,
                 )) {
                     self.validate_character(prefix)?;
@@ -197,10 +190,10 @@ impl<'a> Validator<'a> {
                 ))
             }
             [var] => {
-                if let Some(value) = self.story.value(&QualifiedName::from(
-                    &self.bookmark.position.namespace,
-                    &var,
-                )) {
+                if let Some(value) = self
+                    .story
+                    .value(&QualifiedName::from(self.bookmark.namespace(), &var))
+                {
                     Ok(value)
                 } else {
                     Err(error!("Variable '{}' was undefined.", var))
@@ -224,7 +217,7 @@ impl<'a> Validator<'a> {
 
     fn validate_goto(&self, passage_name: &str) -> Result<()> {
         match self.story.passage(&QualifiedName::from(
-            &self.bookmark.position.namespace,
+            &self.bookmark.namespace(),
             passage_name,
         )) {
             None => Err(error!(
@@ -256,11 +249,13 @@ impl<'a> Validator<'a> {
 
     fn validate_passages(&mut self, passages: &'a Passages) -> Result<()> {
         for (passage_name, passage) in passages {
-            self.bookmark.position.passage = passage_name.to_string();
+            self.bookmark.set_passage(passage_name.to_string());
             if let Err(e) = self.validate_passage(passage) {
                 return Err(error!(
                     "Passage '{}:{}' {}",
-                    self.bookmark.position.namespace, passage_name, e
+                    self.bookmark.namespace(),
+                    passage_name,
+                    e
                 ));
             }
         }
@@ -269,12 +264,12 @@ impl<'a> Validator<'a> {
 
     /// Validates an entire story for valid passage references, HTML, conditionals.
     pub fn validate(&mut self) -> Result<()> {
-        let original_position = self.bookmark.position.clone();
+        let original_position = self.bookmark.position().clone();
         for (namespace, namespace_val) in self.story {
-            self.bookmark.position.namespace = namespace.to_string();
+            self.bookmark.set_namespace(namespace.to_string());
             self.validate_passages(&namespace_val.passages)?;
         }
-        self.bookmark.position = original_position;
+        self.bookmark.set_position(original_position);
         Ok(())
     }
 }

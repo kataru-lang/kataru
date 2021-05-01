@@ -22,8 +22,11 @@ pub struct Config {
     #[serde(default)]
     pub attributes: Map<String, Option<String>>,
     #[serde(default)]
-    #[serde(rename = "onPassage")]
-    pub on_passage: Option<SetCommand>,
+    #[serde(rename = "onEnter")]
+    pub on_enter: Option<SetCommand>,
+    #[serde(default)]
+    #[serde(rename = "onExit")]
+    pub on_exit: Option<SetCommand>,
 }
 
 impl FromYaml for Config {}
@@ -34,8 +37,13 @@ impl Merge for Config {
         self.commands.merge(&mut other.commands)?;
         self.state.merge(&mut other.state)?;
         self.attributes.merge(&mut other.attributes)?;
-        if self.on_passage.is_none() && other.on_passage.is_some() {
-            self.on_passage = other.on_passage.clone();
+
+        // Merge automatic setters.
+        if self.on_enter.is_none() && other.on_enter.is_some() {
+            self.on_enter = other.on_enter.clone();
+        }
+        if self.on_exit.is_none() && other.on_exit.is_some() {
+            self.on_enter = other.on_exit.clone();
         }
         Ok(())
     }

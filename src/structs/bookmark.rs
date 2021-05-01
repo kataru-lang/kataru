@@ -3,11 +3,11 @@ use crate::{
     error::{Error, Result},
     traits::FromStr,
     traits::{FromMessagePack, FromYaml, LoadYaml, SaveMessagePack},
-    Load, LoadMessagePack, Save, SaveYaml, StateMod, Value, GLOBAL,
+    Load, LoadMessagePack, Passage, Save, SaveYaml, StateMod, Value, GLOBAL,
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Deserialize, Serialize, Default)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct Position {
     #[serde(default)]
     pub namespace: String,
@@ -17,13 +17,23 @@ pub struct Position {
     pub line: usize,
 }
 
+impl Default for Position {
+    fn default() -> Self {
+        Self {
+            namespace: GLOBAL.to_string(),
+            passage: String::new(),
+            line: 0,
+        }
+    }
+}
+
 /// All data necessary to find your place in the story.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, Default)]
 pub struct Bookmark {
     #[serde(default)]
     pub state: Map<String, State>,
     #[serde(default)]
-    pub position: Position,
+    position: Position,
     #[serde(default)]
     pub stack: Vec<Position>,
     #[serde(default)]
@@ -31,6 +41,103 @@ pub struct Bookmark {
 }
 
 impl<'a> Bookmark {
+    pub fn new(state: Map<String, State>) -> Self {
+        Self {
+            state,
+            ..Self::default()
+        }
+    }
+
+    #[inline]
+    pub fn namespace(&self) -> &str {
+        &self.position.namespace
+    }
+
+    #[inline]
+    pub fn passage(&self) -> &str {
+        &self.position.passage
+    }
+
+    #[inline]
+    pub fn line(&self) -> usize {
+        self.position.line
+    }
+
+    #[inline]
+    pub fn next_line(&mut self) {
+        self.position.line += 1
+    }
+
+    #[inline]
+    pub fn skip_lines(&mut self, lines: usize) {
+        self.position.line += lines
+    }
+
+    #[inline]
+    pub fn set_line(&mut self, line: usize) {
+        self.position.line = line
+    }
+
+    #[inline]
+    pub fn position(&self) -> &Position {
+        &self.position
+    }
+
+    #[inline]
+    pub fn set_passage(&mut self, passage: String) {
+        self.position.passage = passage;
+    }
+
+    #[inline]
+    pub fn set_namespace(&mut self, namespace: String) {
+        self.position.namespace = namespace;
+    }
+
+    #[inline]
+    pub fn set_position(&mut self, position: Position) {
+        self.position = position;
+    }
+
+    /// Attempts to get a passage matching `qname`.
+    /// First checks in the specified namespace, and falls back to root namespace if not found.
+    ///
+    /// Note that passage name could be:
+    /// 1. a local name (unquallified), in which case namespace stays the same.
+    /// 2. a qualified name pointing to another section, in which case we switch namespace.
+    /// 3. a global name, in which we must changed namespace to root.
+    pub fn goto_passage(&mut self, qname: QualifiedName, story: &'a Story) -> Result<&'a Passage> {
+        // First try to find the section specified namespace.
+        if let Some(section) = story.get(&qname.namespace) {
+            if let Some(passage) = section.passage(&qname.name) {
+                // Case 2: name is not local, so switch namespace.
+                self.position.namespace = qname.namespace;
+                self.position.passage = qname.name;
+                return Ok(passage);
+            }
+        } else {
+            return Err(error!("Invalid namespace '{}'", &qname.namespace));
+        }
+
+        // Fall back to try global namespace.
+        if let Some(global_section) = story.get(GLOBAL) {
+            if let Some(passage) = global_section.passage(&qname.name) {
+                // Case 3: passage could not be found in local/specified namespace, so switch to global.
+                self.position.namespace = GLOBAL.to_string();
+                self.position.passage = qname.name;
+                return Ok(passage);
+            }
+        } else {
+            return Err(error!("No global namespace"));
+        }
+
+        // Return error if there is no passage name in either namespace.
+        Err(error!(
+            "Passage name '{}' could not be found in '{}' nor global namespace",
+            qname.name, qname.namespace
+        ))
+    }
+
+    /// Gets the value for a given variable.
     pub fn value(&'a self, var: &str) -> Result<&'a Value> {
         let qname = QualifiedName::from(&self.position.namespace, var);
         if let Some(section) = self.state.get(&qname.namespace) {
@@ -56,6 +163,7 @@ impl<'a> Bookmark {
         ))
     }
 
+    /// Returns mutable state.
     pub fn state(&'a mut self) -> Result<&'a mut State> {
         match self.state.get_mut(&self.position.namespace) {
             Some(state) => Ok(state),
@@ -63,6 +171,7 @@ impl<'a> Bookmark {
         }
     }
 
+    /// Returns mutable global state.
     pub fn global_state(&'a mut self) -> Result<&'a mut State> {
         match self.state.get_mut(GLOBAL) {
             Some(state) => Ok(state),
@@ -99,7 +208,7 @@ impl<'a> Bookmark {
         Ok(())
     }
 
-    // Updates `state[var] = val` iff `var` not already in `state`.
+    /// Updates `state[var] = val` iff `var` not already in `state`.
     fn default_val(state: &mut State, var: &str, val: &Value) {
         if state.get(var).is_none() {
             state.insert(var.to_string(), val.clone());
@@ -127,12 +236,14 @@ impl<'a> Bookmark {
         }
     }
 
+    /// Saves a snapshot of the stack under `name`.
     pub fn save_snapshot(&mut self, name: &str) {
         let mut stack = self.stack.clone();
         stack.push(self.position.clone());
         self.snapshots.insert(name.to_string(), stack);
     }
 
+    /// Loads a snapshot of the stack under `name`.
     pub fn load_snapshot(&mut self, name: &str) -> Result<()> {
         if let Some(stack) = self.snapshots.remove(name) {
             self.stack = stack;
@@ -147,19 +258,15 @@ impl<'a> Bookmark {
         }
     }
 
-    /// Returns true if a character is local
+    /// Returns true if a character is local.
     pub fn character_is_local(&self, story: &Story, character: &str) -> bool {
-        if self.position.namespace == GLOBAL {
+        if self.namespace() == GLOBAL {
             return false;
         }
 
-        // If this is a local character, then prepend the namespace to the command.
-        if let Some(section) = story.get(&self.position.namespace) {
-            // println!(
-            //     "'{}' is in namespace '{}'",
-            //     character, &bookmark.position.namespace
-            // );
-            // println!("{:#?}", section.config);
+        // The character is local if the section exists and the character
+        // is defined in the section.
+        if let Some(section) = story.get(self.namespace()) {
             if section.config.characters.contains_key(character) {
                 return true;
             }

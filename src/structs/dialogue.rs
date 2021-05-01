@@ -33,11 +33,11 @@ impl Dialogue {
     }
 
     pub fn from(name: &str, text: &str, story: &Story, bookmark: &Bookmark) -> Result<Self> {
-        let (attributes, text) = Self::extract_attr(&text, &bookmark.position.namespace, story)?;
+        let (attributes, text) = Self::extract_attr(&text, bookmark.namespace(), story)?;
 
         // For local characters, append the namespace to their name.
         let name = if bookmark.character_is_local(story, name) {
-            format!("{}:{}", &bookmark.position.namespace, name)
+            format!("{}:{}", bookmark.namespace(), name)
         } else {
             name.to_string()
         };
@@ -53,39 +53,26 @@ impl Dialogue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Config, Map, Position, Section, State, GLOBAL};
+    use crate::{Config, Map, Section, GLOBAL};
 
     #[test]
     fn test_dialogue() {
-        // let mut story;
         let namespace = GLOBAL.to_string();
         let story = btreemap! {
             GLOBAL.to_string() => Section {
                 config: Config {
                     namespace,
-                    commands: Map::new(),
-                    state: State::new(),
                     attributes: btreemap! {
                         "attr".to_string() => None
                     },
-                    characters: Map::new(),
-                    on_passage: None
+                    ..Config::default()
                 },
                 passages: Map::new()
             }
         };
-        let bookmark = Bookmark {
-            position: Position {
-                namespace: GLOBAL.to_string(),
-                passage: "".to_string(),
-                line: 0,
-            },
-            state: btreemap! {
-                GLOBAL.to_string() => Map::new()
-            },
-            stack: Vec::new(),
-            snapshots: Map::new(),
-        };
+        let bookmark = Bookmark::new(btreemap! {
+            GLOBAL.to_string() => Map::new()
+        });
         let dialogue_map =
             btreemap! {"Character".to_string() => "Text <attr>annotated</attr>.".to_string()};
         let dialogue = Dialogue::from_map(&dialogue_map, &story, &bookmark).unwrap();

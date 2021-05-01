@@ -122,30 +122,21 @@ impl Value {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Bookmark, Error, Position, Value};
+    use crate::{Bookmark, Error, Value};
 
     #[test]
     fn test_parse_expr() {
-        let bookmark = Bookmark {
-            position: Position {
-                namespace: "test".to_string(),
-                passage: "".to_string(),
-                line: 0,
+        let bookmark = Bookmark::new(btreemap! {
+            "test".to_string() => btreemap! {
+                "var1".to_string() => Value::Number(1.0)
             },
-            state: btreemap! {
-                "test".to_string() => btreemap! {
-                    "var1".to_string() => Value::Number(1.0)
-                },
-                "global".to_string() => btreemap! {
-                    "b0".to_string() => Value::Bool(false),
-                    "b1".to_string() => Value::Bool(true),
-                    "var2".to_string() => Value::String("a".to_string()),
-                    "char.var1".to_string() => Value::String("b".to_string())
-                }
-            },
-            stack: Vec::new(),
-            snapshots: btreemap! {},
-        };
+            "global".to_string() => btreemap! {
+                "b0".to_string() => Value::Bool(false),
+                "b1".to_string() => Value::Bool(true),
+                "var2".to_string() => Value::String("a".to_string()),
+                "char.var1".to_string() => Value::String("b".to_string())
+            }
+        });
 
         let tests = vec![
             ("value", Value::String("value".to_string())),
@@ -156,7 +147,10 @@ mod tests {
             ("true and false", Value::Bool(false)),
             ("true or false", Value::Bool(true)),
             ("1 < 2", Value::Bool(true)),
-            ("$var1 + 1 > 0 and $var1 + 1 < 3", Value::Bool(true)),
+            (
+                "$test:var1 + 1 > 0 and $test:var1 + 1 < 3",
+                Value::Bool(true),
+            ),
             ("$var2 == a", Value::Bool(true)),
             ("$var2 != a", Value::Bool(false)),
             ("$char.var1 == b", Value::Bool(true)),

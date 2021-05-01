@@ -61,7 +61,7 @@ impl Branchable for Branches {
                 }
             }
         }
-        bookmark.position.line += skip_lines;
+        bookmark.skip_lines(skip_lines);
         Ok(skip_lines)
     }
 

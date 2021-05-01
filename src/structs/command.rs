@@ -67,10 +67,7 @@ where
         bookmark: &Bookmark,
         command_name: &str,
     ) -> Option<&'s Params> {
-        match story.params(&QualifiedName::from(
-            &bookmark.position.namespace,
-            command_name,
-        ))? {
+        match story.params(&QualifiedName::from(bookmark.namespace(), command_name))? {
             Some(params) => Some(params),
             None => Some(&EMPTY_PARAMS),
         }
@@ -85,10 +82,7 @@ where
     ) -> String {
         // If currently in global namespace, don't bother checking.
         if bookmark.character_is_local(story, character) {
-            format!(
-                "{}:{}.{}",
-                &bookmark.position.namespace, character, command_name
-            )
+            format!("{}:{}.{}", bookmark.namespace(), character, command_name)
         } else {
             format!("{}.{}", character, command_name)
         }
