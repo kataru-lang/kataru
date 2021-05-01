@@ -163,7 +163,6 @@ impl<'a> Bookmark {
             }
 
             let statemod = StateMod::from_str(text)?;
-            println!("statemod: {:?}", statemod);
             let local_state = self.state()?;
             if local_state.contains_key(statemod.var) {
                 statemod.apply(local_state, value);

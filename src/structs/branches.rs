@@ -49,14 +49,10 @@ impl Branchable for Branches {
                 break;
             } else {
                 // Skip all contained lines plus the break that's inserted at the end.
-                let flatlen = flattened_len(lines);
-                println!("flatlen: {}", flatlen);
-                println!("lines: {:#?}", lines);
                 skip_lines += flattened_len(lines);
 
                 // If not the last section in the if block, add an extra skip for the Line::Break.
                 if i < self.exprs.len() {
-                    println!("add skip");
                     skip_lines += 1;
                 }
             }

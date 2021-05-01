@@ -90,13 +90,11 @@ impl Value {
                 return Err(error!("Invalid binary expression."));
             }
         };
-        // println!(" = {}", result);
         Ok(result)
     }
 
     /// Evaluates a unary expression.
     fn eval_unary_expr(op: Pair<Rule>, value: Value) -> Result<Value> {
-        // println!("unary expr: {} {}", op, value);
         let result = match op.as_rule() {
             Rule::Not => !value,
             Rule::Add => value,

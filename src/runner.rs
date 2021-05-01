@@ -61,10 +61,6 @@ impl<'r> Runner<'r> {
     /// that this section has no `on_exit` callback.
     fn can_optimize_tail_call(&self) -> bool {
         if let Line::Return(_) = self.lines[self.bookmark.line()] {
-            println!(
-                "checking if can optimize tail call: {}",
-                self.section.on_exit().is_none()
-            );
             return self.section.on_exit().is_none();
         }
         false
