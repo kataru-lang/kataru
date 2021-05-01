@@ -5,6 +5,8 @@ commands:
   GlobalCommand:
     param: 0
 
+  GlobalCommandNoParams:
+
   $character.GlobalMethod:
     param: ""
 
@@ -18,4 +20,5 @@ Start:
   - GlobalCharacter.GlobalMethod: [test]
   - GlobalCommand: {}
   - GlobalCommand: { param: 1 }
+  - GlobalCommandNoParams: {}
   - call: namespace1:Start

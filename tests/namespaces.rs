@@ -58,6 +58,10 @@ fn test_namespaces() {
         ),
         (
             "",
+            Line::Command(btreemap! {"GlobalCommandNoParams".to_string() => linear_map! {}}),
+        ),
+        (
+            "",
             Line::Dialogue(Dialogue {
                 name: "namespace1:LocalCharacter".to_string(),
                 text: "Hello".to_string(),

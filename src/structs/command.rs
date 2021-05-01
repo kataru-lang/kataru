@@ -10,12 +10,18 @@ pub type Command = Map<String, Params>;
 pub type PositionalParams = Vec<Value>;
 pub type PositionalCommand = Map<String, PositionalParams>;
 
+lazy_static! {
+    static ref EMPTY_PARAMS: Params = Params::default();
+}
+
 /// Trait for merging params with their defaults.
 pub trait MergeParams {
+    /// Merge parameters that have given values with `default_params`.
     fn merge_params(&self, default_params: &Params) -> Result<Params>;
 }
 
 impl MergeParams for PositionalParams {
+    /// Merge parameters that have given values with `default_params`.
     fn merge_params(&self, default_params: &Params) -> Result<Params> {
         let mut merged_params = Params::new();
         let mut it = self.iter();
@@ -41,6 +47,8 @@ pub trait CommandGetters<ParamsT: MergeParams>: Sized
 where
     for<'a> &'a Self: IntoIterator<Item = (&'a String, &'a ParamsT)>,
 {
+    /// Gets the first entry in the command map.
+    /// Command is really a pairing, so the map should only have one value.
     fn get_first(&self) -> Result<(&String, &ParamsT)> {
         for value in self {
             return Ok(value);
@@ -49,19 +57,23 @@ where
         Err(error!("Command was empty"))
     }
 
+    /// Checks `story`'s config for default parameters for this command.
+    /// Uses `bookmark` to lookup variable values.
+    /// If the command is not found, returns None.
+    /// If there are no parameters for the command, return reference to
+    /// the static empty param map.
     fn get_default_params<'s>(
         story: &'s Story,
         bookmark: &Bookmark,
         command_name: &str,
     ) -> Option<&'s Params> {
-        Some(
-            story
-                .params(&QualifiedName::from(
-                    &bookmark.position.namespace,
-                    command_name,
-                ))?
-                .as_ref()?,
-        )
+        match story.params(&QualifiedName::from(
+            &bookmark.position.namespace,
+            command_name,
+        ))? {
+            Some(params) => Some(params),
+            None => Some(&EMPTY_PARAMS),
+        }
     }
 
     /// If `character` is local, then prepend the namespace to the character.command.
