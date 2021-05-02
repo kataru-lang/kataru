@@ -33,7 +33,7 @@ String = @{ NonQuoteNewlineChar* }
 QuotedString = _{"\"" ~ String ~ "\""}
 
 // Values
-Number = {(Add | Sub)? ~ ASCII_DIGIT+}
+Number = {(Add | Sub)? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)?}
 Bool = _{ "true" | "false" }
 Value = @{ Number | Bool | UnquotedString }
 

@@ -154,6 +154,7 @@ mod tests {
             ("$char.var1 == b", Value::Bool(true)),
             ("a + b", Value::String("ab".to_string())),
             ("not true", Value::Bool(false)),
+            ("1.5 + 2.5", Value::Number(4.0)),
         ];
 
         for (expr, expected) in tests {
