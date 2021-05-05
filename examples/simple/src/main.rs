@@ -33,9 +33,9 @@ fn await_key(input: &mut String) {
 /// Validate the story.
 /// Return true iff story is valid.
 #[cfg(debug_assertions)]
-fn print_validation(story: &Story) -> bool {
+fn print_validation(story: &Story, bookmark: &mut Bookmark) -> bool {
     println!("{}", "Validating story...".bold().cyan());
-    match Validator::new(story).validate() {
+    match Validator::new(story, bookmark).validate() {
         Err(e) => {
             println!("{}", format!("{}", e).red());
             false
@@ -143,9 +143,10 @@ fn main() {
     println!("{}", "Loading story...".bold().cyan());
     let mut bookmark = Bookmark::from_mp(include_bytes!("../target/bookmark")).unwrap();
     let story = Story::from_mp(include_bytes!("../target/story")).unwrap();
+    bookmark.init_state(&story);
 
     #[cfg(debug_assertions)]
-    if !print_validation(&story) {
+    if !print_validation(&story, &mut bookmark) {
         return;
     }
 
