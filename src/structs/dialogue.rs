@@ -58,22 +58,22 @@ mod tests {
     #[test]
     fn test_dialogue() {
         let namespace = GLOBAL.to_string();
-        let story = btreemap! {
+        let story = hashmap! {
             GLOBAL.to_string() => Section::new(
                 Config {
                     namespace,
-                    attributes: btreemap! {
+                    attributes: hashmap! {
                         "attr".to_string() => None
                     },
                     ..Config::default()
                 }
             )
         };
-        let bookmark = Bookmark::new(btreemap! {
+        let bookmark = Bookmark::new(hashmap! {
             GLOBAL.to_string() => Map::new()
         });
         let dialogue_map =
-            btreemap! {"Character".to_string() => "Text <attr>annotated</attr>.".to_string()};
+            hashmap! {"Character".to_string() => "Text <attr>annotated</attr>.".to_string()};
         let dialogue = Dialogue::from_map(&dialogue_map, &story, &bookmark).unwrap();
 
         assert_eq!(
@@ -81,7 +81,7 @@ mod tests {
             Dialogue {
                 name: "Character".to_string(),
                 text: "Text annotated.".to_string(),
-                attributes: btreemap! {
+                attributes: hashmap! {
                     "attr".to_string() => vec![5 as usize, 14]
                 }
             }

@@ -124,11 +124,11 @@ mod tests {
 
     #[test]
     fn test_parse_expr() {
-        let bookmark = Bookmark::new(btreemap! {
-            "test".to_string() => btreemap! {
+        let bookmark = Bookmark::new(hashmap! {
+            "test".to_string() => hashmap! {
                 "var1".to_string() => Value::Number(1.0)
             },
-            "global".to_string() => btreemap! {
+            "global".to_string() => hashmap! {
                 "b0".to_string() => Value::Bool(false),
                 "b1".to_string() => Value::Bool(true),
                 "var2".to_string() => Value::String("a".to_string()),

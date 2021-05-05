@@ -56,11 +56,11 @@ mod tests {
 
     #[test]
     fn test_str_replace() {
-        let mut bookmark = Bookmark::new(btreemap! {
-            "test".to_string() => btreemap! {
+        let mut bookmark = Bookmark::new(hashmap! {
+            "test".to_string() => hashmap! {
                 "var1".to_string() => Value::Number(1.0)
             },
-            "global".to_string() => btreemap! {
+            "global".to_string() => hashmap! {
                 "var2".to_string() => Value::String("a".to_string()),
                 "char.var1".to_string() => Value::String("b".to_string())
             }

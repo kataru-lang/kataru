@@ -2,11 +2,12 @@ use super::{Bookmark, Map};
 use crate::{error::Result, traits::MoveValues, Value};
 use linear_map::LinearMap;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum RawChoice {
-    Conditional(Map<String, Option<String>>),
+    Conditional(BTreeMap<String, Option<String>>),
     PassageName(Option<String>),
 }
 

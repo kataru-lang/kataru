@@ -2,11 +2,11 @@ use linear_map::LinearMap;
 
 use crate::traits::{CopyMerge, Merge};
 use crate::{error::Result, traits::MoveValues};
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 pub use std::collections::btree_map::Entry;
 
-pub type Map<K, V> = BTreeMap<K, V>;
+pub type Map<K, V> = HashMap<K, V>;
 
 fn copy_keys<V>(map: &Map<String, V>) -> Vec<String> {
     let mut keys: Vec<String> = Vec::with_capacity(map.len());

@@ -1,5 +1,5 @@
 use kataru::{Bookmark, Choices, Dialogue, Line, LoadYaml, Runner, Story, Validator, Value};
-use maplit::btreemap;
+use maplit::hashmap;
 #[macro_use]
 extern crate linear_map;
 
@@ -21,7 +21,7 @@ fn test_state() {
         (
             "",
             Line::Command(
-                btreemap! {"TestBool".to_string() => linear_map! {"bool".to_string() => Value::Bool(false)}},
+                hashmap! {"TestBool".to_string() => linear_map! {"bool".to_string() => Value::Bool(false)}},
             ),
         ),
         // Alice: Test
@@ -30,28 +30,28 @@ fn test_state() {
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "Test".to_string(),
-                attributes: btreemap! {},
+                attributes: hashmap! {},
             }),
         ),
         // Alice.Wave: { amount: $var } # $var = 1
         (
             "",
             Line::Command(
-                btreemap! {"Alice.Wave".to_string() => linear_map! {"amount".to_string() => Value::Number(1.)}},
+                hashmap! {"Alice.Wave".to_string() => linear_map! {"amount".to_string() => Value::Number(1.)}},
             ),
         ),
         // Alice.Wave: { amount: $var } # $var = 2
         (
             "",
             Line::Command(
-                btreemap! {"Alice.Wave".to_string() => linear_map! {"amount".to_string() => Value::Number(2.)}},
+                hashmap! {"Alice.Wave".to_string() => linear_map! {"amount".to_string() => Value::Number(2.)}},
             ),
         ),
         // Alice.Wave: { amount: $var } # $var = 2
         (
             "",
             Line::Command(
-                btreemap! {"Alice.Wave".to_string() => linear_map! {"amount".to_string() => Value::Number(0.)}},
+                hashmap! {"Alice.Wave".to_string() => linear_map! {"amount".to_string() => Value::Number(0.)}},
             ),
         ),
         // Alice: $var neq 0
@@ -60,7 +60,7 @@ fn test_state() {
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "0 neq 0".to_string(),
-                attributes: btreemap! {},
+                attributes: hashmap! {},
             }),
         ),
         // choices:
@@ -69,7 +69,7 @@ fn test_state() {
         (
             "",
             Line::Choices(Choices {
-                choices: btreemap! {
+                choices: hashmap! {
                     "Choice1".to_string() => "Choice1".to_string(),
                     "Choice2".to_string() => "Choice2".to_string()
                 },
@@ -82,7 +82,7 @@ fn test_state() {
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "Choice1".to_string(),
-                attributes: btreemap! {},
+                attributes: hashmap! {},
             }),
         ),
         // var > $THREE
@@ -91,7 +91,7 @@ fn test_state() {
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "var > 3".to_string(),
-                attributes: btreemap! {},
+                attributes: hashmap! {},
             }),
         ),
         // 3 < var < 5
@@ -100,7 +100,7 @@ fn test_state() {
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "3 < var < 5".to_string(),
-                attributes: btreemap! {},
+                attributes: hashmap! {},
             }),
         ),
         // Alice: Alice: Visited Choice1 $Choice1.visited times.
@@ -109,7 +109,7 @@ fn test_state() {
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "Visited Choice1 1 times.".to_string(),
-                attributes: btreemap! {},
+                attributes: hashmap! {},
             }),
         ),
         // Alice: Alice: Exited Choice1 $Choice1.exited times.
@@ -118,7 +118,7 @@ fn test_state() {
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "Exited Choice1 1 times.".to_string(),
-                attributes: btreemap! {},
+                attributes: hashmap! {},
             }),
         ),
         // Alice: Alice: Exited Choice1Intermediate $Choice1Intermediate.exited times.
@@ -127,7 +127,7 @@ fn test_state() {
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "Exited Choice1Intermediate 1 times.".to_string(),
-                attributes: btreemap! {},
+                attributes: hashmap! {},
             }),
         ),
         // Alice: End
@@ -136,7 +136,7 @@ fn test_state() {
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "End".to_string(),
-                attributes: btreemap! {},
+                attributes: hashmap! {},
             }),
         ),
     ];

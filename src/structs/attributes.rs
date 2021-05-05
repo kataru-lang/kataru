@@ -107,7 +107,7 @@ mod tests {
 
     #[test]
     fn test_extract_attr() {
-        let attrs: Map<String, Option<String>> = btreemap! {
+        let attrs: Map<String, Option<String>> = hashmap! {
             "attr1".to_string() => None,
             "attr2".to_string() => None
         };
@@ -116,7 +116,7 @@ mod tests {
             (
                 "Test <attr1>text</attr1>.",
                 Ok((
-                    btreemap! {
+                    hashmap! {
                         "attr1".to_string() => vec![5 as usize, 9]
                     },
                     "Test text.".to_string(),

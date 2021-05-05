@@ -1,5 +1,5 @@
 use kataru::{Bookmark, Dialogue, Line, LoadYaml, Runner, Story, Validator, Value};
-use maplit::btreemap;
+use maplit::hashmap;
 #[macro_use]
 extern crate linear_map;
 
@@ -22,50 +22,50 @@ fn test_namespaces() {
             Line::Dialogue(Dialogue {
                 name: "GlobalCharacter".to_string(),
                 text: "Hello".to_string(),
-                attributes: btreemap! {},
+                attributes: hashmap! {},
             }),
         ),
         (
             "",
             Line::Command(
-                btreemap! {"GlobalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::String("".to_string())}},
+                hashmap! {"GlobalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::String("".to_string())}},
             ),
         ),
         (
             "",
             Line::Command(
-                btreemap! {"GlobalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::String("test".to_string())}},
+                hashmap! {"GlobalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::String("test".to_string())}},
             ),
         ),
         // Test only string param
         (
             "",
             Line::Command(
-                btreemap! {"GlobalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::String("test".to_string())}},
+                hashmap! {"GlobalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::String("test".to_string())}},
             ),
         ),
         (
             "",
             Line::Command(
-                btreemap! {"GlobalCommand".to_string() => linear_map! {"param".to_string() => Value::Number(0.)}},
+                hashmap! {"GlobalCommand".to_string() => linear_map! {"param".to_string() => Value::Number(0.)}},
             ),
         ),
         (
             "",
             Line::Command(
-                btreemap! {"GlobalCommand".to_string() => linear_map! {"param".to_string() => Value::Number(1.)}},
+                hashmap! {"GlobalCommand".to_string() => linear_map! {"param".to_string() => Value::Number(1.)}},
             ),
         ),
         (
             "",
-            Line::Command(btreemap! {"GlobalCommandNoParams".to_string() => linear_map! {}}),
+            Line::Command(hashmap! {"GlobalCommandNoParams".to_string() => linear_map! {}}),
         ),
         (
             "",
             Line::Dialogue(Dialogue {
                 name: "namespace1:LocalCharacter".to_string(),
                 text: "Hello".to_string(),
-                attributes: btreemap! {},
+                attributes: hashmap! {},
             }),
         ),
         (
@@ -73,12 +73,12 @@ fn test_namespaces() {
             Line::Dialogue(Dialogue {
                 name: "GlobalCharacter".to_string(),
                 text: "Hello".to_string(),
-                attributes: btreemap! {},
+                attributes: hashmap! {},
             }),
         ),
         (
             "",
-            Line::Command(btreemap! {
+            Line::Command(hashmap! {
                 "namespace1:LocalCharacter.LocalMethod".to_string() => linear_map! {
                     "param1".to_string() => Value::Number(1.),
                     "param2".to_string() => Value::String("two".to_string()),
@@ -88,7 +88,7 @@ fn test_namespaces() {
         ),
         (
             "",
-            Line::Command(btreemap! {
+            Line::Command(hashmap! {
                 "namespace1:LocalCharacter.LocalMethod".to_string() => linear_map! {
                     "param1".to_string() => Value::Number(3.),
                     "param2".to_string() => Value::String("two".to_string()),
@@ -98,7 +98,7 @@ fn test_namespaces() {
         ),
         (
             "",
-            Line::Command(btreemap! {
+            Line::Command(hashmap! {
                 "namespace1:LocalCharacter.LocalMethod".to_string() => linear_map! {
                     "param1".to_string() => Value::Number(1.),
                     "param2".to_string() => Value::String("two".to_string()),
@@ -109,14 +109,14 @@ fn test_namespaces() {
         (
             "",
             Line::Command(
-                btreemap! {"namespace1:LocalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::String("".to_string())}},
+                hashmap! {"namespace1:LocalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::String("".to_string())}},
             ),
         ),
         // Make sure global characters don't get the namespace appended
         (
             "",
             Line::Command(
-                btreemap! {"GlobalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::String("".to_string())}},
+                hashmap! {"GlobalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::String("".to_string())}},
             ),
         ),
     ];

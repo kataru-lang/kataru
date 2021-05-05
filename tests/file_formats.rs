@@ -1,5 +1,5 @@
 use kataru::{Bookmark, Dialogue, Line, LoadYaml, Runner, Story, Validator};
-use maplit::btreemap;
+use maplit::hashmap;
 
 /// Tests loading commented out story files and config-only story files.
 #[test]
@@ -17,7 +17,7 @@ fn test_story2() {
         Line::Dialogue(Dialogue {
             name: "Alice".to_string(),
             text: "Test story!".to_string(),
-            attributes: btreemap! {},
+            attributes: hashmap! {},
         }),
     )];
 
