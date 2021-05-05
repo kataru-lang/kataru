@@ -12,6 +12,7 @@ characters:
 Start:
   - call: SingleIf
   - call: NestedIf
+  - call: ChoicesIf
   - Alice: Success!
 
 SingleIf:
@@ -33,3 +34,17 @@ NestedIf:
   - if $var1:
       - if $var2:
           - Alice: I shouldn't say this either.
+
+ChoicesIf:
+  - if true:
+      - choices:
+          Yes!: ChoiceYes
+          No!: ChoiceNo
+    else:
+      - Alice: I will not say this.
+
+ChoiceYes:
+  - Alice: Yes!
+
+ChoiceNo:
+  - Alice: No!

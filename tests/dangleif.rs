@@ -1,4 +1,4 @@
-use kataru::{Bookmark, Dialogue, Line, LoadYaml, Runner, Story, Validator};
+use kataru::{Bookmark, Choices, Dialogue, Line, LoadYaml, Runner, Story, Validator};
 use maplit::btreemap;
 
 /// Tests basic $character commands.
@@ -13,14 +13,34 @@ fn test_dangleif() {
 
     let mut runner: Runner = Runner::new(&mut bookmark, &story).unwrap();
 
-    let tests = vec![(
-        "",
-        Line::Dialogue(Dialogue {
-            name: "Alice".to_string(),
-            text: "Success!".to_string(),
-            attributes: btreemap! {},
-        }),
-    )];
+    let tests = vec![
+        (
+            "",
+            Line::Choices(Choices {
+                choices: btreemap! {
+                    "Yes!".to_string() => "ChoiceYes".to_string(),
+                    "No!".to_string() => "ChoiceNo".to_string()
+                },
+                timeout: 0.,
+            }),
+        ),
+        (
+            "Yes!",
+            Line::Dialogue(Dialogue {
+                name: "Alice".to_string(),
+                text: "Yes!".to_string(),
+                attributes: btreemap! {},
+            }),
+        ),
+        (
+            "",
+            Line::Dialogue(Dialogue {
+                name: "Alice".to_string(),
+                text: "Success!".to_string(),
+                attributes: btreemap! {},
+            }),
+        ),
+    ];
 
     for (input, line) in &tests {
         assert_eq!(runner.next(input).unwrap(), line);

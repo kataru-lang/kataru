@@ -121,16 +121,20 @@ impl<'r> Runner<'r> {
     /// Loop through each line in the flattened array until current line
     /// number is reached.
     /// Each time a branch is detected, push the end of the branch on the break stack.
+    /// We must remove breaks that we pass through.
     fn load_breaks(&mut self) {
         for (line_num, line) in self.lines.iter().enumerate() {
             if line_num >= self.bookmark.line() {
                 break;
             }
 
-            match line {
-                Line::Break => {
+            // If we pass the last break, remove it from the stack.
+            if let Some(last_break) = self.breaks.last() {
+                if line_num > *last_break {
                     self.breaks.pop();
                 }
+            }
+            match line {
                 Line::Branches(branches) => {
                     self.breaks.push(line_num + branches.len());
                 }
