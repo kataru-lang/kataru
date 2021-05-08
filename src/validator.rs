@@ -230,7 +230,7 @@ impl<'a> Validator<'a> {
 
     /// Validates that the story contains the referenced passage.
     fn validate_choices(&self, choices: &RawChoices) -> Result<()> {
-        for (key, choice) in &choices.choices {
+        for (key, choice) in choices {
             match choice {
                 RawChoice::PassageName(Some(passage_name)) => self.validate_goto(&passage_name)?,
                 RawChoice::Conditional(conditional) => {

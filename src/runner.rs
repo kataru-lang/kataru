@@ -209,7 +209,7 @@ impl<'r> Runner<'r> {
                 } else {
                     if let Line::Choices(ref mut choices) = self.line {
                         // If first attempt, use choices saved in self.line.
-                        if let Some(passage_name) = choices.choices.remove(input) {
+                        if let Some(passage_name) = choices.remove(input) {
                             self.call(passage_name)?;
                             Line::Continue
                         } else {
@@ -218,7 +218,7 @@ impl<'r> Runner<'r> {
                             Line::InvalidChoice
                         }
                     // For second attempt, use self.choices.
-                    } else if let Some(passage_name) = self.choices.choices.remove(input) {
+                    } else if let Some(passage_name) = self.choices.remove(input) {
                         self.call(passage_name)?;
                         Line::Continue
                     } else {

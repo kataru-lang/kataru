@@ -1,5 +1,7 @@
 use kataru::{Bookmark, Choices, Dialogue, Line, LoadYaml, Runner, Story, Validator};
-use maplit::{btreemap, hashmap};
+use maplit::hashmap;
+
+use linear_map::linear_map;
 
 /// Tests basic $character commands.
 #[test]
@@ -16,13 +18,14 @@ fn test_dangleif() {
     let tests = vec![
         (
             "",
-            Line::Choices(Choices {
-                choices: btreemap! {
+            Line::Choices(Choices::new(
+                linear_map! {
+                    "Yeah!".to_string() => "ChoiceYes".to_string(),
                     "Yes!".to_string() => "ChoiceYes".to_string(),
                     "No!".to_string() => "ChoiceNo".to_string()
                 },
-                timeout: 0.,
-            }),
+                0f64,
+            )),
         ),
         (
             "Yes!",

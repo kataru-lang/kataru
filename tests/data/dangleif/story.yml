@@ -38,6 +38,7 @@ NestedIf:
 ChoicesIf:
   - if true:
       - choices:
+          Yeah!:
           Yes!: ChoiceYes
           No!: ChoiceNo
     else:
