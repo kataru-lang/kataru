@@ -116,12 +116,12 @@ impl<'a> Validator<'a> {
     /// Validates a line of dialogue.
     fn validate_line(&self, line: &RawLine) -> Result<()> {
         match &line {
-            RawLine::RawDialogue(dialogue) => self.validate_dialogue(dialogue),
+            RawLine::Dialogue(dialogue) => self.validate_dialogue(dialogue),
             RawLine::Branches(branches) => self.validate_branches(branches),
-            RawLine::RawChoices(choices) => self.validate_choices(choices),
+            RawLine::Choices(choices) => self.validate_choices(choices),
             RawLine::Call(call) => self.validate_goto(&call.passage),
             RawLine::SetCommand(set_command) => self.validate_state(&set_command.set),
-            RawLine::RawCommand(command) => self.validate_command(&command),
+            RawLine::Command(command) => self.validate_command(&command),
             _ => Ok(()),
         }
     }

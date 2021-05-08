@@ -11,7 +11,7 @@ pub enum LineTag {
     Dialogue,
     Input,
     Command,
-    None,
+    End,
 }
 
 impl LineTag {
@@ -23,9 +23,9 @@ impl LineTag {
                 RawLine::Command(_) => LineTag::Command,
                 RawLine::Input(_) => LineTag::Input,
                 RawLine::InvalidChoice => LineTag::InvalidChoice,
-                _ => LineTag::None,
+                _ => LineTag::End,
             },
-            None => LineTag::None,
+            None => LineTag::End,
         }
     }
 }

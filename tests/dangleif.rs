@@ -40,6 +40,7 @@ fn test_dangleif() {
     ];
 
     for (input, line) in &tests {
-        assert_eq!(&runner.next(input).unwrap(), line);
+        let real_line = runner.next(input).unwrap();
+        assert_eq!(&real_line, line);
     }
 }

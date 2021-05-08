@@ -20,7 +20,7 @@ pub struct RawChoices {
 }
 
 impl RawChoices {
-    fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.choices.len()
     }
 }
@@ -52,35 +52,35 @@ pub struct Choices {
 }
 
 impl Choices {
-    fn push(&mut self, choice: &str) {
+    pub fn push(&mut self, choice: &str) {
         self.choices.push(choice.to_string());
     }
 
-    fn clear(&mut self) {
+    pub fn clear(&mut self) {
         self.choices.clear()
     }
 
-    fn reserve(&mut self, additional: usize) {
+    pub fn reserve(&mut self, additional: usize) {
         self.choices.reserve(additional)
     }
 
-    fn reverse(&mut self) {
+    pub fn reverse(&mut self) {
         self.choices.reverse()
     }
 
     /// Repopulates `self` with a list of all valid choices from `raw` in order.
     /// Also repopulates the `choice_to_passage` map which updated mappings.
-    pub fn get_valid<'r>(
-        &mut self,
+    pub fn from_raw<'r>(
         choice_to_passage: &mut Map<&'r str, &'r str>,
         raw: &'r RawChoices,
         bookmark: &Bookmark,
-    ) -> Result<()> {
+    ) -> Result<Self> {
+        let mut choices = Self::default();
+        choices.reserve(raw.len());
+
         // Reset structs.
         choice_to_passage.clear();
         choice_to_passage.reserve(raw.len());
-        self.clear();
-        self.reserve(raw.len());
 
         //  The current passage target.
         let mut passage: &String = &EMPTY_STRING;
@@ -91,11 +91,11 @@ impl Choices {
                 // Populate top level choices.
                 RawChoice::PassageName(Some(passage_name)) => {
                     passage = passage_name;
-                    self.push(key);
+                    choices.push(key);
                     choice_to_passage.insert(key, passage);
                 }
                 RawChoice::PassageName(None) => {
-                    self.push(key);
+                    choices.push(key);
                     choice_to_passage.insert(key, passage);
                 }
                 // Populate all choices are behind a true conditional.
@@ -106,10 +106,10 @@ impl Choices {
                     for (choice_text, passage_name_opt) in conditional.iter().rev() {
                         if let Some(passage_name) = passage_name_opt {
                             passage = passage_name;
-                            self.push(choice_text);
+                            choices.push(choice_text);
                             choice_to_passage.insert(choice_text, passage);
                         } else {
-                            self.push(choice_text);
+                            choices.push(choice_text);
                             choice_to_passage.insert(choice_text, passage);
                         }
                     }
@@ -118,15 +118,13 @@ impl Choices {
         }
 
         // Since we iterated backwards for populating chocies, we must reverse to match order.
-        self.reverse();
-        Ok(())
+        choices.reverse();
+        Ok(choices)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::vec;
-
     use super::*;
     use crate::FromYaml;
 
@@ -145,12 +143,9 @@ mod tests {
 
         let raw = RawChoices::from_yml(choices_str).unwrap();
         println!("{:#?}", raw);
-        let mut choices = Choices::default();
         let mut choice_to_passage = Map::default();
 
-        choices
-            .get_valid(&mut choice_to_passage, &raw, &bookmark)
-            .unwrap();
+        let choices = Choices::from_raw(&mut choice_to_passage, &raw, &bookmark).unwrap();
         assert_eq!(
             choices.choices,
             vec![

@@ -31,20 +31,13 @@ pub enum RawLine {
     Branches(Branches),
     Input(Input),
     SetCommand(SetCommand),
-    RawChoices(RawChoices),
-    #[serde(skip_serializing)]
-    Choices(Choices),
-    RawCommand(RawCommand),
-    #[serde(skip_serializing)]
-    Command(Command),
+    Choices(RawChoices),
+    Command(RawCommand),
     PositionalCommand(PositionalCommand),
     Call(Call),
     Return(Return),
     Text(String),
-    RawDialogue(Map<String, String>),
-    #[serde(skip_serializing)]
-    Dialogue(Dialogue),
-    Continue,
+    Dialogue(Map<String, String>),
     Break,
     InvalidChoice,
     End,
@@ -58,17 +51,5 @@ pub enum Line {
     Dialogue(Dialogue),
     Input(Input),
     Command(Command),
-    None,
-}
-
-impl From<RawLine> for Line {
-    fn from(raw: RawLine) -> Self {
-        match raw {
-            RawLine::Choices(choices) => Line::Choices(choices),
-            RawLine::Dialogue(dialogue) => Line::Dialogue(dialogue),
-            RawLine::Input(input) => Line::Input(input),
-            RawLine::Command(command) => Line::Command(command),
-            _ => Line::None,
-        }
-    }
+    End,
 }
