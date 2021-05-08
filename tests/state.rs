@@ -1,5 +1,5 @@
 use kataru::{Bookmark, Choices, Dialogue, Line, LoadYaml, Runner, Story, Validator, Value};
-use maplit::hashmap;
+use maplit::{btreemap, hashmap};
 #[macro_use]
 extern crate linear_map;
 
@@ -69,7 +69,7 @@ fn test_state() {
         (
             "",
             Line::Choices(Choices {
-                choices: hashmap! {
+                choices: btreemap! {
                     "Choice1".to_string() => "Choice1".to_string(),
                     "Choice2".to_string() => "Choice2".to_string()
                 },

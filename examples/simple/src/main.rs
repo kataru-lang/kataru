@@ -141,8 +141,14 @@ fn handle_line(runner: &mut Runner, input: &mut String) -> bool {
 fn main() {
     // Load the story.
     println!("{}", "Loading story...".bold().cyan());
-    let mut bookmark = Bookmark::from_mp(include_bytes!("../target/bookmark")).unwrap();
-    let story = Story::from_mp(include_bytes!("../target/story")).unwrap();
+    let mut bookmark = Bookmark::from_yml(include_str!(
+        "C:/Users/Joshi/Dev/Unity/JongelaMirrors/Assets/StreamingAssets/Kataru/Bookmark.yml"
+    ))
+    .unwrap();
+    let story = Story::from_mp(include_bytes!(
+        "C:/Users/Joshi/Dev/Unity/JongelaMirrors/Assets/StreamingAssets/Kataru/story.bin"
+    ))
+    .unwrap();
     bookmark.init_state(&story);
 
     #[cfg(debug_assertions)]

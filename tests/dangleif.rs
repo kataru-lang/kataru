@@ -1,5 +1,5 @@
 use kataru::{Bookmark, Choices, Dialogue, Line, LoadYaml, Runner, Story, Validator};
-use maplit::hashmap;
+use maplit::{btreemap, hashmap};
 
 /// Tests basic $character commands.
 #[test]
@@ -17,7 +17,7 @@ fn test_dangleif() {
         (
             "",
             Line::Choices(Choices {
-                choices: hashmap! {
+                choices: btreemap! {
                     "Yes!".to_string() => "ChoiceYes".to_string(),
                     "No!".to_string() => "ChoiceNo".to_string()
                 },

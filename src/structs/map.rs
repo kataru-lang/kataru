@@ -2,7 +2,7 @@ use linear_map::LinearMap;
 
 use crate::traits::{CopyMerge, Merge};
 use crate::{error::Result, traits::MoveValues};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 pub use std::collections::btree_map::Entry;
 
@@ -16,9 +16,17 @@ fn copy_keys<V>(map: &Map<String, V>) -> Vec<String> {
     keys
 }
 
-impl<V> MoveValues for Map<String, V> {
+fn copy_keys_btree<V>(map: &BTreeMap<String, V>) -> Vec<String> {
+    let mut keys: Vec<String> = Vec::with_capacity(map.len());
+    for key in map.keys() {
+        keys.push(key.to_string());
+    }
+    keys
+}
+
+impl<V> MoveValues for BTreeMap<String, V> {
     fn move_values(other: &mut Self) -> Result<Self> {
-        let keys = copy_keys(other);
+        let keys = copy_keys_btree(other);
         let mut map = Self::new();
         for key in keys {
             let value = other.remove(&key).unwrap();

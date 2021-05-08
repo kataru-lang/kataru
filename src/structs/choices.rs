@@ -1,4 +1,4 @@
-use super::{Bookmark, Map};
+use super::Bookmark;
 use crate::{error::Result, traits::MoveValues, Value};
 use linear_map::LinearMap;
 use serde::{Deserialize, Serialize};
@@ -20,7 +20,7 @@ pub struct RawChoices {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct Choices {
-    pub choices: Map<String, String>,
+    pub choices: BTreeMap<String, String>,
     #[serde(default)]
     pub timeout: f64,
 }
@@ -32,14 +32,14 @@ impl Choices {
 
     pub fn from(other: &mut Self) -> Result<Self> {
         Ok(Self {
-            choices: Map::move_values(&mut other.choices)?,
+            choices: BTreeMap::move_values(&mut other.choices)?,
             timeout: other.timeout,
         })
     }
 
     pub fn get_valid(raw: &RawChoices, bookmark: &Bookmark) -> Result<Self> {
         let mut valid = Self {
-            choices: Map::default(),
+            choices: BTreeMap::default(),
             timeout: raw.timeout,
         };
         let mut passage = "";
