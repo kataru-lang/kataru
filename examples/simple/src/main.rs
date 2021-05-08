@@ -99,17 +99,15 @@ fn handle_line(runner: &mut Runner, input: &mut String) -> bool {
         }
         Line::Choices(choices) => {
             println!();
-            for (choice, _passage_name) in &choices.choices {
+            for choice in choices {
                 println!("{}", choice.cyan());
             }
             print!("\n{}", "Enter your choice: ".bold().magenta());
             get_input(input);
             true
         }
-        Line::Command(cmd) => {
-            for (command, params) in cmd {
-                run_command(runner, command, params);
-            }
+        Line::Command(command) => {
+            run_command(runner, &command.name, &command.params);
             true
         }
         Line::Input(input_cmd) => {
@@ -129,10 +127,6 @@ fn handle_line(runner: &mut Runner, input: &mut String) -> bool {
         }
         Line::End => {
             println!("End of story.");
-            false
-        }
-        _ => {
-            println!("Invalid line encountered: {:?}", line);
             false
         }
     }
