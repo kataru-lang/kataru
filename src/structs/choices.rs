@@ -45,7 +45,7 @@ impl Choices {
         let mut passage = "";
 
         // Populate valid choices and infer implicit passage targets.
-        for (key, choice) in raw.choices.iter().rev() {
+        for (key, choice) in raw.choices.iter() {
             match choice {
                 // Populate top level choices.
                 RawChoice::PassageName(Some(passage_name)) => {
@@ -62,7 +62,7 @@ impl Choices {
                     if !Value::from_conditional(key, bookmark)? {
                         continue;
                     }
-                    for (choice_text, passage_name_opt) in conditional.iter().rev() {
+                    for (choice_text, passage_name_opt) in conditional.iter() {
                         if let Some(passage_name) = passage_name_opt {
                             passage = passage_name;
                             valid
