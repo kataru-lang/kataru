@@ -1,13 +1,13 @@
 use crate::{
     error::{Error, Result},
     structs::{
-        Bookmark, Branchable, Choices, CommandGetters, Dialogue, Line, Passage, QualifiedName,
-        Return, State, Story, StoryGetters,
+        Bookmark, Branchable, Choices, CommandGetters, Dialogue, Passage, QualifiedName,
+        RawChoices, RawLine, Return, State, Story, StoryGetters,
     },
-    Section, Value,
+    Line, Map, Section, Value,
 };
 
-static RETURN: Line = Line::Return(Return { r#return: () });
+static RETURN: RawLine = RawLine::Return(Return { r#return: () });
 static EMPTY_PASSAGE: Passage = Vec::new();
 lazy_static! {
     static ref EMPTY_SECTION: Section = Section::default();
@@ -19,9 +19,9 @@ pub struct Runner<'r> {
     pub line_num: usize,
     pub passage: &'r Passage,
     pub section: &'r Section,
-    lines: Vec<&'r Line>,
-    line: Line,
+    lines: Vec<&'r RawLine>,
     choices: Choices,
+    choice_to_passage: Map<&'r str, &'r str>,
     breaks: Vec<usize>,
     speaker: String,
 }
@@ -34,10 +34,10 @@ impl<'r> Runner<'r> {
             story,
             line_num: 0,
             lines: Vec::new(),
-            line: Line::Continue,
             passage: &EMPTY_PASSAGE,
             section: &EMPTY_SECTION,
             choices: Choices::default(),
+            choice_to_passage: Map::new(),
             breaks: Vec::new(),
             speaker: "".to_string(),
         };
@@ -48,19 +48,19 @@ impl<'r> Runner<'r> {
     /// Gets the next dialogue line from the story based on the user's input.
     /// Internally, a single call to `next()` may result in multiple lines being processed,
     /// i.e. when a choice is being made.
-    pub fn next(&mut self, input: &str) -> Result<&Line> {
-        self.line = self.process(input)?;
-        while self.line == Line::Continue {
-            self.line = self.process("")?;
+    pub fn next(&mut self, input: &str) -> Result<Line> {
+        let mut raw_line = self.process(input)?;
+        while raw_line == RawLine::Continue {
+            raw_line = self.process("")?;
         }
-        Ok(&self.line)
+        Ok(Line::from(raw_line))
     }
 
     /// Returns true if tail call optimization is possible.
     /// This requires that the current line is a return statement, and
     /// that this section has no `on_exit` callback.
     fn can_optimize_tail_call(&self) -> bool {
-        if let Line::Return(_) = self.lines[self.bookmark.line()] {
+        if let RawLine::Return(_) = self.lines[self.bookmark.line()] {
             return self.section.on_exit().is_none();
         }
         false
@@ -95,20 +95,26 @@ impl<'r> Runner<'r> {
         self.bookmark.save_snapshot(name)
     }
 
+    pub fn load_choices(&mut self, raw_choices: &'r RawChoices) -> Result<()> {
+        self.choices
+            .get_valid(&mut self.choice_to_passage, raw_choices, &self.bookmark)?;
+        Ok(())
+    }
+
     pub fn load_snapshot(&mut self, name: &str) -> Result<()> {
         self.bookmark.load_snapshot(name)?;
         self.load_bookmark_position()?;
 
         // Preload choices if loading a snapshot paused on choices.
-        if let Line::RawChoices(choices) = self.lines[self.bookmark.line()] {
-            self.line = Line::Choices(Choices::get_valid(choices, &self.bookmark)?)
+        if let RawLine::RawChoices(raw_choices) = self.lines[self.bookmark.line()] {
+            return self.load_choices(raw_choices);
         }
         Ok(())
     }
 
     /// Loads lines into a single flat array of references.
     /// Initializes breakpoint stack.
-    fn load_passage(&mut self, lines: &'r [Line]) {
+    fn load_passage(&mut self, lines: &'r [RawLine]) {
         self.lines = vec![];
         self.load_lines(lines);
         self.lines.push(&RETURN);
@@ -135,7 +141,7 @@ impl<'r> Runner<'r> {
                 }
             }
             match line {
-                Line::Branches(branches) => {
+                RawLine::Branches(branches) => {
                     self.breaks.push(line_num + branches.len());
                 }
                 _ => (),
@@ -144,10 +150,10 @@ impl<'r> Runner<'r> {
     }
 
     /// Loads lines into a single flat array of references.
-    fn load_lines(&mut self, lines: &'r [Line]) {
+    fn load_lines(&mut self, lines: &'r [RawLine]) {
         for line in lines {
             match line {
-                Line::Branches(branches) => {
+                RawLine::Branches(branches) => {
                     self.lines.push(&line);
 
                     // Add breaks after each line except for the last line
@@ -156,7 +162,7 @@ impl<'r> Runner<'r> {
                         self.load_lines(branch_lines);
                     }
                     for (_expression, branch_lines) in branches_it {
-                        self.lines.push(&Line::Break);
+                        self.lines.push(&RawLine::Break);
                         self.load_lines(branch_lines);
                     }
                 }
@@ -196,42 +202,32 @@ impl<'r> Runner<'r> {
     }
 
     /// Processes a line.
-    /// Returning Line::Continue signals to `next()` that another line should be processed
+    /// Returning RawLine::Continue signals to `next()` that another line should be processed
     /// before returning a line to the user.
-    fn process_line(&mut self, input: &str, line: &'r Line) -> Result<Line> {
-        let line = match &line {
+    fn process_line(&mut self, input: &str, line: &'r RawLine) -> Result<RawLine> {
+        let line = match line {
             // When a choice is encountered, it should first be returned for display.
             // Second time it's encountered, go to the chosen passage.
-            Line::RawChoices(choices) => {
+            RawLine::RawChoices(raw_choices) => {
                 // If empty input, choices are being returned for display.
                 if input.is_empty() {
-                    Line::Choices(Choices::get_valid(choices, &self.bookmark)?)
+                    self.load_choices(raw_choices)?;
+                    RawLine::Choices(self.choices.clone())
                 } else {
-                    if let Line::Choices(ref mut choices) = self.line {
-                        // If first attempt, use choices saved in self.line.
-                        if let Some(passage_name) = choices.remove(input) {
-                            self.call(passage_name)?;
-                            Line::Continue
-                        } else {
-                            // Move all choices out of their map saved in self.line.
-                            self.choices = Choices::from(choices)?;
-                            Line::InvalidChoice
-                        }
-                    // For second attempt, use self.choices.
-                    } else if let Some(passage_name) = self.choices.remove(input) {
-                        self.call(passage_name)?;
-                        Line::Continue
+                    if let Some(passage_name) = self.choice_to_passage.remove(input) {
+                        self.call(passage_name.to_string())?;
+                        RawLine::Continue
                     } else {
-                        Line::InvalidChoice
+                        RawLine::InvalidChoice
                     }
                 }
             }
-            Line::Choices(_) => {
+            RawLine::Choices(_) => {
                 return Err(error!("Mutated choices were found."));
             }
             // When input is encountered, it should first be returned for display.
             // Second time it's encountered, modify state.
-            Line::Input(input_cmd) => {
+            RawLine::Input(input_cmd) => {
                 if input.is_empty() {
                     line.clone()
                 } else {
@@ -241,86 +237,89 @@ impl<'r> Runner<'r> {
                         self.bookmark.set_state(&state)?
                     }
                     self.bookmark.next_line();
-                    Line::Continue
+                    RawLine::Continue
                 }
             }
-            Line::Branches(branches) => {
+            RawLine::Branches(branches) => {
                 let skipped_len = branches.take(&mut self.bookmark)?;
                 let branch_len = branches.len();
                 self.breaks
                     .push(self.bookmark.line() + branch_len - skipped_len);
-                Line::Continue
+                RawLine::Continue
             }
-            Line::Call(call) => {
+            RawLine::Call(call) => {
                 self.call(call.passage.clone())?;
-                Line::Continue
+                RawLine::Continue
             }
-            Line::Return(_) => {
+            RawLine::Return(_) => {
                 self.run_on_exit()?;
                 match self.bookmark.stack.pop() {
                     Some(position) => {
                         self.bookmark.set_position(position);
                         self.load_bookmark_position()?;
-                        Line::Continue
+                        RawLine::Continue
                     }
-                    None => Line::End,
+                    None => RawLine::End,
                 }
             }
-            Line::Break => {
+            RawLine::Break => {
                 let last_break = self.breaks.pop();
                 self.bookmark.set_line(match last_break {
                     Some(line_num) => line_num,
                     None => 0,
                 });
-                Line::Continue
+                RawLine::Continue
             }
-            Line::Command(command) => {
+            RawLine::RawCommand(raw_command) => {
                 self.bookmark.next_line();
-                let full_command = command.get_full_command(&self.story, &self.bookmark)?;
-                Line::Command(full_command)
+                let command = raw_command.get_full_command(&self.story, &self.bookmark)?;
+                RawLine::Command(command)
             }
-            Line::PositionalCommand(positional_command) => {
+            RawLine::Command(_) => {
+                return Err(error!("Mutated command was found."));
+            }
+            RawLine::PositionalCommand(positional_command) => {
                 self.bookmark.next_line();
                 let full_command =
                     positional_command.get_full_command(&self.story, &self.bookmark)?;
-                Line::Command(full_command)
+                RawLine::Command(full_command)
             }
-            Line::SetCommand(set) => {
+            RawLine::SetCommand(set) => {
                 self.bookmark.next_line();
                 self.bookmark.set_state(&set.set)?;
-                Line::Continue
+                RawLine::Continue
             }
-            Line::RawDialogue(map) => {
+            RawLine::RawDialogue(map) => {
                 self.bookmark.next_line();
                 let dialogue = Dialogue::from_map(map, &self.story, &self.bookmark)?;
                 self.speaker = dialogue.name.clone();
-                Line::Dialogue(dialogue)
+                RawLine::Dialogue(dialogue)
             }
-            Line::Dialogue(dialogue) => {
+            RawLine::Dialogue(dialogue) => {
                 self.bookmark.next_line();
-                Line::Dialogue(dialogue.clone())
+                RawLine::Dialogue(dialogue.clone())
             }
-            Line::Text(text) => {
+            RawLine::Text(text) => {
                 self.bookmark.next_line();
-                Line::Dialogue(Dialogue::from(
+                RawLine::Dialogue(Dialogue::from(
                     &self.speaker,
                     text,
                     self.story,
                     self.bookmark,
                 )?)
             }
-            Line::Continue => {
+            RawLine::Continue => {
                 self.bookmark.next_line();
-                Line::Continue
+                RawLine::Continue
             }
-            Line::End => Line::End,
-            Line::InvalidChoice => Line::InvalidChoice,
+            RawLine::End => RawLine::End,
+            RawLine::InvalidChoice => RawLine::InvalidChoice,
         };
         Ok(line)
     }
 
     /// If the current configuration points to a valid line, processes the line.
-    fn process(&mut self, input: &str) -> Result<Line> {
+    fn process(&mut self, input: &str) -> Result<RawLine> {
         if self.bookmark.line() >= self.lines.len() {
             Err(error!(
                 "Invalid line number {} in passage '{}'",

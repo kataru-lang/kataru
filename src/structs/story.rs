@@ -1,4 +1,4 @@
-use super::{CharacterData, Line, Map, Params, QualifiedName, Section};
+use super::{CharacterData, Map, Params, QualifiedName, RawLine, Section};
 use crate::traits::SaveYaml;
 use crate::Value;
 use crate::{
@@ -12,7 +12,7 @@ use crate::{
 use glob::glob;
 use std::path::Path;
 
-pub type Passage = Vec<Line>;
+pub type Passage = Vec<RawLine>;
 
 pub type Passages = Map<String, Passage>;
 

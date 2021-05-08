@@ -1,4 +1,4 @@
-use crate::structs::Line;
+use crate::structs::RawLine;
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 
@@ -15,14 +15,14 @@ pub enum LineTag {
 }
 
 impl LineTag {
-    pub fn tag(line_opt: &Option<&Line>) -> Self {
+    pub fn tag(line_opt: &Option<&RawLine>) -> Self {
         match line_opt {
             Some(line) => match line {
-                Line::Choices(_) => LineTag::Choices,
-                Line::Dialogue(_) => LineTag::Dialogue,
-                Line::Command(_) => LineTag::Command,
-                Line::Input(_) => LineTag::Input,
-                Line::InvalidChoice => LineTag::InvalidChoice,
+                RawLine::Choices(_) => LineTag::Choices,
+                RawLine::Dialogue(_) => LineTag::Dialogue,
+                RawLine::Command(_) => LineTag::Command,
+                RawLine::Input(_) => LineTag::Input,
+                RawLine::InvalidChoice => LineTag::InvalidChoice,
                 _ => LineTag::None,
             },
             None => LineTag::None,

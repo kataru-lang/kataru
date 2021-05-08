@@ -1,4 +1,4 @@
-use super::{Bookmark, Line};
+use super::{Bookmark, RawLine};
 use crate::{error::Result, Value};
 use linear_map::LinearMap;
 use serde::{Deserialize, Serialize};
@@ -11,14 +11,14 @@ pub trait Branchable {
 #[derive(Deserialize)]
 pub struct BranchesShadow {
     #[serde(flatten)]
-    exprs: LinearMap<String, Vec<Line>>,
+    exprs: LinearMap<String, Vec<RawLine>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(try_from = "BranchesShadow")]
 pub struct Branches {
     #[serde(flatten)]
-    pub exprs: LinearMap<String, Vec<Line>>,
+    pub exprs: LinearMap<String, Vec<RawLine>>,
 }
 
 impl std::convert::TryFrom<BranchesShadow> for Branches {
@@ -75,10 +75,10 @@ impl Branchable for Branches {
 
 /// All lines take up 1 except for branches,
 /// which need their length recursively computed.
-fn flattened_len(lines: &[Line]) -> usize {
+fn flattened_len(lines: &[RawLine]) -> usize {
     let mut length = 0;
     for line in lines {
-        if let Line::Branches(branches) = line {
+        if let RawLine::Branches(branches) = line {
             length += branches.len();
         } else {
             length += 1
@@ -91,14 +91,14 @@ fn flattened_len(lines: &[Line]) -> usize {
 mod tests {
     use linear_map::linear_map;
 
-    use super::{Branchable, Branches, Line};
+    use super::{Branchable, Branches, RawLine};
 
     #[test]
     fn test_branches_length() {
         let branches = Branches {
             exprs: linear_map! {
                 "if true".to_string() => vec![
-                    Line::Text("test".to_string())
+                    RawLine::Text("test".to_string())
                 ]
             },
         };
@@ -107,9 +107,9 @@ mod tests {
         let branches = Branches {
             exprs: linear_map! {
                 "if true".to_string() => vec![
-                    Line::Text("test".to_string())],
+                    RawLine::Text("test".to_string())],
                 "elif true".to_string() => vec![
-                    Line::Text("test".to_string())]
+                    RawLine::Text("test".to_string())]
             },
         };
         assert_eq!(branches.len(), 4);
@@ -117,10 +117,10 @@ mod tests {
         let branches = Branches {
             exprs: linear_map! {
                 "if true".to_string() => vec![
-                    Line::Branches(Branches {
+                    RawLine::Branches(Branches {
                         exprs: linear_map! {
                             "if true".to_string() => vec![
-                                Line::Text("test".to_string())
+                                RawLine::Text("test".to_string())
                                 ]
                         },
                     })
@@ -132,12 +132,12 @@ mod tests {
         let branches = Branches {
             exprs: linear_map! {
                 "if true".to_string() => vec![
-                    Line::Branches(Branches {
+                    RawLine::Branches(Branches {
                         exprs: linear_map! {
                             "if true".to_string() => vec![
-                                Line::Text("test".to_string())],
+                                RawLine::Text("test".to_string())],
                             "elif true".to_string() => vec![
-                                Line::Text("test".to_string())]
+                                RawLine::Text("test".to_string())]
                         },
                     })
                 ]

@@ -22,6 +22,6 @@ fn test_story2() {
     )];
 
     for (input, line) in &tests {
-        assert_eq!(runner.next(input).unwrap(), line);
+        assert_eq!(&runner.next(input).unwrap(), line);
     }
 }

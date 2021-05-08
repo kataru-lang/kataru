@@ -1,11 +1,18 @@
 use linear_map::LinearMap;
 
-use crate::{traits::CopyMerge, Bookmark, Error, Map, Result, Story, StoryGetters, Value};
-
 use super::QualifiedName;
+use crate::{traits::CopyMerge, Bookmark, Error, Map, Result, Story, StoryGetters, Value};
+use serde::{Deserialize, Serialize};
 
 pub type Params = LinearMap<String, Value>;
-pub type Command = Map<String, Params>;
+pub type RawCommand = Map<String, Params>;
+
+/// Public interface for a command.
+#[derive(Debug, Default, Clone, PartialEq, Deserialize, Serialize)]
+pub struct Command {
+    pub name: String,
+    pub params: LinearMap<String, Value>,
+}
 
 pub type PositionalParams = Vec<Value>;
 pub type PositionalCommand = Map<String, PositionalParams>;
@@ -112,11 +119,12 @@ where
     /// Get the vector of qualified commands with default parameters included.
     fn get_full_command(&self, story: &Story, bookmark: &Bookmark) -> Result<Command> {
         let (command_name, params) = self.get_first()?;
-        let mut full_command = Command::new();
+        let mut command = Command::default();
         let (normalized_name, qualified_command) =
             Self::get_command_components(story, bookmark, command_name)?;
 
-        if let Some(default_params) = Command::get_default_params(story, bookmark, &normalized_name)
+        if let Some(default_params) =
+            RawCommand::get_default_params(story, bookmark, &normalized_name)
         {
             // Merge params with their defaults.
             let mut merged_params = params.merge_params(default_params)?;
@@ -126,13 +134,14 @@ where
                 val.eval_as_expr(bookmark)?;
             }
 
-            full_command.insert(qualified_command, merged_params);
+            command.name = qualified_command;
+            command.params = merged_params;
         }
 
-        Ok(full_command)
+        Ok(command)
     }
 }
 
 impl CommandGetters<PositionalParams> for PositionalCommand {}
 
-impl CommandGetters<Params> for Command {}
+impl CommandGetters<Params> for RawCommand {}

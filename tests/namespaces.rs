@@ -1,4 +1,4 @@
-use kataru::{Bookmark, Dialogue, Line, LoadYaml, Runner, Story, Validator, Value};
+use kataru::{Bookmark, Command, Dialogue, Line, LoadYaml, Runner, Story, Validator, Value};
 use maplit::hashmap;
 #[macro_use]
 extern crate linear_map;
@@ -27,38 +27,46 @@ fn test_namespaces() {
         ),
         (
             "",
-            Line::Command(
-                hashmap! {"GlobalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::String("".to_string())}},
-            ),
+            Line::Command(Command {
+                name: "GlobalCharacter.GlobalMethod".to_string(),
+                params: linear_map! {"param".to_string() => Value::String("".to_string())},
+            }),
         ),
         (
             "",
-            Line::Command(
-                hashmap! {"GlobalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::String("test".to_string())}},
-            ),
+            Line::Command(Command {
+                name: "GlobalCharacter.GlobalMethod".to_string(),
+                params: linear_map! {"param".to_string() => Value::String("test".to_string())},
+            }),
         ),
         // Test only string param
         (
             "",
-            Line::Command(
-                hashmap! {"GlobalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::String("test".to_string())}},
-            ),
+            Line::Command(Command {
+                name: "GlobalCharacter.GlobalMethod".to_string(),
+                params: linear_map! {"param".to_string() => Value::String("test".to_string())},
+            }),
         ),
         (
             "",
-            Line::Command(
-                hashmap! {"GlobalCommand".to_string() => linear_map! {"param".to_string() => Value::Number(0.)}},
-            ),
+            Line::Command(Command {
+                name: "GlobalCommand".to_string(),
+                params: linear_map! {"param".to_string() => Value::Number(0.)},
+            }),
         ),
         (
             "",
-            Line::Command(
-                hashmap! {"GlobalCommand".to_string() => linear_map! {"param".to_string() => Value::Number(1.)}},
-            ),
+            Line::Command(Command {
+                name: "GlobalCommand".to_string(),
+                params: linear_map! {"param".to_string() => Value::Number(1.)},
+            }),
         ),
         (
             "",
-            Line::Command(hashmap! {"GlobalCommandNoParams".to_string() => linear_map! {}}),
+            Line::Command(Command {
+                name: "GlobalCommandNoParams".to_string(),
+                params: linear_map! {},
+            }),
         ),
         (
             "",
@@ -78,50 +86,51 @@ fn test_namespaces() {
         ),
         (
             "",
-            Line::Command(hashmap! {
-                "namespace1:LocalCharacter.LocalMethod".to_string() => linear_map! {
-                    "param1".to_string() => Value::Number(1.),
-                    "param2".to_string() => Value::String("two".to_string()),
-                    "param3".to_string() => Value::Bool(true)
-                }
+            Line::Command(Command {
+                name: "namespace1:LocalCharacter.LocalMethod".to_string(),
+                params: linear_map! {"param1".to_string() => Value::Number(1.),
+                "param2".to_string() => Value::String("two".to_string()),
+                "param3".to_string() => Value::Bool(true)},
             }),
         ),
         (
             "",
-            Line::Command(hashmap! {
-                "namespace1:LocalCharacter.LocalMethod".to_string() => linear_map! {
-                    "param1".to_string() => Value::Number(3.),
-                    "param2".to_string() => Value::String("two".to_string()),
-                    "param3".to_string() => Value::Bool(true)
-                }
+            Line::Command(Command {
+                name: "namespace1:LocalCharacter.LocalMethod".to_string(),
+                params: linear_map! {"param1".to_string() => Value::Number(3.),
+                "param2".to_string() => Value::String("two".to_string()),
+                "param3".to_string() => Value::Bool(true)},
             }),
         ),
         (
             "",
-            Line::Command(hashmap! {
-                "namespace1:LocalCharacter.LocalMethod".to_string() => linear_map! {
-                    "param1".to_string() => Value::Number(1.),
-                    "param2".to_string() => Value::String("two".to_string()),
-                    "param3".to_string() => Value::Bool(false)
-                }
+            Line::Command(Command {
+                name: "namespace1:LocalCharacter.LocalMethod".to_string(),
+                params: linear_map! {"param1".to_string() => Value::Number(1.),
+                "param2".to_string() => Value::String("two".to_string()),
+                "param3".to_string() => Value::Bool(false)},
             }),
         ),
         (
             "",
-            Line::Command(
-                hashmap! {"namespace1:LocalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::String("".to_string())}},
-            ),
+            Line::Command(Command {
+                name: "namespace1:LocalCharacter.GlobalMethod".to_string(),
+                params: linear_map! {
+                "param".to_string() => Value::String("".to_string())},
+            }),
         ),
         // Make sure global characters don't get the namespace appended
         (
             "",
-            Line::Command(
-                hashmap! {"GlobalCharacter.GlobalMethod".to_string() => linear_map! {"param".to_string() => Value::String("".to_string())}},
-            ),
+            Line::Command(Command {
+                name: "GlobalCharacter.GlobalMethod".to_string(),
+                params: linear_map! {
+                "param".to_string() => Value::String("".to_string())},
+            }),
         ),
     ];
 
     for (input, line) in &tests {
-        assert_eq!(runner.next(input).unwrap(), line);
+        assert_eq!(&runner.next(input).unwrap(), line);
     }
 }

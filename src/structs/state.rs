@@ -1,6 +1,9 @@
-use crate::error::{Error, Result};
-use crate::traits::FromStr;
-use crate::{AssignOperator, Map, Value};
+use super::{AssignOperator, Map};
+use crate::{
+    error::{Error, Result},
+    traits::FromStr,
+    Value,
+};
 
 /// Typedef for state, which is a mapping of values.
 pub type State = Map<String, Value>;

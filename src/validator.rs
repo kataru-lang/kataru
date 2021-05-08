@@ -1,8 +1,8 @@
 use crate::{
     error::{Error, Result},
     structs::{
-        AssignOperator, Branches, Command, Dialogue, Line, Map, Params, Passage, Passages,
-        QualifiedName, RawChoice, RawChoices, State, StateMod, Story, StoryGetters, GLOBAL,
+        AssignOperator, Branches, Dialogue, Map, Params, Passage, Passages, QualifiedName,
+        RawChoice, RawChoices, RawCommand, RawLine, State, StateMod, Story, StoryGetters, GLOBAL,
     },
     traits::FromStr,
     Bookmark, Value,
@@ -96,7 +96,7 @@ impl<'a> Validator<'a> {
     }
 
     /// Validates a list of commands in the Cmd object.
-    fn validate_command(&self, cmd: &Command) -> Result<()> {
+    fn validate_command(&self, cmd: &RawCommand) -> Result<()> {
         for (command, params) in cmd {
             let split: Vec<&str> = command.split(".").collect();
             let command_name = match split.as_slice() {
@@ -114,14 +114,14 @@ impl<'a> Validator<'a> {
     }
 
     /// Validates a line of dialogue.
-    fn validate_line(&self, line: &Line) -> Result<()> {
+    fn validate_line(&self, line: &RawLine) -> Result<()> {
         match &line {
-            Line::RawDialogue(dialogue) => self.validate_dialogue(dialogue),
-            Line::Branches(branches) => self.validate_branches(branches),
-            Line::RawChoices(choices) => self.validate_choices(choices),
-            Line::Call(call) => self.validate_goto(&call.passage),
-            Line::SetCommand(set_command) => self.validate_state(&set_command.set),
-            Line::Command(command) => self.validate_command(&command),
+            RawLine::RawDialogue(dialogue) => self.validate_dialogue(dialogue),
+            RawLine::Branches(branches) => self.validate_branches(branches),
+            RawLine::RawChoices(choices) => self.validate_choices(choices),
+            RawLine::Call(call) => self.validate_goto(&call.passage),
+            RawLine::SetCommand(set_command) => self.validate_state(&set_command.set),
+            RawLine::RawCommand(command) => self.validate_command(&command),
             _ => Ok(()),
         }
     }

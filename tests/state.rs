@@ -1,4 +1,6 @@
-use kataru::{Bookmark, Choices, Dialogue, Line, LoadYaml, Runner, Story, Validator, Value};
+use kataru::{
+    Bookmark, Choices, Command, Dialogue, Line, LoadYaml, Runner, Story, Validator, Value,
+};
 use maplit::hashmap;
 #[macro_use]
 extern crate linear_map;
@@ -20,9 +22,10 @@ fn test_state() {
         // TestBool: { bool: not $boolVar }
         (
             "",
-            Line::Command(
-                hashmap! {"TestBool".to_string() => linear_map! {"bool".to_string() => Value::Bool(false)}},
-            ),
+            Line::Command(Command {
+                name: "TestBool".to_string(),
+                params: linear_map! {"bool".to_string() => Value::Bool(false)},
+            }),
         ),
         // Alice: Test
         (
@@ -36,23 +39,26 @@ fn test_state() {
         // Alice.Wave: { amount: $var } # $var = 1
         (
             "",
-            Line::Command(
-                hashmap! {"Alice.Wave".to_string() => linear_map! {"amount".to_string() => Value::Number(1.)}},
-            ),
+            Line::Command(Command {
+                name: "Alice.Wave".to_string(),
+                params: linear_map! {"amount".to_string() =>Value::Number(1.)},
+            }),
         ),
         // Alice.Wave: { amount: $var } # $var = 2
         (
             "",
-            Line::Command(
-                hashmap! {"Alice.Wave".to_string() => linear_map! {"amount".to_string() => Value::Number(2.)}},
-            ),
+            Line::Command(Command {
+                name: "Alice.Wave".to_string(),
+                params: linear_map! {"amount".to_string() =>Value::Number(2.)},
+            }),
         ),
         // Alice.Wave: { amount: $var } # $var = 2
         (
             "",
-            Line::Command(
-                hashmap! {"Alice.Wave".to_string() => linear_map! {"amount".to_string() => Value::Number(0.)}},
-            ),
+            Line::Command(Command {
+                name: "Alice.Wave".to_string(),
+                params: linear_map! {"amount".to_string() =>Value::Number(0.)},
+            }),
         ),
         // Alice: $var neq 0
         (
@@ -68,13 +74,10 @@ fn test_state() {
         //   Choice2: Choice2
         (
             "",
-            Line::Choices(Choices::new(
-                linear_map! {
-                    "Choice1".to_string() => "Choice1".to_string(),
-                    "Choice2".to_string() => "Choice2".to_string()
-                },
-                0.0,
-            )),
+            Line::Choices(Choices {
+                choices: vec!["Choice1".to_string(), "Choice2".to_string()],
+                timeout: 0.0,
+            }),
         ),
         // Alice: Choice1
         (
@@ -142,6 +145,6 @@ fn test_state() {
     ];
 
     for (input, line) in &tests {
-        assert_eq!(runner.next(input).unwrap(), line);
+        assert_eq!(&runner.next(input).unwrap(), line);
     }
 }
