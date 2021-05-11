@@ -201,6 +201,9 @@ impl<'r> Runner<'r> {
     pub fn load_snapshot(&mut self, name: &str) -> Result<()> {
         self.bookmark.load_snapshot(name)?;
         self.load_bookmark_position()?;
+        if let RawLine::Choices(raw_choices) = self.readline()? {
+            self.load_choices(raw_choices)?;
+        }
 
         Ok(())
     }

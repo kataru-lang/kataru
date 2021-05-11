@@ -29,8 +29,8 @@ pub struct Input {
 #[serde(untagged)]
 pub enum RawLine {
     Branches(Branches),
-    Input(Input),
     SetCommand(SetCommand),
+    Input(Input),
     Choices(RawChoices),
     Command(RawCommand),
     PositionalCommand(PositionalCommand),

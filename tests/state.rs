@@ -1,5 +1,5 @@
 use kataru::{
-    Bookmark, Choices, Command, Dialogue, Line, Load, Runner, Save, Story, Validator, Value,
+    Bookmark, Choices, Command, Dialogue, Input, Line, Load, Runner, Save, Story, Validator, Value,
 };
 use maplit::hashmap;
 #[macro_use]
@@ -10,7 +10,6 @@ extern crate linear_map;
 fn test_state() {
     // Load story from directory.
     let story: Story = Story::load("./tests/data/state").unwrap();
-
     let mut bookmark: Bookmark = Bookmark::load("./tests/data/bookmark.yml").unwrap();
     bookmark.init_state(&story);
 
@@ -90,9 +89,19 @@ fn test_state() {
                 attributes: hashmap! {},
             }),
         ),
-        // var > $THREE
+        // input:
+        //   $name: What's your name?
         (
             "",
+            Line::Input(Input {
+                input: hashmap! {
+                    "$name".to_string() => "What's your name?".to_string()
+                },
+            }),
+        ),
+        // var > $THREE
+        (
+            "Player",
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "var > 3".to_string(),
@@ -151,7 +160,7 @@ fn test_state() {
     }
 
     // Try the same tests on the compiled.
-    let compiled_story_path = "./tests/data/state/compiled_story.yml";
+    let compiled_story_path = "./tests/data/compiled/state/compiled_story.yml";
     story.save(compiled_story_path).unwrap();
     let story = Story::load(compiled_story_path).unwrap();
     let mut bookmark: Bookmark = Bookmark::load("./tests/data/bookmark.yml").unwrap();

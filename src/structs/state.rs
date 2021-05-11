@@ -35,12 +35,16 @@ impl<'a> FromStr<'a> for StateMod<'a> {
 }
 
 impl<'a> StateMod<'a> {
-    pub fn apply(&self, state: &mut State, value: Value) {
-        let state_value = state.get_mut(self.var).unwrap();
-        match self.op {
-            AssignOperator::None => *state_value = value.clone(),
-            AssignOperator::Add => *state_value += value,
-            AssignOperator::Sub => *state_value -= value,
+    pub fn apply(&self, state: &mut State, value: Value) -> Result<()> {
+        if let Some(state_value) = state.get_mut(self.var) {
+            match self.op {
+                AssignOperator::None => *state_value = value.clone(),
+                AssignOperator::Add => *state_value += value,
+                AssignOperator::Sub => *state_value -= value,
+            };
+            Ok(())
+        } else {
+            Err(error!("Undefined state variable '{}'", self.var))
         }
     }
 }

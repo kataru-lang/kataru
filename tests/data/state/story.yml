@@ -4,6 +4,7 @@ namespace: global
 state:
   boolVar: true
   var: 1
+  name: NoName
   THREE: 3
   FOUR: 4
   $passage.visited: 0
@@ -44,7 +45,8 @@ Start:
       - choices:
           Choice1: Choice1
           Choice2: Choice2
-
+  - input:
+      $name: What's your name?
   - set:
       $var: $FOUR
   - if $var > $THREE:
