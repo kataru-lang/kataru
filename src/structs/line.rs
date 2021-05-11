@@ -21,6 +21,8 @@ pub struct SetCommand {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Input {
+    #[serde(default)]
+    pub timeout: f64,
     pub input: Map<String, String>,
 }
 
