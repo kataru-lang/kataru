@@ -10,7 +10,7 @@ use crate::{
     LoadMessagePack,
 };
 use glob::glob;
-use std::path::Path;
+use std::{fmt, path::Path};
 
 pub type Passage = Vec<RawLine>;
 
@@ -120,10 +120,35 @@ impl SaveMessagePack for Story {}
 impl Save for Story {}
 impl FromYaml for Story {}
 
+fn load_section<P: AsRef<Path> + fmt::Debug>(story: &mut Story, section_path: P) -> Result<()> {
+    let mut section = Section::load_yml(section_path)?;
+    let namespace = section.namespace();
+    match story.get_mut(namespace) {
+        Some(story_section) => {
+            story_section.merge(&mut section)?;
+        }
+        None => {
+            story.insert(namespace.to_string(), section);
+        }
+    };
+    Ok(())
+}
+
 impl LoadYaml for Story {
-    /// Loads a story from a given directory.
-    fn load_yml<P: AsRef<Path>>(path: P) -> Result<Self> {
+    /// Loads a story from a given directory or YAML file.
+    fn load_yml<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self> {
+        println!("Loading yaml story");
         let mut story = Self::new();
+
+        // Handle loading a single path story.
+        if path.as_ref().is_file() {
+            println!("Loading from file.");
+            return match Self::load_string(path) {
+                Ok(source) => Self::from_yml(&source),
+                Err(e) => Err(error!("Error loading YAML: {}", e)),
+            };
+        }
+
         let pattern: &str = &path
             .as_ref()
             .join("**/*.yml")
@@ -131,17 +156,9 @@ impl LoadYaml for Story {
             .into_string()
             .unwrap();
         for entry in glob(pattern).expect("Failed to read glob pattern") {
+            println!("glob entry: {:#?}", entry);
             if let Ok(path) = entry {
-                let mut section = Section::load_yml(path)?;
-                let namespace = section.namespace();
-                match story.get_mut(namespace) {
-                    Some(story_section) => {
-                        story_section.merge(&mut section)?;
-                    }
-                    None => {
-                        story.insert(namespace.to_string(), section);
-                    }
-                };
+                load_section(&mut story, path)?;
             }
         }
         Ok(story)

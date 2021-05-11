@@ -1,6 +1,10 @@
 ---
 namespace: global
 
+state:
+  globvar: 0
+  CONST: 1
+
 commands:
   GlobalCommand:
     param: 0

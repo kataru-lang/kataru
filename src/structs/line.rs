@@ -39,7 +39,6 @@ pub enum RawLine {
     Text(String),
     Dialogue(Map<String, String>),
     Break,
-    InvalidChoice,
     End,
 }
 

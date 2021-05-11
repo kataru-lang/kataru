@@ -11,6 +11,9 @@ characters:
 
 ---
 Start:
+  - set:
+      $globvar: $CONST
+
   - LocalCharacter: Hello # namespace1:LocalCharacter: "Hello"
   - GlobalCharacter: Hello # GlobalCharacter: "Hello"
   - LocalCharacter.LocalMethod: [1, two, true] # namespace1:LocalCharacter.LocalMethod

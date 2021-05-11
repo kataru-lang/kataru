@@ -1,5 +1,5 @@
 use kataru::{
-    Bookmark, Choices, Command, Dialogue, Line, LoadYaml, Runner, Story, Validator, Value,
+    Bookmark, Choices, Command, Dialogue, Line, Load, Runner, Save, Story, Validator, Value,
 };
 use maplit::hashmap;
 #[macro_use]
@@ -8,8 +8,10 @@ extern crate linear_map;
 /// Tests basic $character commands.
 #[test]
 fn test_state() {
-    let story: Story = Story::load_yml("./tests/data/state").unwrap();
-    let mut bookmark: Bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
+    // Load story from directory.
+    let story: Story = Story::load("./tests/data/state").unwrap();
+
+    let mut bookmark: Bookmark = Bookmark::load("./tests/data/bookmark.yml").unwrap();
     bookmark.init_state(&story);
 
     // println!("{:#?}", bookmark);
@@ -143,6 +145,18 @@ fn test_state() {
             }),
         ),
     ];
+
+    for (input, line) in &tests {
+        assert_eq!(&runner.next(input).unwrap(), line);
+    }
+
+    // Try the same tests on the compiled.
+    let compiled_story_path = "./tests/data/state/compiled_story.yml";
+    story.save(compiled_story_path).unwrap();
+    let story = Story::load(compiled_story_path).unwrap();
+    let mut bookmark: Bookmark = Bookmark::load("./tests/data/bookmark.yml").unwrap();
+    bookmark.init_state(&story);
+    runner = Runner::new(&mut bookmark, &story).unwrap();
 
     for (input, line) in &tests {
         assert_eq!(&runner.next(input).unwrap(), line);
