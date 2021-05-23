@@ -1,168 +1,86 @@
-# Kataru 「カタル」 The YAML based dialogue engine.
+<img src="https://kataru-lang.github.io/_media/logo.svg" alt="Yarn Spinner logo" width="100px;" align="left">
+
+# Kataru 「カタル」 The minimal dialogue system written in Rust.
 
 ![rust workflow](https://github.com/katsutoshii/kataru/actions/workflows/rust.yml/badge.svg)
 
-Kataru 「カタル」is a dialogue engine like [Yarn Spinner](yarnspinner.dev) but based completed on YAML.
+Kataru 「カタル」is a system for interactive dialogue based on YAML, parsed in Rust.
+
+Kataru is similar to [Twine](http://twinery.org/) and [Yarn Spinner](http://yarnspinner.dev) except with more support for organizing passages and sharing common functionality across multiple characters.
 
 ```yml
 ---
+# Define what namespace this file is in.
+namespace: global
+
+state: 
+  coffee: 0
+  $passage.completed: 0
+
 # Configure the scene. List your characters, commands, etc.
 characters:
-  Alice:
+  May:
+  June: 
 
+commands:
+  Wait:
+    duration: 0.3
+
+  $character.SetAnimatorTrigger:
+    clip: ""
+
+onExit:
+  set:
+    $passage.completed +: 1
 ---
-# Define each of your passages.
-Start:
-  - Alice: Welcome to my story!
-  - Now make a decision...
-  - choices:
-      continue: Continue
-      end: End
 
-Continue:
-  - Alice: I see you want to keep reading...
-  - To bad, this is just a demo story!
-  - goto: End
+Start:
+  - May: Welcome to my story!
+  - June: Want a coffee?
+  - choices:
+      Yes: YesCoffee
+      No: NoCoffee
+
+YesCoffee:
+  - May: Yeah, thanks!
+  - set:
+        $coffee +: 1
+  - May.SetAnimatorTrigger: [ "drinkcoffee" ]
+  - call: End
+
+NoCoffee:
+  - May: No thanks.
+  - Wait: { duration: 1 }
+  - June: Want to end this story?
+  - call: End
 
 End:
-  - Thanks for reading!
+  - May: The end!
 ```
 
 ## Features
+- Simple and lightweight
+- Organize dialogue, state, characters, and commands into local namespaces
+- Character-specific commands
+- Syntax highlighting and Unity integration
+  
+As well as conditionals, variables, and everything else you expect in a dialogue language.
 
-Each line of a Kataru dialogue script can perform one of many operations, each of which are described in detail in this section.
+## Getting Started
 
-### Text
+Read [kataru-lang.github.io/#/installation](https://kataru-lang.github.io/#/installation).
 
-Any dialogue line that contains only a YAML string is interpretated as narration text.
-YAML supports different ways of multi-lining strings, including the `|` operator for retaining white space and `>-` operator for ignoring white space.
+Once downloaded, check out the examples in [examples/simple](examples/simple).
 
-```yaml
----
-# No config required for this scene.
----
-Passage:
-  # A single text block can have many lines using `|`.
-  - |
-    Welcome to Kataru!
-    「カタル」へようこそ!
-    Kataru is a dialogue engine built completely on top of YAML with a focus on ease of implementation and simplicity of writing.
+## Getting Help
 
-  # If you want to ignore whitespace, use `>-`.
-  - >-
-    Alice walks into the room,
-    her footsteps echoing through the halls.
+For bugs or feature requests, file an issue. For other questions, contact kataru-dev@gmail.com. 
 
-  # Single line text requires no operator.
-  - A simple, single line of text.
-```
+## License
 
-### Dialogue
-
-Dialogue lines are maps of configured character names to their speech text.
-
-```yaml
----
-# Define your character(s)
-characters:
-  Alice:
+Kataru is licensed under the [MIT License](LICENSE). Credit is appreciated but not required.
 
 ---
-Start:
-  - Alice: Welcome to my story!
-```
 
-### Set state
+Made by [Josiah Putman](https://github.com/Katsutoshii) with help from [Angela He](https://github.com/zephyo).
 
-To set state in a story, use the `set: {}` command.
-
-### Commands
-
-Commands are delineated by `[]`, and are recognized by the YAML parser as arrays.
-Any dialogue lines that are arrays are viewed as list of commands to be executed by the client.
-
-```yaml
-# Define commands and their default parameters.
-cmds:
-  clearScreen: { duration: 0 }
----
-# Call them in a passage
-Passage:
-  - clearScreen: {} # Call with default parameters.
-  - clearScreen: { duration: 1 } # Call with overriden parameters.
-  - clearScreen: { 1 } # Call with positional parameters
-```
-
-## Understanding the `Bookmark`
-
-Kataru keeps track of your position in a story via a `Bookmark`.
-For the simplest stories, this is as simple as keeping track of your current line number.
-But nonlinear stories with true agency need to evolve based on the decisions the user made in the past.
-Kataru keeps track of the state of the story inside of the `Bookmark` as well.
-
-State can be accessed via if statements:
-
-```yml
----
-state:
-  Alice.numTalked: 3
----
-Passage:
-  - if Alice.numTalked > 2:
-      - Alice: I'm tired of talking to you!
-    else:
-      - Alice: Hello there!
-```
-
-Or via text variable substitution.
-
-```yml
----
-state:
-  Alice.numTalked: 3
----
-Passage:
-  - Hi there, I've already talked to you ${Alice.numTalked} times today.
-```
-
-## Namespaces
-
-Documentation pending.
-
-## Examples
-
-See [./examples/simple](./examples/simple) for a minimal example running the engine in the terminal.
-
-## Implementation notes
-
-Notes on how the language parsing, validation and dialogue runner are implemented.
-
-### Dialogue Runner
-
-The `Runner` class only needs a `passage` name and a `line` number to keep its cursor in the story.
-
-Tree-like structures such as `if` and `else` statements are flattened.
-
-In example,
-
-```yaml
-Passage:
-  - Line 1
-  - if x > 2:
-      - Line 3
-    else:
-      - Line 5
-  - Line 6
-```
-
-Will be flattened to
-
-```yaml
-Passage:
-  - Line 1
-  - if x > 2 jump to Line 3, else Jump to Line 5
-  - Line 3
-  - Jump to Line 6
-  - Line 5
-  - Line 6
-```
