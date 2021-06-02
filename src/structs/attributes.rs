@@ -46,7 +46,7 @@ pub fn extract_attr(
         Ok(())
     }
 
-    for (i, c) in text.chars().enumerate() {
+    for (i, c) in text.char_indices() {
         match context {
             Context::Text => {
                 // If we reach an open tag.

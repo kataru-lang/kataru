@@ -139,10 +139,10 @@ fn main() {
         "C:/Users/Joshi/Dev/Unity/JongelaMirrors/Assets/StreamingAssets/Kataru/Bookmark.yml"
     ))
     .unwrap();
-    let story = Story::from_mp(include_bytes!(
-        "C:/Users/Joshi/Dev/Unity/JongelaMirrors/Assets/StreamingAssets/Kataru/story.bin"
-    ))
-    .unwrap();
+    let story =
+        Story::load(r"C:\Users\Joshi\Dev\Unity\JongelaMirrors\Assets\Kataru\Editor\Story").unwrap();
+    // println!("{:#?}", story);
+
     bookmark.init_state(&story);
 
     #[cfg(debug_assertions)]
