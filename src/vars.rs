@@ -1,25 +1,39 @@
-use crate::structs::Bookmark;
+use crate::{structs::Bookmark, Value};
 use regex::{Captures, Regex};
 use std::borrow::Cow;
 
 static VARS_RE_STR: &str = r"\$((?:[A-Za-z]+:)?(?:\w+\.)?\w+)";
+static BRACKET_EXPR_STR: &str = r"(:?(\{\{)|(\}\})|(\{[^\{\}]+\}))";
 
 lazy_static! {
     static ref VARS_RE_STRING: String = format!(r"{}\b", VARS_RE_STR);
     static ref SINGLE_VAR_RE_STRING: String = format!(r"^{}$", VARS_RE_STR);
-    static ref BRACKET_VARS_RE_STRING: String = format!(r"\{{{}\}}", VARS_RE_STR);
     pub static ref VARS_RE: Regex = Regex::new(&VARS_RE_STRING).unwrap();
     pub static ref SINGLE_VAR_RE: Regex = Regex::new(&SINGLE_VAR_RE_STRING).unwrap();
-    pub static ref BRACKET_VARS_RE: Regex = Regex::new(&BRACKET_VARS_RE_STRING).unwrap();
+    pub static ref BRACKET_VARS_RE: Regex = Regex::new(BRACKET_EXPR_STR).unwrap();
+}
+
+fn truncate_ends(s: &str) -> &str {
+    let mut chars = s.chars();
+    chars.next();
+    chars.next_back();
+    chars.as_str()
 }
 
 /// This is a line with var=${var} and var2=${var2}
 pub fn replace_vars(text: &str, bookmark: &Bookmark) -> String {
     let vars_replaced = BRACKET_VARS_RE.replace_all(&text, |cap: &Captures| {
-        let var = &cap[1];
-        match bookmark.value(var) {
+        let expr = &cap[1];
+        if expr == "{{" {
+            return Cow::from("{");
+        }
+        if expr == "}}" {
+            return Cow::from("}");
+        }
+        println!("expr: '{}'", truncate_ends(expr));
+        match Value::from_expr(truncate_ends(expr), bookmark) {
             Ok(value) => Cow::from(value.to_string()),
-            Err(_) => Cow::from(format!("{{${}}}", var).to_string()),
+            Err(_) => Cow::from(format!("{}", expr).to_string()),
         }
     });
 
@@ -73,15 +87,24 @@ mod tests {
                 &bookmark
             ),
             "var1 = 1, var2 = a, char.var1 = b. Tickets cost $10."
-        )
+        );
+
+        assert_eq!(
+            replace_vars("var1 + 1 = {$var1 + 1}.", &bookmark),
+            "var1 + 1 = 2."
+        );
     }
 
     #[test]
     fn test_invalid_vars() {
         let bookmark = Bookmark::default();
         assert_eq!(
-            replace_vars("var1 = ${var1}.", &bookmark),
-            "var1 = ${var1}."
+            replace_vars("var1 = {$varx}.", &bookmark),
+            "var1 = {$varx}."
+        );
+        assert_eq!(
+            replace_vars("This string has {{curly braces}}", &bookmark),
+            "This string has {curly braces}"
         )
     }
 }

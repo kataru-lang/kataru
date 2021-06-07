@@ -145,6 +145,15 @@ fn test_state() {
                 attributes: hashmap! {},
             }),
         ),
+        // 3 + 4 = {$THREE + $FOUR}
+        (
+            "",
+            Line::Dialogue(Dialogue {
+                name: "Alice".to_string(),
+                text: "3 + 4 = 7".to_string(),
+                attributes: hashmap! {},
+            }),
+        ),
         // Alice: End
         (
             "",
@@ -167,9 +176,9 @@ fn test_state() {
     let mut bookmark: Bookmark = Bookmark::load("./tests/data/bookmark.yml").unwrap();
     println!("{:#?}", story);
     bookmark.init_state(&story);
-    // runner = Runner::new(&mut bookmark, &story).unwrap();
+    runner = Runner::new(&mut bookmark, &story).unwrap();
 
-    // for (input, line) in &tests {
-    //     assert_eq!(&runner.next(input).unwrap(), line);
-    // }
+    for (input, line) in &tests {
+        assert_eq!(&runner.next(input).unwrap(), line);
+    }
 }

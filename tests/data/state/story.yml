@@ -54,9 +54,10 @@ Start:
   - if $var > 3 and $var < 5:
       - 3 < var < 5
   - Alice: Visited Choice1 $Choice1.visited times.
-  - Alice: Exited Choice1 $Choice1.exited times.
-  - Alice: Exited Choice1Intermediate $Choice1Intermediate.exited times.
-  - Alice: End
+  - Exited Choice1 $Choice1.exited times.
+  - Exited Choice1Intermediate $Choice1Intermediate.exited times.
+  - 3 + 4 = {$THREE + $FOUR}
+  - End
 
 Choice1:
   - Alice: Choice1
