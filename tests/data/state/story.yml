@@ -38,13 +38,13 @@ Start:
   - if $var != 0:
       - Alice: $var geq 0
       - choices:
-          Choice1: Choice1
-          Choice2: Choice2
+          choice1 text: Choice1
+          choice2 text: Choice2
     else:
       - Alice: $var neq 0
       - choices:
-          Choice1: Choice1
-          Choice2: Choice2
+          choice1 text: Choice1
+          choice2 text: Choice2
   - input:
       $name: What's your name?
   - set:
@@ -57,7 +57,9 @@ Start:
   - Exited Choice1 $Choice1.exited times.
   - Exited Choice1Intermediate $Choice1Intermediate.exited times.
   - 3 + 4 = {$THREE + $FOUR}
-  - End
+  - choices:
+      if $Choice1.exited > 0: { choice1 text: Choice1 }
+      if $Choice2.exited > 0: { choice2 text: Choice2 }
 
 Choice1:
   - Alice: Choice1

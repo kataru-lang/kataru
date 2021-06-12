@@ -71,18 +71,18 @@ fn test_state() {
             }),
         ),
         // choices:
-        //   Choice1: Choice1
-        //   Choice2: Choice2
+        //   choice1 text: Choice1
+        //   choice2 text: Choice2
         (
             "",
             Line::Choices(Choices {
-                choices: vec!["Choice1".to_string(), "Choice2".to_string()],
+                choices: vec!["choice1 text".to_string(), "choice2 text".to_string()],
                 timeout: 0.0,
             }),
         ),
         // Alice: Choice1
         (
-            "Choice1",
+            "choice1 text",
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "Choice1".to_string(),
@@ -154,13 +154,14 @@ fn test_state() {
                 attributes: hashmap! {},
             }),
         ),
-        // Alice: End
+        // - choices:
+        //     if $Choice1.exited > 0: { choice1 text: Choice1 }
+        //     if $Choice2.exited > 0: { choice2 text: Choice2 }
         (
             "",
-            Line::Dialogue(Dialogue {
-                name: "Alice".to_string(),
-                text: "End".to_string(),
-                attributes: hashmap! {},
+            Line::Choices(Choices {
+                choices: vec!["choice1 text".to_string()],
+                timeout: 0.0,
             }),
         ),
     ];
