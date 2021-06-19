@@ -1,8 +1,8 @@
 use crate::{
     error::{Error, Result},
     structs::{
-        Bookmark, Branchable, Choices, CommandGetters, Dialogue, Passage, QualifiedName,
-        RawChoices, RawLine, Return, State, Story, StoryGetters,
+        Bookmark, ChoiceTarget, Choices, CommandGetters, Dialogue, Passage, QualifiedName,
+        RawChoice, RawChoices, RawLine, Return, State, Story, StoryGetters,
     },
     Line, Map, Section, Value,
 };
@@ -60,6 +60,7 @@ impl<'r> Runner<'r> {
     pub fn next(&mut self, mut input: &str) -> Result<Line> {
         loop {
             let raw_line = self.readline()?;
+            println!("{:#?}", raw_line);
             match raw_line {
                 // When a choice is encountered, it should first be returned for display.
                 // Second time it's encountered, go to the chosen passage.
@@ -97,7 +98,8 @@ impl<'r> Runner<'r> {
                 }
                 RawLine::Branches(branches) => {
                     let skipped_len = branches.take(&mut self.bookmark)?;
-                    let branch_len = branches.len();
+                    let branch_len = branches.line_len();
+                    println!("skipped {}, branch {}", skipped_len, branch_len);
                     self.breaks
                         .push(self.bookmark.line() + branch_len - skipped_len);
                 }
@@ -243,7 +245,7 @@ impl<'r> Runner<'r> {
             }
             match line {
                 RawLine::Branches(branches) => {
-                    self.breaks.push(line_num + branches.len());
+                    self.breaks.push(line_num + branches.line_len());
                 }
                 _ => (),
             }
@@ -253,10 +255,9 @@ impl<'r> Runner<'r> {
     /// Loads lines into a single flat array of references.
     fn load_lines(&mut self, lines: &'r [RawLine]) {
         for line in lines {
+            self.lines.push(&line);
             match line {
                 RawLine::Branches(branches) => {
-                    self.lines.push(&line);
-
                     // Add breaks before each lines except the first.
                     let mut is_first = true;
                     for (_expression, branch_lines) in &branches.exprs {
@@ -267,7 +268,30 @@ impl<'r> Runner<'r> {
                         is_first = false;
                     }
                 }
-                _ => self.lines.push(&line),
+                RawLine::Choices(choices) => {
+                    let mut is_first = true;
+                    let mut load_target = |target: &'r ChoiceTarget| match target {
+                        ChoiceTarget::Lines(lines) => {
+                            if !is_first {
+                                self.lines.push(&RawLine::Break);
+                            }
+                            self.load_lines(lines);
+                            is_first = false;
+                        }
+                        _ => {}
+                    };
+                    for (_key, choice) in choices {
+                        match choice {
+                            RawChoice::Target(target) => load_target(target),
+                            RawChoice::Conditional(conditional) => {
+                                for (_inner_key, target) in conditional {
+                                    load_target(target)
+                                }
+                            }
+                        }
+                    }
+                }
+                _ => (),
             }
         }
     }

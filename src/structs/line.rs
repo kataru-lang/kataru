@@ -54,3 +54,17 @@ pub enum Line {
     Command(Command),
     End,
 }
+
+/// All lines take up 1 except for branches,
+/// which need their length recursively computed.
+pub fn line_len(lines: &[RawLine]) -> usize {
+    let mut length = 0;
+    for line in lines {
+        match &line {
+            RawLine::Branches(branches) => length += branches.line_len(),
+            RawLine::Choices(choices) => length += choices.line_len(),
+            _ => length += 1,
+        }
+    }
+    length
+}

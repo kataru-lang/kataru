@@ -1,8 +1,9 @@
 use crate::{
     error::{Error, Result},
     structs::{
-        AssignOperator, Branches, Dialogue, Map, Params, Passage, Passages, QualifiedName,
-        RawChoice, RawChoices, RawCommand, RawLine, State, StateMod, Story, StoryGetters, GLOBAL,
+        AssignOperator, Branches, ChoiceTarget, Dialogue, Map, Params, Passage, Passages,
+        QualifiedName, RawChoice, RawChoices, RawCommand, RawLine, State, StateMod, Story,
+        StoryGetters, GLOBAL,
     },
     traits::FromStr,
     Bookmark, Value,
@@ -232,11 +233,13 @@ impl<'a> Validator<'a> {
     fn validate_choices(&self, choices: &RawChoices) -> Result<()> {
         for (key, choice) in choices {
             match choice {
-                RawChoice::PassageName(Some(passage_name)) => self.validate_goto(&passage_name)?,
+                RawChoice::Target(ChoiceTarget::PassageName(passage_name)) => {
+                    self.validate_goto(&passage_name)?
+                }
                 RawChoice::Conditional(conditional) => {
                     for (_choice_name, passage_name_opt) in conditional {
                         self.validate_conditional(key)?;
-                        if let Some(passage_name) = passage_name_opt {
+                        if let ChoiceTarget::PassageName(passage_name) = passage_name_opt {
                             self.validate_goto(&passage_name)?;
                         }
                     }

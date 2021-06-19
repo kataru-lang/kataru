@@ -1,4 +1,4 @@
-use super::Bookmark;
+use super::{line_len, Bookmark, RawLine};
 use crate::{error::Result, Map, Value};
 use linear_map::LinearMap;
 use serde::{Deserialize, Serialize};
@@ -7,9 +7,17 @@ const EMPTY_STRING: &String = &String::new();
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
+pub enum ChoiceTarget {
+    Lines(Vec<RawLine>),
+    PassageName(String),
+    None,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(untagged)]
 pub enum RawChoice {
-    Conditional(LinearMap<String, Option<String>>),
-    PassageName(Option<String>),
+    Conditional(LinearMap<String, ChoiceTarget>),
+    Target(ChoiceTarget),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
@@ -21,8 +29,34 @@ pub struct RawChoices {
     pub default: String,
 }
 impl RawChoices {
+    /// Returns number of choices.
     pub fn len(&self) -> usize {
         self.choices.len()
+    }
+
+    /// Returns equivalent number of lines for the embedded passages.
+    /// If this choices object has no embedded passages, `line_len(choices) == 1`.
+    /// Otherwise it's `1 + the line length of each embedded passage + number of embedded passages`.
+    /// This includes all conditionals.
+    pub fn line_len(&self) -> usize {
+        let mut length = 1;
+        for (_key, choice) in &self.choices {
+            match choice {
+                RawChoice::Target(ChoiceTarget::Lines(lines)) => {
+                    length += line_len(lines) + 1;
+                }
+                RawChoice::Conditional(conditional) => {
+                    for (_inner_key, target) in conditional {
+                        if let ChoiceTarget::Lines(lines) = target {
+                            length += line_len(lines) + 1;
+                        }
+                    }
+                }
+                _ => (),
+            }
+        }
+        println!("choices length: {}", length);
+        length
     }
 }
 impl<'a> IntoIterator for &'a RawChoices {
@@ -34,6 +68,7 @@ impl<'a> IntoIterator for &'a RawChoices {
     }
 }
 
+/// Public interface to choices, just gives choice names.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct Choices {
     // List of choices matching the order of the raw chocies.
@@ -56,6 +91,9 @@ impl Choices {
     pub fn reverse(&mut self) {
         self.choices.reverse()
     }
+    pub fn len(&self) -> usize {
+        0
+    }
 
     /// Repopulates the `choice_to_passage` map with all valid choices.
     pub fn from_raw<'r>(
@@ -75,33 +113,35 @@ impl Choices {
         //  The current passage target.
         let mut passage: &String = &EMPTY_STRING;
 
-        // Populate through valid choices and infer implicit passage targets.
-        for (key, choice) in raw.into_iter().rev() {
-            match choice {
-                // Populate top level choices.
-                RawChoice::PassageName(Some(passage_name)) => {
+        let mut add_target = |key: &'r str, target: &'r ChoiceTarget| {
+            match target {
+                // Populate unconditional level choices.
+                ChoiceTarget::PassageName(passage_name) => {
                     passage = passage_name;
                     choices.push(key);
                     choice_to_passage.insert(key, passage);
                 }
-                RawChoice::PassageName(None) => {
+                // Infer which passage this refers to.
+                ChoiceTarget::None => {
                     choices.push(key);
                     choice_to_passage.insert(key, passage);
                 }
+                ChoiceTarget::Lines(_) => {
+                    choices.push(key);
+                }
+            }
+        };
+        // Populate through valid choices and infer implicit passage targets.
+        for (key, choice) in raw.into_iter().rev() {
+            match choice {
+                RawChoice::Target(target) => add_target(key, target),
                 // Populate all choices are behind a true conditional.
                 RawChoice::Conditional(conditional) => {
                     if !Value::from_conditional(key, bookmark)? {
                         continue;
                     }
-                    for (choice_text, passage_name_opt) in conditional.iter().rev() {
-                        if let Some(passage_name) = passage_name_opt {
-                            passage = passage_name;
-                            choices.push(choice_text);
-                            choice_to_passage.insert(choice_text, passage);
-                        } else {
-                            choices.push(choice_text);
-                            choice_to_passage.insert(choice_text, passage);
-                        }
+                    for (inner_key, target) in conditional.iter().rev() {
+                        add_target(inner_key, target);
                     }
                 }
             }

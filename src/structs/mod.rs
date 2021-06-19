@@ -14,14 +14,14 @@ mod story;
 
 pub use attributes::{extract_attr, Attributes};
 pub use bookmark::{Bookmark, Position};
-pub use branches::{Branchable, Branches};
-pub use choices::{Choices, RawChoice, RawChoices};
+pub use branches::Branches;
+pub use choices::{ChoiceTarget, Choices, RawChoice, RawChoices};
 pub use command::{
     Command, CommandGetters, Params, PositionalCommand, PositionalParams, RawCommand,
 };
 pub use config::{CharacterData, Config};
 pub use dialogue::Dialogue;
-pub use line::{Call, Input, Line, RawLine, Return, SetCommand};
+pub use line::{line_len, Call, Input, Line, RawLine, Return, SetCommand};
 pub use map::{Entry, Map};
 pub use operator::{AssignOperator, Operator};
 pub use section::{QualifiedName, Section, GLOBAL};
