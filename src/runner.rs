@@ -257,14 +257,14 @@ impl<'r> Runner<'r> {
                 RawLine::Branches(branches) => {
                     self.lines.push(&line);
 
-                    // Add breaks after each line except for the last line
-                    let mut branches_it = branches.exprs.iter();
-                    if let Some((_expression, branch_lines)) = branches_it.next() {
+                    // Add breaks before each lines except the first.
+                    let mut is_first = true;
+                    for (_expression, branch_lines) in &branches.exprs {
+                        if !is_first {
+                            self.lines.push(&RawLine::Break);
+                        }
                         self.load_lines(branch_lines);
-                    }
-                    for (_expression, branch_lines) in branches_it {
-                        self.lines.push(&RawLine::Break);
-                        self.load_lines(branch_lines);
+                        is_first = false;
                     }
                 }
                 _ => self.lines.push(&line),
