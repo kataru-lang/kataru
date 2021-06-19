@@ -17,26 +17,17 @@ pub struct RawChoices {
     choices: LinearMap<String, RawChoice>,
     #[serde(default)]
     pub timeout: f64,
+    #[serde(default)]
+    pub default: String,
 }
-
 impl RawChoices {
     pub fn len(&self) -> usize {
         self.choices.len()
     }
 }
-
 impl<'a> IntoIterator for &'a RawChoices {
     type Item = (&'a String, &'a RawChoice);
     type IntoIter = linear_map::Iter<'a, String, RawChoice>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.choices.iter()
-    }
-}
-
-impl<'a> IntoIterator for &'a Choices {
-    type Item = &'a String;
-    type IntoIter = std::slice::Iter<'a, String>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.choices.iter()
@@ -49,33 +40,32 @@ pub struct Choices {
     pub choices: Vec<String>,
     #[serde(default)]
     pub timeout: f64,
+    #[serde(default)]
+    pub default: String,
 }
-
 impl Choices {
     pub fn push(&mut self, choice: &str) {
         self.choices.push(choice.to_string());
     }
-
     pub fn clear(&mut self) {
         self.choices.clear()
     }
-
     pub fn reserve(&mut self, additional: usize) {
         self.choices.reserve(additional)
     }
-
     pub fn reverse(&mut self) {
         self.choices.reverse()
     }
 
-    /// Repopulates `self` with a list of all valid choices from `raw` in order.
-    /// Also repopulates the `choice_to_passage` map which updated mappings.
+    /// Repopulates the `choice_to_passage` map with all valid choices.
     pub fn from_raw<'r>(
         choice_to_passage: &mut Map<&'r str, &'r str>,
         raw: &'r RawChoices,
         bookmark: &Bookmark,
     ) -> Result<Self> {
         let mut choices = Self::default();
+        choices.default = raw.default.clone();
+        choices.timeout = raw.timeout;
         choices.reserve(raw.len());
 
         // Reset structs.
@@ -120,6 +110,14 @@ impl Choices {
         // Since we iterated backwards for populating chocies, we must reverse to match order.
         choices.reverse();
         Ok(choices)
+    }
+}
+impl<'a> IntoIterator for &'a Choices {
+    type Item = &'a String;
+    type IntoIter = std::slice::Iter<'a, String>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.choices.iter()
     }
 }
 

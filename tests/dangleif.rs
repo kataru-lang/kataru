@@ -18,7 +18,7 @@ fn test_dangleif() {
             "",
             Line::Choices(Choices {
                 choices: vec!["Yeah!".to_string(), "Yes!".to_string(), "No!".to_string()],
-                timeout: 0.0,
+                ..Choices::default()
             }),
         ),
         (

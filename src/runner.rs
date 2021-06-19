@@ -67,7 +67,12 @@ impl<'r> Runner<'r> {
                     // If empty input, choices are being returned for display.
                     if input.is_empty() {
                         let choices = self.load_choices(raw_choices)?;
-                        return Ok(Line::Choices(choices));
+                        // If no options and a default was provided, call the default.
+                        if choices.choices.is_empty() && !choices.default.is_empty() {
+                            self.call(choices.default.clone())?;
+                        } else {
+                            return Ok(Line::Choices(choices));
+                        }
                     } else {
                         if let Some(passage_name) = self.choice_to_passage.remove(input) {
                             self.call(passage_name.to_string())?;

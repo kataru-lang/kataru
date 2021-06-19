@@ -60,6 +60,9 @@ Start:
   - choices:
       if $Choice1.exited > 0: { choice1 text: Choice1 }
       if $Choice2.exited > 0: { choice2 text: Choice2 }
+  - choices:
+      if $Choice2.exited > 0: { choice2 text: Choice2 }
+    default: Default
 
 Choice1:
   - Alice: Choice1
@@ -70,3 +73,6 @@ Choice1Intermediate:
 
 Choice2:
   - Alice: Choice2
+
+Default:
+  - Alice: default

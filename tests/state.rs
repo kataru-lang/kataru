@@ -34,7 +34,7 @@ fn test_state() {
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "Test".to_string(),
-                attributes: hashmap! {},
+                ..Dialogue::default()
             }),
         ),
         // Alice.Wave: { amount: $var } # $var = 1
@@ -67,7 +67,7 @@ fn test_state() {
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "0 neq 0".to_string(),
-                attributes: hashmap! {},
+                ..Dialogue::default()
             }),
         ),
         // choices:
@@ -77,7 +77,7 @@ fn test_state() {
             "",
             Line::Choices(Choices {
                 choices: vec!["choice1 text".to_string(), "choice2 text".to_string()],
-                timeout: 0.0,
+                ..Choices::default()
             }),
         ),
         // Alice: Choice1
@@ -86,7 +86,7 @@ fn test_state() {
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "Choice1".to_string(),
-                attributes: hashmap! {},
+                ..Dialogue::default()
             }),
         ),
         // input:
@@ -106,7 +106,7 @@ fn test_state() {
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "var > 3".to_string(),
-                attributes: hashmap! {},
+                ..Dialogue::default()
             }),
         ),
         // 3 < var < 5
@@ -115,7 +115,7 @@ fn test_state() {
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "3 < var < 5".to_string(),
-                attributes: hashmap! {},
+                ..Dialogue::default()
             }),
         ),
         // Alice: Alice: Visited Choice1 $Choice1.visited times.
@@ -124,7 +124,7 @@ fn test_state() {
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "Visited Choice1 1 times.".to_string(),
-                attributes: hashmap! {},
+                ..Dialogue::default()
             }),
         ),
         // Alice: Alice: Exited Choice1 $Choice1.exited times.
@@ -133,7 +133,7 @@ fn test_state() {
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "Exited Choice1 1 times.".to_string(),
-                attributes: hashmap! {},
+                ..Dialogue::default()
             }),
         ),
         // Alice: Alice: Exited Choice1Intermediate $Choice1Intermediate.exited times.
@@ -142,7 +142,7 @@ fn test_state() {
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "Exited Choice1Intermediate 1 times.".to_string(),
-                attributes: hashmap! {},
+                ..Dialogue::default()
             }),
         ),
         // 3 + 4 = {$THREE + $FOUR}
@@ -151,7 +151,7 @@ fn test_state() {
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "3 + 4 = 7".to_string(),
-                attributes: hashmap! {},
+                ..Dialogue::default()
             }),
         ),
         // - choices:
@@ -161,7 +161,29 @@ fn test_state() {
             "",
             Line::Choices(Choices {
                 choices: vec!["choice1 text".to_string()],
-                timeout: 0.0,
+                ..Choices::default()
+            }),
+        ),
+        // Alice: Choice1
+        (
+            "choice1 text",
+            Line::Dialogue(Dialogue {
+                name: "Alice".to_string(),
+                text: "Choice1".to_string(),
+                ..Dialogue::default()
+            }),
+        ),
+        // - choices:
+        //     if $Choice2.exited > 0: { choice2 text: Choice2 }
+        //   default: Default
+        // (auto run)
+        // - Alice: default
+        (
+            "",
+            Line::Dialogue(Dialogue {
+                name: "Alice".to_string(),
+                text: "default".to_string(),
+                ..Dialogue::default()
             }),
         ),
     ];

@@ -1,5 +1,4 @@
 use kataru::{Bookmark, Command, Dialogue, Line, LoadYaml, Runner, Story, Validator, Value};
-use maplit::hashmap;
 #[macro_use]
 extern crate linear_map;
 
@@ -22,7 +21,7 @@ fn test_namespaces() {
             Line::Dialogue(Dialogue {
                 name: "GlobalCharacter".to_string(),
                 text: "Hello".to_string(),
-                attributes: hashmap! {},
+                ..Dialogue::default()
             }),
         ),
         (
@@ -73,7 +72,7 @@ fn test_namespaces() {
             Line::Dialogue(Dialogue {
                 name: "namespace1:LocalCharacter".to_string(),
                 text: "Hello".to_string(),
-                attributes: hashmap! {},
+                ..Dialogue::default()
             }),
         ),
         (
@@ -81,7 +80,7 @@ fn test_namespaces() {
             Line::Dialogue(Dialogue {
                 name: "GlobalCharacter".to_string(),
                 text: "Hello".to_string(),
-                attributes: hashmap! {},
+                ..Dialogue::default()
             }),
         ),
         (
