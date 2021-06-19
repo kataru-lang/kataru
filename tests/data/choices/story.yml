@@ -1,0 +1,54 @@
+---
+namespace: global
+
+state:
+  var1: 1
+
+characters:
+  Alice:
+
+---
+Start:
+  # Passage choices.
+  - choices: # 0
+      if $var1 > 0: { yes: ChoiceYes }
+      no: ChoiceNo
+  # Embedded passage choices.
+  - choices: # 1
+      if $var1 > 0:
+        yes:
+          - Alice: Embedded yes 1 # 2, 3
+        no:
+          - Alice: Embedded no 1 # 4
+          - No no no 1 # 5, 6
+      maybe:
+        - Alice: Embedded maybe # 7
+  - choices: # 8
+      if $var1 < 0:
+        yes:
+          - Alice: Embedded yes 2 # 9, 10
+        no:
+          - Alice: Embedded no 2 # 11
+          - No no no 2 # 12
+    default: Default
+  - choices:
+      if $var1 < 0:
+        yes:
+          - Alice: Embedded yes 3
+        no:
+          - Alice: Embedded no 3
+          - No no no 3
+    default:
+      - Alice: Embedded default
+      - if $var1 > 0:
+          - var1 > 0
+  - Alice: Success!
+
+ChoiceYes:
+  - Alice: Yes!
+
+ChoiceNo:
+  - Alice: No!
+
+Default:
+  - Alice: Default

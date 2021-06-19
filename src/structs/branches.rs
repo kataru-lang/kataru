@@ -52,8 +52,9 @@ impl Branches {
                 }
             }
         }
+        let next_line = bookmark.line() + self.line_len() - skip_lines;
         bookmark.skip_lines(skip_lines);
-        Ok(skip_lines)
+        Ok(next_line)
     }
 
     /// A branch has one line for each expression,

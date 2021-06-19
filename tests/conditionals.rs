@@ -3,8 +3,8 @@ use maplit::hashmap;
 
 /// Tests basic $character commands.
 #[test]
-fn test_dangleif() {
-    let story: Story = Story::load_yml("./tests/data/dangleif").unwrap();
+fn test_conditionals() {
+    let story: Story = Story::load_yml("./tests/data/conditionals").unwrap();
     // println!("story: {:#?}", story);
     let mut bookmark: Bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
     bookmark.init_state(&story);

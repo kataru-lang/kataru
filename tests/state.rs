@@ -173,19 +173,6 @@ fn test_state() {
                 ..Dialogue::default()
             }),
         ),
-        // - choices:
-        //     if $Choice2.exited > 0: { choice2 text: Choice2 }
-        //   default: Default
-        // (auto run)
-        // - Alice: default
-        (
-            "",
-            Line::Dialogue(Dialogue {
-                name: "Alice".to_string(),
-                text: "default".to_string(),
-                ..Dialogue::default()
-            }),
-        ),
     ];
 
     for (input, line) in &tests {

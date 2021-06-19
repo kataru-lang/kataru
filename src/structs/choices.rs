@@ -12,6 +12,19 @@ pub enum ChoiceTarget {
     PassageName(String),
     None,
 }
+impl Default for ChoiceTarget {
+    fn default() -> Self {
+        Self::None
+    }
+}
+impl ChoiceTarget {
+    pub fn line_len(&self) -> usize {
+        match self {
+            Self::Lines(lines) => line_len(lines),
+            _ => 0,
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
@@ -26,7 +39,7 @@ pub struct RawChoices {
     #[serde(default)]
     pub timeout: f64,
     #[serde(default)]
-    pub default: String,
+    pub default: ChoiceTarget,
 }
 impl RawChoices {
     /// Returns number of choices.
@@ -39,7 +52,7 @@ impl RawChoices {
     /// Otherwise it's `1 + the line length of each embedded passage + number of embedded passages`.
     /// This includes all conditionals.
     pub fn line_len(&self) -> usize {
-        let mut length = 1;
+        let mut length = 1 + self.default.line_len();
         for (_key, choice) in &self.choices {
             match choice {
                 RawChoice::Target(ChoiceTarget::Lines(lines)) => {
@@ -58,6 +71,11 @@ impl RawChoices {
         println!("choices length: {}", length);
         length
     }
+    pub fn take(&self, bookmark: &mut Bookmark, skip_lines: usize) -> usize {
+        let next_line = bookmark.line() + self.line_len() - skip_lines;
+        bookmark.skip_lines(skip_lines);
+        next_line
+    }
 }
 impl<'a> IntoIterator for &'a RawChoices {
     type Item = (&'a String, &'a RawChoice);
@@ -75,8 +93,6 @@ pub struct Choices {
     pub choices: Vec<String>,
     #[serde(default)]
     pub timeout: f64,
-    #[serde(default)]
-    pub default: String,
 }
 impl Choices {
     pub fn push(&mut self, choice: &str) {
@@ -92,17 +108,20 @@ impl Choices {
         self.choices.reverse()
     }
     pub fn len(&self) -> usize {
-        0
+        self.choices.len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.choices.is_empty()
     }
 
     /// Repopulates the `choice_to_passage` map with all valid choices.
     pub fn from_raw<'r>(
         choice_to_passage: &mut Map<&'r str, &'r str>,
+        choice_to_line_num: &mut Map<&'r str, usize>,
         raw: &'r RawChoices,
         bookmark: &Bookmark,
     ) -> Result<Self> {
         let mut choices = Self::default();
-        choices.default = raw.default.clone();
         choices.timeout = raw.timeout;
         choices.reserve(raw.len());
 
@@ -112,6 +131,8 @@ impl Choices {
 
         //  The current passage target.
         let mut passage: &String = &EMPTY_STRING;
+        let mut line_num = raw.line_len() - raw.default.line_len();
+        println!("line_num = {}", line_num);
 
         let mut add_target = |key: &'r str, target: &'r ChoiceTarget| {
             match target {
@@ -126,8 +147,10 @@ impl Choices {
                     choices.push(key);
                     choice_to_passage.insert(key, passage);
                 }
-                ChoiceTarget::Lines(_) => {
+                ChoiceTarget::Lines(lines) => {
                     choices.push(key);
+                    line_num -= line_len(lines) + 1;
+                    choice_to_line_num.insert(key, line_num);
                 }
             }
         };
@@ -173,35 +196,59 @@ mod tests {
         let bookmark = Bookmark::new(hashmap! {});
         let choices_str = r#"
             choices:
-                c: C
-                b: B
-                a:
-                d: D
+              a: A
+              b: B
+              c:
+              d: D
+              e:
+                - E1
+              f:
+                - F1
+                - F2
+            default:
+              - default1
+              - default2
         "#;
 
         let raw = RawChoices::from_yml(choices_str).unwrap();
         println!("{:#?}", raw);
         let mut choice_to_passage = Map::default();
+        let mut choice_to_line_num = Map::default();
 
-        let choices = Choices::from_raw(&mut choice_to_passage, &raw, &bookmark).unwrap();
+        let choices = Choices::from_raw(
+            &mut choice_to_passage,
+            &mut choice_to_line_num,
+            &raw,
+            &bookmark,
+        )
+        .unwrap();
         assert_eq!(
             choices.choices,
             vec![
-                "c".to_string(),
-                "b".to_string(),
                 "a".to_string(),
-                "d".to_string()
+                "b".to_string(),
+                "c".to_string(),
+                "d".to_string(),
+                "e".to_string(),
+                "f".to_string()
             ]
         );
         assert_eq!(
             choice_to_passage,
             hashmap! {
-                "c" => "C",
+                "a" => "A",
                 "b" => "B",
-                "a" => "D",
+                "c" => "D",
                 "d" => "D",
             }
         );
-        println!("{:#?}", choice_to_passage);
+
+        assert_eq!(
+            choice_to_line_num,
+            hashmap! {
+                "e" => 1,
+                "f" => 3,
+            }
+        );
     }
 }
