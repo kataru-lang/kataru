@@ -72,7 +72,7 @@ impl<'r> Runner<'r> {
     pub fn next(&mut self, mut input: &str) -> Result<Line> {
         loop {
             let raw_line = self.readline()?;
-            println!("{:#?}", raw_line);
+            // println!("{:#?}", raw_line);
             match raw_line {
                 // When a choice is encountered, it should first be returned for display.
                 // Second time it's encountered, go to the chosen passage.
@@ -80,10 +80,8 @@ impl<'r> Runner<'r> {
                     // If empty input, choices are being returned for display.
                     if input.is_empty() {
                         let choices = self.load_choices(raw_choices)?;
-                        println!("choices.len = {}", choices.len());
                         // If no choices, call the default.
                         if choices.is_empty() {
-                            println!("Calling default!");
                             self.call_default(&raw_choices)?
                         } else {
                             return Ok(Line::Choices(choices));
@@ -132,7 +130,6 @@ impl<'r> Runner<'r> {
                 }
                 RawLine::Break => {
                     let last_break = self.breaks.pop();
-                    println!("Breaking to line {:?}", last_break);
                     self.bookmark.set_line(match last_break {
                         Some(line_num) => line_num,
                         None => 0,
@@ -212,7 +209,6 @@ impl<'r> Runner<'r> {
         if !self.can_optimize_tail_call() {
             self.bookmark.stack.push(self.bookmark.position().clone());
         }
-        println!("{:#?}", self.bookmark.position());
 
         self.bookmark.set_passage(passage_name);
         self.bookmark.set_line(0);
@@ -260,13 +256,12 @@ impl<'r> Runner<'r> {
         self.lines = vec![];
         self.load_lines(lines);
         self.lines.push(&RETURN);
-        for (i, e) in self.lines.iter().enumerate() {
-            println!("{}: {:?}", i, e);
-        }
+        // for (i, e) in self.lines.iter().enumerate() {
+        //     println!("{}: {:?}", i, e);
+        // }
 
         self.breaks = vec![];
         self.load_breaks();
-        println!("loaded breaks: {:#?}", self.breaks);
     }
 
     /// Initialize the line break stack.
@@ -291,7 +286,6 @@ impl<'r> Runner<'r> {
                     self.breaks.push(line_num + branches.line_len());
                 }
                 RawLine::Choices(choices) => {
-                    println!("set break for choices at {}", line_num + choices.line_len());
                     self.breaks.push(line_num + choices.line_len());
                 }
                 _ => (),
@@ -349,30 +343,26 @@ impl<'r> Runner<'r> {
 
     /// Runs the `onEnter` set command.
     fn run_on_enter(&mut self) -> Result<()> {
-        if let Some(set_cmd) = &self.section.on_enter() {
-            return self.bookmark.set_state(&set_cmd.set);
-        }
-        Ok(())
+        self.story
+            .apply_set_commands(|section| section.on_enter(), &mut self.bookmark)
     }
 
     /// Runs the `onEnter` set command.
     fn run_on_exit(&mut self) -> Result<()> {
-        if let Some(set_cmd) = &self.section.on_exit() {
-            return self.bookmark.set_state(&set_cmd.set);
-        }
-        Ok(())
+        self.story
+            .apply_set_commands(|section| section.on_exit(), &mut self.bookmark)
     }
 
     /// Gets the current passage based on the bookmark's position.
     /// Loads the lines into its flattened form.
     /// Automatically handles updating of namespace.
     fn load_bookmark_position(&mut self) -> Result<()> {
-        let mut qname = QualifiedName::from(self.bookmark.namespace(), self.bookmark.passage());
-        let (section, passage) = self.story.section_for_passage(&mut qname)?;
+        let qname = QualifiedName::from(self.bookmark.namespace(), self.bookmark.passage());
+        let (namespace, section, passage) = self.story.passage(&qname)?;
         self.section = section;
         self.passage = passage;
-        self.bookmark.update_position(qname);
-
+        let (namespace, passage_name) = (namespace.to_string(), qname.name.to_string());
+        self.bookmark.update_position(namespace, passage_name);
         self.load_passage(self.passage);
         Ok(())
     }

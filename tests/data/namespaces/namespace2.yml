@@ -1,0 +1,8 @@
+---
+namespace: namespace1:namespace2
+---
+Start:
+  - set:
+      $globvar: $CONST
+
+  - LocalCharacter: Visited namespace2 start $Start.visited time(s)

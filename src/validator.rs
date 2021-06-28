@@ -3,7 +3,7 @@ use crate::{
     structs::{
         AssignOperator, Branches, ChoiceTarget, Dialogue, Map, Params, Passage, Passages,
         QualifiedName, RawChoice, RawChoices, RawCommand, RawLine, State, StateMod, Story,
-        StoryGetters, GLOBAL,
+        StoryGetters,
     },
     traits::FromStr,
     Bookmark, Value,
@@ -25,13 +25,8 @@ impl<'a> Validator<'a> {
     }
 
     fn validate_character(&self, name: &str) -> Result<()> {
-        if self
-            .story
-            .character(&QualifiedName::from(self.bookmark.namespace(), name))
-            .is_none()
-        {
-            return Err(error!("Undefined character name {}", name));
-        }
+        self.story
+            .character(&QualifiedName::from(self.bookmark.namespace(), name))?;
         Ok(())
     }
 
@@ -82,17 +77,10 @@ impl<'a> Validator<'a> {
     ) -> Result<()> {
         match self
             .story
-            .params(&QualifiedName::from(namespace, &command_name))
+            .params(&QualifiedName::from(namespace, &command_name))?
         {
-            None => {
-                if namespace == GLOBAL {
-                    Err(error!("No such command '{}'.", command_name))
-                } else {
-                    self.validate_namespace_command(GLOBAL, command_name, params)
-                }
-            }
-            Some(Some(config_params)) => Self::validate_params(command_name, params, config_params),
-            Some(None) => Ok(()),
+            Some(config_params) => Self::validate_params(command_name, params, config_params),
+            None => Ok(()),
         }
     }
 
@@ -167,7 +155,7 @@ impl<'a> Validator<'a> {
             [prefix, suffix] => {
                 // First check passage variables.
                 let passage_var = format!("$passage.{}", suffix);
-                if let Some(value) = self.story.value(&QualifiedName::from(
+                if let Ok(value) = self.story.value(&QualifiedName::from(
                     self.bookmark.namespace(),
                     &passage_var,
                 )) {
@@ -177,7 +165,7 @@ impl<'a> Validator<'a> {
 
                 // Then check character variables.
                 let character_var = format!("$character.{}", suffix);
-                if let Some(value) = self.story.value(&QualifiedName::from(
+                if let Ok(value) = self.story.value(&QualifiedName::from(
                     self.bookmark.namespace(),
                     &character_var,
                 )) {
@@ -191,7 +179,7 @@ impl<'a> Validator<'a> {
                 ))
             }
             [var] => {
-                if let Some(value) = self
+                if let Ok(value) = self
                     .story
                     .value(&QualifiedName::from(self.bookmark.namespace(), &var))
                 {
@@ -217,16 +205,11 @@ impl<'a> Validator<'a> {
     }
 
     fn validate_goto(&self, passage_name: &str) -> Result<()> {
-        match self.story.passage(&QualifiedName::from(
+        self.story.passage(&QualifiedName::from(
             &self.bookmark.namespace(),
             passage_name,
-        )) {
-            None => Err(error!(
-                "Passage name '{}' was not defined in the story.",
-                passage_name
-            )),
-            Some(_) => Ok(()),
-        }
+        ))?;
+        Ok(())
     }
 
     /// Validates that the story contains the referenced passage.

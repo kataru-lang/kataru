@@ -1,19 +1,15 @@
 use super::{CharacterData, Map, Params, QualifiedName, RawLine, Section};
+use crate::error::{Error, Result};
 use crate::traits::SaveYaml;
-use crate::Value;
-use crate::{
-    error::{Error, Result},
-    GLOBAL,
-};
 use crate::{
     traits::{FromMessagePack, FromYaml, Load, LoadYaml, Merge, Save, SaveMessagePack},
     LoadMessagePack,
 };
+use crate::{Bookmark, SetCommand, Value};
 use glob::glob;
 use std::{fmt, path::Path};
 
 pub type Passage = Vec<RawLine>;
-
 pub type Passages = Map<String, Passage>;
 
 impl FromYaml for Passages {
@@ -33,82 +29,123 @@ impl FromYaml for Passages {
 pub type Story = Map<String, Section>;
 
 /// Each story getter returns an Option reference if the name is found.
+/// Returns Result<(namespace, data)>.
 pub trait StoryGetters<'a> {
-    fn section_for_passage(
+    fn resolve<T>(
         &'a self,
-        qname: &mut QualifiedName,
-    ) -> Result<(&'a Section, &'a Passage)>;
-    fn character(&'a self, qname: &QualifiedName) -> Option<&'a Option<CharacterData>>;
-    fn passage(&'a self, qname: &QualifiedName) -> Option<&'a Passage>;
-    fn value(&'a self, qname: &QualifiedName) -> Option<&'a Value>;
-    fn params(&'a self, qname: &QualifiedName) -> Option<&'a Option<Params>>;
+        qname: &QualifiedName,
+        getter: fn(&'a Section, &str) -> Option<T>,
+    ) -> Result<T>;
+    fn resolve_with_section<'n, T>(
+        &'a self,
+        qname: &'n QualifiedName,
+        getter: fn(&'a Section, &'n str) -> Option<T>,
+    ) -> Result<(&'n str, &'a Section, T)>;
+    fn apply_set_commands(
+        &'a self,
+        getter: fn(&'a Section) -> &Option<SetCommand>,
+        bookmark: &mut Bookmark,
+    ) -> Result<()>;
+    fn passage<'n>(
+        &'a self,
+        qname: &'n QualifiedName,
+    ) -> Result<(&'n str, &'a Section, &'a Passage)>;
+    fn character<'n>(
+        &'a self,
+        qname: &'n QualifiedName,
+    ) -> Result<(&'n str, &'a Section, &'a Option<CharacterData>)>;
+    fn value(&'a self, qname: &QualifiedName) -> Result<&'a Value>;
+    fn params(&'a self, qname: &QualifiedName) -> Result<&'a Option<Params>>;
 }
 
 impl<'a> StoryGetters<'a> for Story {
-    /// Attempts to get a section containing the passage matching `qname`.
-    /// First checks in the specified namespace, and falls back to root namespace if not found.
-    ///
-    /// Note that passage name could be:
-    /// 1. a local name (unquallified), in which case namespace stays the same.
-    /// 2. a qualified name pointing to another section, in which case we switch namespace.
-    /// 3. a global name, in which we must changed namespace to root.
-    fn section_for_passage(
+    /// Iterates over possible resolutions of the identifier.
+    /// Returns None if any of the namespaces don't exist or the identifier could not be found.
+    fn resolve<T>(
         &'a self,
-        qname: &mut QualifiedName,
-    ) -> Result<(&'a Section, &'a Passage)> {
-        // First try to find the section specified namespace.
-        if let Some(section) = self.get(&qname.namespace) {
-            if let Some(passage) = section.passage(&qname.name) {
-                // Case 2: name is not local, so switch namespace.
-                return Ok((section, passage));
-            }
-        } else {
-            return Err(error!("Invalid namespace '{}'", &qname.namespace));
-        }
+        qname: &QualifiedName,
+        getter: fn(&'a Section, &str) -> Option<T>,
+    ) -> Result<T> {
+        let (_namespace, _section, data) = self.resolve_with_section(qname, getter)?;
+        Ok(data)
+    }
 
-        // Fall back to try global namespace.
-        if let Some(section) = self.get(GLOBAL) {
-            if let Some(passage) = section.passage(&qname.name) {
-                // Case 3: passage could not be found in local/specified namespace, so switch to global.
-                qname.namespace = GLOBAL.to_string();
-                return Ok((section, passage));
+    // / Iterates over possible resolutions of the identifier.
+    // / Returns None if any of the namespaces don't exist or the identifier could not be found.
+    fn resolve_with_section<'n, T>(
+        &'a self,
+        qname: &'n QualifiedName,
+        getter: fn(&'a Section, &'n str) -> Option<T>,
+    ) -> Result<(&'n str, &'a Section, T)> {
+        for namespace in qname.resolve() {
+            // println!("Resolving '{}' in namespace '{}'", qname.name, namespace);
+            if let Some(section) = self.get(namespace) {
+                if let Some(data) = getter(section, qname.name) {
+                    return Ok((namespace, section, data));
+                }
+            } else {
+                return Err(error!("Namespace '{}' does not exist", namespace));
             }
-        } else {
-            return Err(error!("No global namespace"));
         }
-
-        // Return error if there is no passage name in either namespace.
         Err(error!(
-            "Passage name '{}' could not be found in '{}' nor global namespace",
-            qname.name, qname.namespace
+            "Identifier '{}' was not found in any namespaces.",
+            qname.name
         ))
     }
 
-    fn character(&'a self, qname: &QualifiedName) -> Option<&'a Option<CharacterData>> {
-        match self.get(&qname.namespace)?.character(&qname.name) {
-            Some(data) => Some(data),
-            None => self.get(GLOBAL)?.character(&qname.name),
+    fn apply_set_commands(
+        &'a self,
+        getter: fn(&'a Section) -> &Option<SetCommand>,
+        bookmark: &mut Bookmark,
+    ) -> Result<()> {
+        let mut set_commands: Vec<&SetCommand> = Vec::new();
+
+        // Collect all set commands to run.
+        let qname = QualifiedName::from(bookmark.namespace(), "");
+        for namespace in qname.resolve() {
+            if let Some(section) = self.get(namespace) {
+                if let Some(set_cmd) = getter(section) {
+                    set_commands.push(&set_cmd);
+                }
+            } else {
+                return Err(error!("Invalid namespace '{}'", namespace));
+            }
         }
+        // Apply all  set commands to bookmark.
+        for set_command in set_commands {
+            bookmark.set_state(&set_command.set)?;
+        }
+        Ok(())
     }
 
-    fn passage(&'a self, qname: &QualifiedName) -> Option<&'a Passage> {
-        match self.get(&qname.namespace)?.passage(&qname.name) {
-            Some(data) => Some(data),
-            None => self.get(GLOBAL)?.passage(&qname.name),
+    fn character<'n>(
+        &'a self,
+        qname: &'n QualifiedName,
+    ) -> Result<(&'n str, &'a Section, &'a Option<CharacterData>)> {
+        match self.resolve_with_section(qname, |section, name| section.character(name)) {
+            Ok((namespace, section, data)) => Ok((namespace, section, data)),
+            Err(e) => Err(error!("Invalid character: {}", e)),
         }
     }
-
-    fn value(&'a self, qname: &QualifiedName) -> Option<&'a Value> {
-        match self.get(&qname.namespace)?.value(&qname.name) {
-            Some(data) => Some(data),
-            None => self.get(GLOBAL)?.value(&qname.name),
+    fn value(&'a self, qname: &QualifiedName) -> Result<&'a Value> {
+        match self.resolve(qname, |section, name| section.value(name)) {
+            Ok(data) => Ok(data),
+            Err(e) => Err(error!("Invalid variable: {}", e)),
         }
     }
-
-    fn params(&'a self, qname: &QualifiedName) -> Option<&'a Option<Params>> {
-        match self.get(&qname.namespace)?.params(&qname.name) {
-            Some(data) => Some(data),
-            None => self.get(GLOBAL)?.params(&qname.name),
+    fn params(&'a self, qname: &QualifiedName) -> Result<&'a Option<Params>> {
+        match self.resolve(qname, |section, name| section.params(name)) {
+            Ok(data) => Ok(data),
+            Err(e) => Err(error!("Invalid command: {}", e)),
+        }
+    }
+    fn passage<'n>(
+        &'a self,
+        qname: &'n QualifiedName,
+    ) -> Result<(&'n str, &'a Section, &'a Passage)> {
+        match self.resolve_with_section(qname, |section, name| section.passage(name)) {
+            Ok(data) => Ok(data),
+            Err(e) => Err(error!("Invalid passage: {}", e)),
         }
     }
 }
@@ -137,12 +174,10 @@ fn load_section<P: AsRef<Path> + fmt::Debug>(story: &mut Story, section_path: P)
 impl LoadYaml for Story {
     /// Loads a story from a given directory or YAML file.
     fn load_yml<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self> {
-        println!("Loading yaml story");
         let mut story = Self::new();
 
         // Handle loading a single path story.
         if path.as_ref().is_file() {
-            println!("Loading from file.");
             return match Self::load_string(path) {
                 Ok(source) => Self::from_yml(&source),
                 Err(e) => Err(error!("Error loading YAML: {}", e)),
@@ -156,7 +191,6 @@ impl LoadYaml for Story {
             .into_string()
             .unwrap();
         for entry in glob(pattern).expect("Failed to read glob pattern") {
-            println!("glob entry: {:#?}", entry);
             if let Ok(path) = entry {
                 load_section(&mut story, path)?;
             }

@@ -3,11 +3,17 @@ namespace: namespace1
 
 state:
   var: true
+  $passage.visited: 0
+
 commands:
   $character.LocalMethod: { param1: 0, param2: "", param3: false }
 
 characters:
   LocalCharacter:
+
+onEnter:
+  set:
+    $passage.visited +: 1
 
 ---
 Start:
@@ -21,3 +27,4 @@ Start:
   - LocalCharacter.LocalMethod: [1, two]
   - LocalCharacter.GlobalMethod: {} # namespace1:LocalCharacter.GlobalMethod
   - GlobalCharacter.GlobalMethod: {}
+  - call: namespace1:namespace2:Start

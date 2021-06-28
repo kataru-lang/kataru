@@ -184,7 +184,6 @@ fn test_state() {
     story.save(compiled_story_path).unwrap();
     let story = Story::load(compiled_story_path).unwrap();
     let mut bookmark: Bookmark = Bookmark::load("./tests/data/bookmark.yml").unwrap();
-    println!("{:#?}", story);
     bookmark.init_state(&story);
     runner = Runner::new(&mut bookmark, &story).unwrap();
 

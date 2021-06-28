@@ -68,7 +68,6 @@ impl RawChoices {
                 _ => (),
             }
         }
-        println!("choices length: {}", length);
         length
     }
     pub fn take(&self, bookmark: &mut Bookmark, skip_lines: usize) -> usize {
@@ -132,8 +131,6 @@ impl Choices {
         //  The current passage target.
         let mut passage: &String = &EMPTY_STRING;
         let mut line_num = raw.line_len() - raw.default.line_len();
-        println!("line_num = {}", line_num);
-
         let mut add_target = |key: &'r str, target: &'r ChoiceTarget| {
             match target {
                 // Populate unconditional level choices.
@@ -211,7 +208,6 @@ mod tests {
         "#;
 
         let raw = RawChoices::from_yml(choices_str).unwrap();
-        println!("{:#?}", raw);
         let mut choice_to_passage = Map::default();
         let mut choice_to_line_num = Map::default();
 

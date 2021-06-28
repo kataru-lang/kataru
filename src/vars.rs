@@ -30,7 +30,6 @@ pub fn replace_vars(text: &str, bookmark: &Bookmark) -> String {
         if expr == "}}" {
             return Cow::from("}");
         }
-        println!("expr: '{}'", truncate_ends(expr));
         match Value::from_expr(truncate_ends(expr), bookmark) {
             Ok(value) => Cow::from(value.to_string()),
             Err(_) => Cow::from(format!("{}", expr).to_string()),

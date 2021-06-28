@@ -13,14 +13,14 @@ Kataru is similar to [Twine](http://twinery.org/) and [Yarn Spinner](http://yarn
 # Define what namespace this file is in.
 namespace: global
 
-state: 
+state:
   coffee: 0
   $passage.completed: 0
 
 # Configure the scene. List your characters, commands, etc.
 characters:
   May:
-  June: 
+  June:
 
 commands:
   Wait:
@@ -33,7 +33,6 @@ onExit:
   set:
     $passage.completed +: 1
 ---
-
 Start:
   - May: Welcome to my story!
   - June: Want a coffee?
@@ -44,8 +43,8 @@ Start:
 YesCoffee:
   - May: Yeah, thanks!
   - set:
-        $coffee +: 1
-  - May.SetAnimatorTrigger: [ "drinkcoffee" ]
+      $coffee +: 1
+  - May.SetAnimatorTrigger: ["drinkcoffee"]
   - call: End
 
 NoCoffee:
@@ -59,11 +58,12 @@ End:
 ```
 
 ## Features
+
 - Simple and lightweight
 - Organize dialogue, state, characters, and commands into local namespaces
 - Character-specific commands
 - Syntax highlighting and Unity integration
-  
+
 As well as conditionals, variables, and everything else you expect in a dialogue language.
 
 ## Getting Started
@@ -74,7 +74,7 @@ Once downloaded, check out the examples in [examples/simple](examples/simple).
 
 ## Getting Help
 
-For bugs or feature requests, file an issue. For other questions, contact kataru-dev@gmail.com. 
+For bugs or feature requests, file an issue. For other questions, contact kataru-dev@gmail.com.
 
 ## License
 
@@ -83,4 +83,3 @@ Kataru is licensed under the [MIT License](LICENSE). Credit is appreciated but n
 ---
 
 Made by [Josiah Putman](https://github.com/Katsutoshii) with help from [Angela He](https://github.com/zephyo).
-

@@ -3,7 +3,7 @@ use crate::{
     error::{Error, Result},
     traits::FromStr,
     traits::{FromMessagePack, FromYaml, LoadYaml, SaveMessagePack},
-    Load, LoadMessagePack, Save, SaveYaml, StateMod, Value, GLOBAL,
+    Load, LoadMessagePack, Save, SaveYaml, Section, StateMod, StoryGetters, Value, GLOBAL,
 };
 use serde::{Deserialize, Serialize};
 
@@ -98,33 +98,25 @@ impl<'a> Bookmark {
         self.position = position;
     }
 
-    pub fn update_position(&mut self, qname: QualifiedName) {
-        self.position.namespace = qname.namespace;
-        self.position.passage = qname.name;
+    pub fn update_position(&mut self, namespace: String, passage: String) {
+        self.position.namespace = namespace;
+        self.position.passage = passage;
     }
 
     /// Gets the value for a given variable.
     pub fn value(&'a self, var: &str) -> Result<&'a Value> {
         let qname = QualifiedName::from(&self.position.namespace, var);
-        if let Some(section) = self.state.get(&qname.namespace) {
-            if let Some(val) = section.get(&qname.name) {
-                return Ok(val);
+        for namespace in qname.resolve() {
+            if let Some(section) = self.state.get(namespace) {
+                if let Some(val) = section.get(qname.name) {
+                    return Ok(val);
+                }
+            } else {
+                return Err(error!("No state for namespace '{}'", namespace));
             }
-        } else {
-            return Err(error!("No state for namespace '{}'", &qname.namespace));
         }
-
-        if let Some(section) = self.state.get(GLOBAL) {
-            if let Some(val) = section.get(&qname.name) {
-                return Ok(val);
-            }
-        } else {
-            return Err(error!("No state for global namespace"));
-        }
-
-        // Return error if there is no passage name in either namespace.
         Err(error!(
-            "Variable '{}' could not be found in '{}' nor global namespace state",
+            "Var '{}' could not be found in namespace '{}' nor any of its parents.",
             qname.name, qname.namespace
         ))
     }
@@ -181,24 +173,62 @@ impl<'a> Bookmark {
         }
     }
 
+    fn default_passage_expansion(
+        var: &str,
+        val: &Value,
+        section: &Section,
+        section_state: &mut State,
+    ) {
+        for passage in section.passages.keys() {
+            let replaced = format!("{}{}", passage, &var["$passage".len()..]);
+            Self::default_val(section_state, &replaced, val);
+        }
+    }
+
+    /// Defaults this section's state.
+    fn init_section_state(&mut self, namespace: &str, story: &Story, section: &Section) {
+        let section_state = match self.state.get_mut(namespace) {
+            None => {
+                self.state.insert(namespace.to_string(), State::default());
+                self.state.get_mut(namespace).unwrap()
+            }
+            Some(state) => state,
+        };
+        for (var, val) in section.state() {
+            if var.starts_with("$passage") {
+                Self::default_passage_expansion(var, val, section, section_state);
+            } else {
+                Self::default_val(section_state, &var, &val);
+            }
+        }
+        Self::init_parent_expansions(namespace, story, section, section_state)
+    }
+
+    /// For all parents' expansion variables, defaults values for the entities in this section.
+    fn init_parent_expansions(
+        namespace: &str,
+        story: &Story,
+        section: &Section,
+        section_state: &mut State,
+    ) {
+        let qname = QualifiedName::from(namespace, "");
+        let mut parents_iter = qname.resolve();
+        parents_iter.next(); // Don't check this section, only check parents.
+        for parent_namespace in parents_iter {
+            if let Some(parent_section) = story.get(parent_namespace) {
+                for (var, val) in parent_section.state() {
+                    if var.starts_with("$passage") {
+                        Self::default_passage_expansion(var, val, section, section_state);
+                    }
+                }
+            }
+        }
+    }
+
     /// Defaults bookmark state based on the story.
     pub fn init_state(&mut self, story: &Story) {
         for (namespace, section) in story {
-            if self.state.get(namespace).is_none() {
-                self.state.insert(namespace.to_string(), State::default());
-            }
-
-            let namespace_state = self.state.get_mut(namespace).unwrap();
-            for (var, val) in section.state() {
-                if var.contains("$passage") {
-                    for passage in section.passages.keys() {
-                        let replaced = format!("{}{}", passage, &var["$passage".len()..]);
-                        Self::default_val(namespace_state, &replaced, &val);
-                    }
-                } else {
-                    Self::default_val(namespace_state, &var, &val);
-                }
-            }
+            self.init_section_state(namespace, story, section);
         }
     }
 
@@ -224,20 +254,15 @@ impl<'a> Bookmark {
         }
     }
 
-    /// Returns true if a character is local.
-    pub fn character_is_local(&self, story: &Story, character: &str) -> bool {
-        if self.namespace() == GLOBAL {
-            return false;
+    /// Gets the qualified character name (prefixed with namespace if not global).
+    pub fn qualified_character_name(&self, story: &Story, character: &str) -> Result<String> {
+        let qname = QualifiedName::from(self.namespace(), character);
+        let (namespace, _section, _chardata) = story.character(&qname)?;
+        if namespace == GLOBAL {
+            Ok(character.to_string())
+        } else {
+            Ok(format!("{}:{}", namespace, qname.name))
         }
-
-        // The character is local if the section exists and the character
-        // is defined in the section.
-        if let Some(section) = story.get(self.namespace()) {
-            if section.has_character(character) {
-                return true;
-            }
-        }
-        false
     }
 }
 

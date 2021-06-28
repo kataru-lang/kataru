@@ -16,6 +16,9 @@ commands:
 
 characters:
   GlobalCharacter:
+
+onEnter:
+  
 ---
 Start:
   - GlobalCharacter: Hello # GlobalCharacter.GlobalMethod: "Hello"

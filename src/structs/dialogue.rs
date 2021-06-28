@@ -36,11 +36,7 @@ impl Dialogue {
         let (attributes, text) = Self::extract_attr(&text, bookmark.namespace(), story)?;
 
         // For local characters, append the namespace to their name.
-        let name = if bookmark.character_is_local(story, name) {
-            format!("{}:{}", bookmark.namespace(), name)
-        } else {
-            name.to_string()
-        };
+        let name = bookmark.qualified_character_name(story, name)?;
 
         Ok(Self {
             name,
@@ -62,6 +58,9 @@ mod tests {
             GLOBAL.to_string() => Section::new(
                 Config {
                     namespace,
+                    characters: hashmap! {
+                        "Character".to_string() => None
+                    },
                     attributes: hashmap! {
                         "attr".to_string() => None
                     },

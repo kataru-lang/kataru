@@ -6,8 +6,8 @@ use crate::{
 };
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::fmt;
-use std::path::Path;
+use std::{fmt, str::CharIndices};
+use std::{iter::Rev, path::Path};
 
 lazy_static! {
     static ref SEPARATOR_RE: Regex = Regex::new(r"(\n|\n\r)---").unwrap();
@@ -16,26 +16,81 @@ pub static GLOBAL: &str = "global";
 
 /// A qualified name is a name in an explicit namespace.
 /// If namespace is empty, then this name is global.
-pub struct QualifiedName {
-    pub namespace: String,
-    pub name: String,
+pub struct QualifiedName<'a> {
+    pub namespace: &'a str,
+    pub name: &'a str,
 }
 
-impl QualifiedName {
+impl<'a> QualifiedName<'a> {
     /// Constructs a qualified name while in the context of `namespace`.
     /// This means that if no namespace is specified in `name`, then the qname will have `namespace` as its namespace.
     /// Otherwise it takes the namespace specified in `name`.
-    pub fn from(namespace: &str, name: &str) -> Self {
+    pub fn from(namespace: &'a str, name: &'a str) -> Self {
         let split: Vec<&str> = name.rsplitn(2, ":").collect();
         match split.as_slice() {
             [split_name, explicit_namespace] => Self {
-                namespace: explicit_namespace.to_string(),
-                name: split_name.to_string(),
+                namespace: explicit_namespace,
+                name: split_name,
             },
             _ => Self {
-                namespace: namespace.to_string(),
-                name: name.to_string(),
+                namespace,
+                name: name,
             },
+        }
+    }
+
+    pub fn resolve(&'a self) -> NamespaceResolver<'a> {
+        NamespaceResolver::new(self.namespace)
+    }
+}
+enum ResolverState {
+    Start,
+    Iter,
+    End,
+    GlobalOnly,
+}
+pub struct NamespaceResolver<'a> {
+    namespace: &'a str,
+    char_indices: Rev<CharIndices<'a>>,
+    state: ResolverState,
+}
+impl<'a> NamespaceResolver<'a> {
+    fn new(namespace: &'a str) -> Self {
+        Self {
+            namespace,
+            char_indices: namespace.char_indices().rev(),
+            state: if namespace == GLOBAL {
+                ResolverState::GlobalOnly
+            } else {
+                ResolverState::Start
+            },
+        }
+    }
+}
+impl<'a> Iterator for NamespaceResolver<'a> {
+    type Item = &'a str;
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.state {
+            ResolverState::Start => {
+                // First `next` should just return the namespace.
+                self.state = ResolverState::Iter;
+                Some(&self.namespace)
+            }
+            ResolverState::Iter => {
+                // All subsequent `next` calls should return the parent namespaces in order.
+                while let Some((i, c)) = self.char_indices.next() {
+                    if c == ':' {
+                        return Some(&self.namespace[0..i]);
+                    }
+                }
+                self.state = ResolverState::End;
+                Some(GLOBAL)
+            }
+            ResolverState::GlobalOnly => {
+                self.state = ResolverState::End;
+                Some(GLOBAL)
+            }
+            ResolverState::End => None,
         }
     }
 }
@@ -131,5 +186,23 @@ impl LoadYaml for Section {
             }),
             _ => Err(error!("Unable to parse file.")),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::QualifiedName;
+    use crate::GLOBAL;
+
+    #[test]
+    fn test_namespace_resolution() {
+        let namespace = "n1";
+        let unqualified_name = "n1:n2:ident";
+        let qname = QualifiedName::from(namespace, unqualified_name);
+        assert_eq!(qname.namespace, "n1:n2");
+
+        let resolution_order: Vec<&str> = qname.resolve().collect();
+
+        assert_eq!(resolution_order, vec!["n1:n2", "n1", GLOBAL])
     }
 }

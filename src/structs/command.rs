@@ -73,26 +73,22 @@ where
         story: &'s Story,
         bookmark: &Bookmark,
         command_name: &str,
-    ) -> Option<&'s Params> {
+    ) -> Result<&'s Params> {
         match story.params(&QualifiedName::from(bookmark.namespace(), command_name))? {
-            Some(params) => Some(params),
-            None => Some(&EMPTY_PARAMS),
+            Some(params) => Ok(params),
+            None => Ok(&EMPTY_PARAMS),
         }
     }
 
-    /// If `character` is local, then prepend the namespace to the character.command.
+    /// Gets a qualified command name (prefixed with namespace if not global).
     fn get_qualified_command(
         story: &Story,
         bookmark: &Bookmark,
         character: &str,
         command_name: &str,
-    ) -> String {
-        // If currently in global namespace, don't bother checking.
-        if bookmark.character_is_local(story, character) {
-            format!("{}:{}.{}", bookmark.namespace(), character, command_name)
-        } else {
-            format!("{}.{}", character, command_name)
-        }
+    ) -> Result<String> {
+        let character = bookmark.qualified_character_name(story, character)?;
+        Ok(format!("{}.{}", character, command_name))
     }
 
     /// Returns the (normalized_name, qualified_command) strings.
@@ -109,7 +105,7 @@ where
         match split.as_slice() {
             [character, command_name] => Ok((
                 format!("$character.{}", command_name),
-                Self::get_qualified_command(story, bookmark, character, command_name),
+                Self::get_qualified_command(story, bookmark, character, command_name)?,
             )),
             [command_name] => Ok((command_name.to_string(), command_name.to_string())),
             _ => return Err(error!("Commands can only contain one '.' delimeter.")),
@@ -123,20 +119,17 @@ where
         let (normalized_name, qualified_command) =
             Self::get_command_components(story, bookmark, command_name)?;
 
-        if let Some(default_params) =
-            RawCommand::get_default_params(story, bookmark, &normalized_name)
-        {
-            // Merge params with their defaults.
-            let mut merged_params = params.merge_params(default_params)?;
+        let default_params = RawCommand::get_default_params(story, bookmark, &normalized_name)?;
+        // Merge params with their defaults.
+        let mut merged_params = params.merge_params(default_params)?;
 
-            // If the params have variable names, replace with variable value.
-            for (_var, val) in merged_params.iter_mut() {
-                val.eval_as_expr(bookmark)?;
-            }
-
-            command.name = qualified_command;
-            command.params = merged_params;
+        // If the params have variable names, replace with variable value.
+        for (_var, val) in merged_params.iter_mut() {
+            val.eval_as_expr(bookmark)?;
         }
+
+        command.name = qualified_command;
+        command.params = merged_params;
 
         Ok(command)
     }

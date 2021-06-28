@@ -9,7 +9,7 @@ fn test_namespaces() {
     let mut bookmark: Bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
     bookmark.init_state(&story);
 
-    // println!("{:#?}", story);
+    // println!("{:#?}", bookmark.state);
 
     Validator::new(&story, &mut bookmark).validate().unwrap();
 
@@ -125,6 +125,15 @@ fn test_namespaces() {
                 name: "GlobalCharacter.GlobalMethod".to_string(),
                 params: linear_map! {
                 "param".to_string() => Value::String("".to_string())},
+            }),
+        ),
+        // - LocalCharacter: Visited namespace2 start $Start:visited time(s).
+        (
+            "",
+            Line::Dialogue(Dialogue {
+                name: "namespace1:LocalCharacter".to_string(),
+                text: "Visited namespace2 start 1 time(s)".to_string(),
+                ..Dialogue::default()
             }),
         ),
     ];
