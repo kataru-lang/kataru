@@ -97,7 +97,7 @@ impl<'a> Iterator for NamespaceResolver<'a> {
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Section {
-    config: Config,
+    pub config: Config,
     pub passages: Passages,
 }
 
