@@ -1,5 +1,4 @@
 use kataru::{Bookmark, Choices, Dialogue, Line, LoadYaml, Runner, Story, Validator};
-use maplit::hashmap;
 
 /// Tests basic $character commands.
 #[test]
@@ -26,7 +25,7 @@ fn test_conditionals() {
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "Yes!".to_string(),
-                attributes: hashmap! {},
+                ..Dialogue::default()
             }),
         ),
         (
@@ -34,7 +33,7 @@ fn test_conditionals() {
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "Success!".to_string(),
-                attributes: hashmap! {},
+                ..Dialogue::default()
             }),
         ),
     ];

@@ -1,0 +1,16 @@
+---
+namespace: global
+
+characters:
+  Alice:
+
+attributes:
+  wave:
+  hey:
+    sfx: hey
+    emote: angry
+    volume: 10
+---
+Start:
+  - Alice: Hello <wave>player</wave>!
+  - Alice: ... <hey/>hey!

@@ -1,3 +1,4 @@
+use super::attributes::OptionParams;
 use super::{Map, Params, State};
 use crate::traits::{FromYaml, Merge};
 use crate::{error::Error, SetCommand};
@@ -20,7 +21,7 @@ pub struct Config {
     #[serde(default)]
     pub characters: Map<String, Option<CharacterData>>,
     #[serde(default)]
-    pub attributes: Map<String, Option<String>>,
+    pub attributes: Map<String, Option<OptionParams>>,
     #[serde(default)]
     #[serde(rename = "onEnter")]
     pub on_enter: Option<SetCommand>,

@@ -1,4 +1,4 @@
-use super::{extract_attr, Attributes, Bookmark, Map, Story};
+use super::{AttributeExtractor, Attributes, Bookmark, Map, Story};
 use crate::error::{Error, Result};
 use crate::vars::replace_vars;
 use serde::{Deserialize, Serialize};
@@ -17,7 +17,7 @@ impl Dialogue {
         story: &Story,
     ) -> Result<(Attributes, String)> {
         match story.get(namespace) {
-            Some(section) => extract_attr(text, section.attributes()),
+            Some(section) => AttributeExtractor::extract_attr(text, section.attributes()),
             None => Err(error!(
                 "No such namespace '{}', required for checking attributes in '{}'",
                 namespace, text
@@ -49,7 +49,7 @@ impl Dialogue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Config, Map, Section, GLOBAL};
+    use crate::{structs::attributes::AttributedSpan, Config, Map, Section, GLOBAL};
 
     #[test]
     fn test_dialogue() {
@@ -80,9 +80,13 @@ mod tests {
             Dialogue {
                 name: "Character".to_string(),
                 text: "Text annotated.".to_string(),
-                attributes: hashmap! {
-                    "attr".to_string() => vec![5 as usize, 14]
-                }
+                attributes: vec![AttributedSpan {
+                    start: 5,
+                    end: 14,
+                    params: hashmap! {
+                        "attr".to_string() => None
+                    }
+                }]
             }
         )
     }

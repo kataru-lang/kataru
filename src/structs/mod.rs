@@ -12,7 +12,7 @@ mod section;
 mod state;
 mod story;
 
-pub use attributes::{extract_attr, Attributes};
+pub use attributes::{AttributeExtractor, AttributedSpan, Attributes};
 pub use bookmark::{Bookmark, Position};
 pub use branches::Branches;
 pub use choices::{ChoiceTarget, Choices, RawChoice, RawChoices};
