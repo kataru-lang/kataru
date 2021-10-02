@@ -13,8 +13,76 @@ pub type OptionalParams = Map<String, Option<Value>>;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum AttributeConfig {
+    /// This attribute is registered in Kataru, but has no value.
     Value(Value),
+    /// Processing an open tag.
     Macro(OptionalParams),
+}
+
+/// All attributes that live on the stack must be of this type.
+#[derive(Debug, Clone)]
+enum AttributeType<'i> {
+    /// This attribute is not registered in Kataru and should be ignored.
+    Ignored(&'i str),
+    /// This attribute is registered in Kataru, but has no value.
+    Single(SingleAttributedSpan),
+    /// This attribute is actually a macro, containing multiple parameters.
+    Macro(&'i str, AttributedSpan),
+}
+impl<'i> AttributeType<'i> {
+    fn parse(text: &str) -> Result<(&str, Option<Value>)> {
+        // If a value is contained in this span, split and parse.
+        Ok(match text.split_once('=') {
+            None => (text, None),
+            Some((split_attr, val_str)) => (split_attr, Some(Value::from_yml(val_str)?)),
+        })
+    }
+
+    /// Construct an attribute type by parsing `text`. Span is started at position `start`.
+    /// `story` and `namespace` are used for identifier resolution.
+    pub fn from(text: &'i str, start: usize, story: &Story, namespace: &str) -> Result<Self> {
+        let (attr, value) = Self::parse(text)?;
+        Ok(
+            match story.attribute(&QualifiedName::from(namespace, attr)) {
+                Err(_) => Self::Ignored(attr),
+                Ok(None) => {
+                    let mut single = SingleAttributedSpan::new(attr, start)?;
+                    single.value = value;
+                    Self::Single(single)
+                }
+                Ok(Some(AttributeConfig::Value(default_value))) => {
+                    let mut single = SingleAttributedSpan::new(attr, start)?;
+                    single.value = if value.is_some() {
+                        value
+                    } else {
+                        Some(default_value.clone())
+                    };
+                    Self::Single(single)
+                }
+                Ok(Some(AttributeConfig::Macro(params))) => {
+                    Self::Macro(attr, AttributedSpan::new(start, params.clone()))
+                }
+            },
+        )
+    }
+
+    /// Gets the name of this attribute.
+    pub fn name(&self) -> &str {
+        match self {
+            AttributeType::Ignored(last_attr) => last_attr,
+            AttributeType::Macro(last_attr, _span) => last_attr,
+            AttributeType::Single(span) => &span.name,
+        }
+    }
+
+    /// Gets the name of this attribute.
+    pub fn set_end(&mut self, end: usize) {
+        match self {
+            AttributeType::Ignored(_) => (),
+            AttributeType::Macro(_last_attr, span) => span.end = end,
+            AttributeType::Single(span) => span.end = end,
+        }
+    }
 }
 
 /// Trait expressing spans over text.
@@ -27,13 +95,21 @@ trait Span {
 }
 
 /// A span of text with a map of attributes and values.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct AttributedSpan {
     pub start: usize,
     pub end: usize,
     pub params: Map<String, Option<Value>>,
 }
 impl AttributedSpan {
+    /// Constructs a new attributed span.
+    fn new(start: usize, params: Map<String, Option<Value>>) -> Self {
+        Self {
+            start,
+            end: start,
+            params,
+        }
+    }
     /// Merges a single attributed span into this span.
     fn merge(&mut self, span: SingleAttributedSpan) {
         self.params.insert(span.name, span.value);
@@ -131,7 +207,7 @@ enum Context {
 /// When we process a value, we know we are inside of the context of an open tag.
 /// Therefore we don't need to keep track of context in the stack.
 #[derive(Debug, Clone)]
-pub struct AttributeExtractor<'a> {
+pub struct AttributeExtractor<'a, 'i> {
     /// Output: result attributes.
     attributes: Vec<AttributedSpan>,
     /// Output: text without any attributes.
@@ -147,9 +223,9 @@ pub struct AttributeExtractor<'a> {
     /// Parse state: the current context for the parsing state machine.
     context: Context,
     /// Parse state: a stack of active attributed spans.
-    stack: Vec<(SingleAttributedSpan, &'a Option<AttributeConfig>)>,
+    stack: Vec<AttributeType<'i>>,
 }
-impl<'a> AttributeExtractor<'a> {
+impl<'a, 'i> AttributeExtractor<'a, 'i> {
     /// Initialize the extractor with defaults.
     /// The stack starts is a default single attributed span on top.
     pub fn new(namespace: &'a str, story: &'a Story) -> Self {
@@ -175,7 +251,7 @@ impl<'a> AttributeExtractor<'a> {
         Ok((extractor.attributes, extractor.stripped))
     }
 
-    fn extract(&mut self, text: &str) -> Result<()> {
+    fn extract(&mut self, text: &'i str) -> Result<()> {
         for (i, c) in text.char_indices() {
             self.consume_next(text, i, c)?;
         }
@@ -187,8 +263,9 @@ impl<'a> AttributeExtractor<'a> {
         }
         self.stripped.push_str(&text[self.start..]);
 
-        if let Some((span, _attr_config)) = self.stack.pop() {
-            return Err(error!("Unmatched tag <{}>", span.name));
+        // Handle unmatched tags.
+        if let Some(attr_type) = self.stack.pop() {
+            return Err(error!("Unmatched tag <{}>", attr_type.name()));
         }
         Ok(())
     }
@@ -205,35 +282,41 @@ impl<'a> AttributeExtractor<'a> {
 
     /// When pushing a span, to keep the returned data structure more consice
     /// we merge params over the same span into the same struct.
-    fn push_span(&mut self, span: SingleAttributedSpan, attr_config: &Option<AttributeConfig>) {
+    fn finish_attr(&mut self, attr_type: AttributeType, text: &'i str, i: usize) {
         // If this span is actually a macro, inject the macro values instead of the span.
-        if let Some(AttributeConfig::Macro(params)) = attr_config {
-            if let Some(mergeable_span) = self.get_mergeable_span_mut(&span) {
-                return mergeable_span.merge_with_params(params);
-            } else {
-                return self.attributes.push(AttributedSpan {
-                    start: span.start,
-                    end: span.end,
-                    params: params.clone(),
-                });
+        match attr_type {
+            AttributeType::Macro(_name, span) => {
+                if let Some(mergeable_span) = self.get_mergeable_span_mut(&span) {
+                    mergeable_span.merge_with_params(&span.params)
+                } else {
+                    self.attributes.push(span)
+                }
+            }
+            AttributeType::Single(span) => {
+                if let Some(mergeable_span) = self.get_mergeable_span_mut(&span) {
+                    mergeable_span.merge(span)
+                } else {
+                    self.attributes.push(AttributedSpan::from(span))
+                }
+            }
+            AttributeType::Ignored(_) => {
+                let start = match self.context {
+                    Context::Close => self.start - "</".len(),
+                    Context::SelfClose => self.start - "<".len(),
+                    _ => unreachable!(),
+                };
+                let end = i + ">".len();
+                self.stripped.push_str(&text[start..end]);
             }
         }
-        if let Some(mergeable_span) = self.get_mergeable_span_mut(&span) {
-            mergeable_span.merge(span)
-        } else {
-            self.attributes.push(AttributedSpan::from(span))
-        }
     }
 
-    /// Nested option in result is confusing, but it's the best way to handle this for now.
-    /// The result indicates if `attr` is a valid configured attribute.
-    /// The inner option indicates that the attribute has parameters.
-    fn get_attr_config(&self, attr: &str) -> Result<&'a Option<AttributeConfig>> {
-        self.story
-            .attribute(&QualifiedName::from(self.namespace, attr))
+    /// Constructs an attr type using data from the extractor.
+    fn build_attr_type(&self, text: &'i str) -> Result<AttributeType<'i>> {
+        AttributeType::from(text, self.stripped.len(), &self.story, &self.namespace)
     }
 
-    fn consume_next(&mut self, text: &str, i: usize, c: char) -> Result<()> {
+    fn consume_next(&mut self, text: &'i str, i: usize, c: char) -> Result<()> {
         match self.context {
             Context::Text => {
                 // If we reach an open tag.
@@ -263,14 +346,13 @@ impl<'a> AttributeExtractor<'a> {
                 }
                 // When done an open tag.
                 else if c == '>' {
-                    let span =
-                        SingleAttributedSpan::new(&text[self.start..i], self.stripped.len())?;
-                    if let Ok(attr_config) = self.get_attr_config(&span.name) {
-                        self.stack.push((span, attr_config));
-                    } else {
+                    // match self.get_attr_type
+                    let attr_type = self.build_attr_type(&text[self.start..i])?;
+                    if let AttributeType::Ignored(_) = attr_type {
                         self.stripped
                             .push_str(&text[self.start - "<".len()..i + ">".len()]);
                     }
+                    self.stack.push(attr_type);
                     self.start = i + 1;
                     self.context = Context::Text;
                 }
@@ -279,19 +361,18 @@ impl<'a> AttributeExtractor<'a> {
                 // When done with a close tag, we expect the same tag to be on the top of the stack.
                 if c == '>' {
                     let attr = &text[self.start..i];
-                    if let Some((mut span, attr_config)) = self.stack.pop() {
-                        if span.name != attr {
-                            return Err(error!(
-                                "Tag <{}> was closed before <{}>.",
-                                attr, span.name
-                            ));
-                        }
-                        // This is a valid closing tag, so update the span.
-                        span.end = self.stripped.len();
-                        self.push_span(span, attr_config)
-                    } else {
-                        return Err(error!("Closing tag </{}> had no open tag.", attr));
+                    let mut attr_type = match self.stack.pop() {
+                        Some(attr_type) => attr_type,
+                        None => return Err(error!("Closing tag </{}> had no open tag.", attr)),
+                    };
+
+                    let last_attr = attr_type.name();
+                    if attr != attr_type.name() {
+                        return Err(error!("Tag <{}> was closed before <{}>.", attr, last_attr));
                     }
+
+                    attr_type.set_end(self.stripped.len());
+                    self.finish_attr(attr_type, text, i);
 
                     self.start = i + 1;
                     self.context = Context::Text;
@@ -306,16 +387,8 @@ impl<'a> AttributeExtractor<'a> {
                     ));
                 }
 
-                let span = SingleAttributedSpan::new(
-                    &text[self.start..i - "/".len()],
-                    self.stripped.len(),
-                )?;
-                if let Ok(attr_config) = self.get_attr_config(&span.name) {
-                    self.push_span(span, attr_config);
-                } else {
-                    self.stripped
-                        .push_str(&text[self.start - "<".len()..i + ">".len()]);
-                }
+                let attr_type = self.build_attr_type(&text[self.start..i - "/".len()])?;
+                self.finish_attr(attr_type, text, i);
                 self.start = i + ">".len();
                 self.context = Context::Text;
             }
@@ -339,6 +412,11 @@ mod tests {
 
     #[test]
     fn test_extract_attr() {
+        let hey_params = hashmap! {
+            "sfx".to_string() => Some(Value::String("hey".to_string())),
+            "volume".to_string() => Some(Value::Number(10.)),
+            "emote".to_string() => Some(Value::String("angry".to_string()))
+        };
         let story = Story::from(hashmap! {
             "global".to_string() => Section { config: Config {
                 namespace: "global".to_string(),
@@ -348,11 +426,7 @@ mod tests {
                     "sfx".to_string() => None,
                     "volume".to_string() => None,
                     "emote".to_string() => None,
-                    "hey".to_string() => Some(AttributeConfig::Macro(hashmap! {
-                        "sfx".to_string() => Some(Value::String("hey".to_string())),
-                        "volume".to_string() => Some(Value::Number(10.)),
-                        "emote".to_string() => Some(Value::String("angry".to_string()))
-                    }))
+                    "hey".to_string() => Some(AttributeConfig::Macro(hey_params.clone()))
                 },
                 ..Config::default()
             }, passages: Map::new() }
@@ -370,57 +444,47 @@ mod tests {
                     "Test text.".to_string(),
                 )),
             ),
-            // (
-            //     "Test <hey/>hey.",
-            //     Ok((
-            //         vec![AttributedSpan {
-            //             start: 5,
-            //             end: 5,
-            //             params: story.sections["global"].config.attributes["hey"]
-            //                 .as_ref()
-            //                 .unwrap()
-            //                 .clone(),
-            //         }],
-            //         "Test hey.".to_string(),
-            //     )),
-            // ),
-            // (
-            //     r#"Test <sfx="hey"/><volume=10/><emote="angry"/>hey."#,
-            //     Ok((
-            //         vec![AttributedSpan {
-            //             start: 5,
-            //             end: 5,
-            //             params: story.sections["global"].config.attributes["hey"]
-            //                 .as_ref()
-            //                 .unwrap()
-            //                 .clone(),
-            //         }],
-            //         "Test hey.".to_string(),
-            //     )),
-            // ),
-            // (
-            //     "Test <b>text</b>.",
-            //     Ok((Attributes::new(), "Test <b>text</b>.".to_string())),
-            // ),
-            // (
-            //     "Test </attr1>text</attr1>.",
-            //     Err(Error::Generic(
-            //         "Closing tag </attr1> had no open tag.".to_string(),
-            //     )),
-            // ),
-            // (
-            //     "Test <attr1>text.",
-            //     Err(Error::Generic("Unmatched tag <attr1>".to_string())),
-            // ),
-            // (
-            //     "Test < text.",
-            //     Ok((Attributes::new(), "Test < text.".to_string())),
-            // ),
+            (
+                "Test <hey/>hey.",
+                Ok((
+                    vec![AttributedSpan {
+                        start: 5,
+                        end: 5,
+                        params: hey_params.clone(),
+                    }],
+                    "Test hey.".to_string(),
+                )),
+            ),
+            (
+                r#"Test <sfx="hey"/><volume=10/><emote="angry"/>hey."#,
+                Ok((
+                    vec![AttributedSpan {
+                        start: 5,
+                        end: 5,
+                        params: hey_params.clone(),
+                    }],
+                    "Test hey.".to_string(),
+                )),
+            ),
+            (
+                "Test <b>text</b>.",
+                Ok((Vec::new(), "Test <b>text</b>.".to_string())),
+            ),
+            (
+                "Test </attr1>text</attr1>.",
+                Err(Error::Generic(
+                    "Closing tag </attr1> had no open tag.".to_string(),
+                )),
+            ),
+            (
+                "Test <attr1>text.",
+                Err(Error::Generic("Unmatched tag <attr1>".to_string())),
+            ),
+            ("Test < text.", Ok((Vec::new(), "Test < text.".to_string()))),
         ];
 
         for (text, expected) in tests {
             let result = AttributeExtractor::extract_attr(text, "global", &story);
-            println!("{:?}", result);
             assert_eq!(result, expected);
         }
     }

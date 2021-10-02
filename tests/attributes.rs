@@ -25,7 +25,7 @@ fn test_attributes() {
                 attributes: vec![AttributedSpan {
                     start: 6,
                     end: 12,
-                    params: hashmap! { "wave".to_string() => None},
+                    params: hashmap! { "wave".to_string() => Some(Value::Number(10.)) },
                 }],
             }),
         ),
