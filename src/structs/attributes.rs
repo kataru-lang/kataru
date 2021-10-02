@@ -264,8 +264,11 @@ impl<'a, 'i> AttributeExtractor<'a, 'i> {
         self.stripped.push_str(&text[self.start..]);
 
         // Handle unmatched tags.
-        if let Some(attr_type) = self.stack.pop() {
-            return Err(error!("Unmatched tag <{}>", attr_type.name()));
+        for attr_type in &self.stack {
+            if let AttributeType::Ignored(_) = attr_type {
+            } else {
+                return Err(error!("Unmatched tag <{}>", attr_type.name()));
+            }
         }
         Ok(())
     }
@@ -432,7 +435,8 @@ mod tests {
             }, passages: Map::new() }
         });
 
-        let tests: Vec<(&str, Result<(Attributes, String)>)> = vec![
+        let tests: Vec<(&str, Result<(Attributes, String)>)> =
+            vec![
             (
                 "Test <attr1>text</attr1>.",
                 Ok((
@@ -469,6 +473,10 @@ mod tests {
             (
                 "Test <b>text</b>.",
                 Ok((Vec::new(), "Test <b>text</b>.".to_string())),
+            ),
+            (
+                r#"Test <sprite name="sprite">text."#,
+                Ok((Vec::new(), r#"Test <sprite name="sprite">text."#.to_string())),
             ),
             (
                 "<bounce>Whatever</bounce> we do, we should <bounce>stick together</bounce>.",
