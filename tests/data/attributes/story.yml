@@ -14,3 +14,4 @@ attributes:
 Start:
   - Alice: Hello <wave>player</wave>!
   - Alice: ... <hey/>hey!
+  - call: namespace1:Start

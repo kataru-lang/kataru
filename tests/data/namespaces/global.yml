@@ -8,6 +8,11 @@ state:
 commands:
   GlobalCommand:
     param: 0
+    # enumParam:
+    #   default: VARIANT0
+    #   values:
+    #     - VARIANT0
+    #     - VARIANT1
 
   GlobalCommandNoParams:
 
@@ -17,8 +22,6 @@ commands:
 characters:
   GlobalCharacter:
 
-onEnter:
-  
 ---
 Start:
   - GlobalCharacter: Hello # GlobalCharacter.GlobalMethod: "Hello"
@@ -27,5 +30,6 @@ Start:
   - GlobalCharacter.GlobalMethod: [test]
   - GlobalCommand: {}
   - GlobalCommand: { param: 1 }
+  # - GlobalCommand: { enumParam: VARIANT1 }
   - GlobalCommandNoParams: {}
   - call: namespace1:Start

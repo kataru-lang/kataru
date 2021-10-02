@@ -143,6 +143,8 @@ mod tests {
             ("2 * (1 + 4)", Value::Number(10.)),
             ("- (1 / 3)", Value::Number(-1. / 3.)),
             ("true and false", Value::Bool(false)),
+            ("not true and true", Value::Bool(false)),
+            ("true and not false", Value::Bool(true)),
             ("true or false", Value::Bool(true)),
             ("1 < 2", Value::Bool(true)),
             (

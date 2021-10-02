@@ -1,13 +1,13 @@
 Program = _{ SOI ~ Expr ~ EOF }
 
 // Expressions
-Expr = _{ UnaryExpr | BinaryExpr }
+Expr = _{ BinaryExpr | UnaryExpr }
 UnaryExpr = { UnaryOperator ~ Term }
 BinaryExpr = { (Term ~ BinaryOperator)* ~ Term }
 Term = _{ Atom | UnaryExpr | "(" ~ Expr ~ ")" }
 
 // Operators
-Operator = _{UnaryOperator | BinaryOperator}
+Operator = _{ UnaryOperator | BinaryOperator }
 UnaryOperator = _{ Not | Add | Sub }
 BinaryOperator = _{ Add | Sub | Mul | Div | And | Or | Eq | Neq | Leq | Lt | Geq | Gt}
 Not = { "not" }

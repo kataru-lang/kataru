@@ -6,7 +6,10 @@ state:
   $passage.visited: 0
 
 commands:
-  $character.LocalMethod: { param1: 0, param2: "", param3: false }
+  $character.LocalMethod:
+    param1: 0
+    param2: ""
+    param3: false
 
 characters:
   LocalCharacter:
