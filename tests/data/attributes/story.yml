@@ -5,7 +5,7 @@ characters:
   Alice:
 
 attributes:
-  wave:
+  wave: 10
   hey:
     sfx: hey
     emote: angry

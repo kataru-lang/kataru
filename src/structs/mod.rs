@@ -26,4 +26,4 @@ pub use map::{Entry, Map};
 pub use operator::{AssignOperator, Operator};
 pub use section::{QualifiedName, Section, GLOBAL};
 pub use state::{State, StateMod};
-pub use story::{Passage, Passages, Story, StoryGetters};
+pub use story::{Passage, Passages, Story};

@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::{fmt, str::CharIndices};
 use std::{iter::Rev, path::Path};
 
-use super::attributes::OptionParams;
+use super::attributes::AttributeConfig;
 
 lazy_static! {
     static ref SEPARATOR_RE: Regex = Regex::new(r"(\n|\n\r)---").unwrap();
@@ -102,7 +102,6 @@ pub struct Section {
     pub config: Config,
     pub passages: Passages,
 }
-
 impl<'a> Section {
     #[cfg(test)]
     pub fn new(config: Config) -> Self {
@@ -123,8 +122,8 @@ impl<'a> Section {
     }
 
     #[inline]
-    pub fn attributes(&self) -> &Map<String, Option<OptionParams>> {
-        &self.config.attributes
+    pub fn attribute(&'a self, name: &str) -> Option<&'a Option<AttributeConfig>> {
+        self.config.attributes.get(name)
     }
 
     #[inline]

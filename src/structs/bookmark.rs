@@ -3,7 +3,7 @@ use crate::{
     error::{Error, Result},
     traits::FromStr,
     traits::{FromMessagePack, FromYaml, LoadYaml, SaveMessagePack},
-    Load, LoadMessagePack, Save, SaveYaml, Section, StateMod, StoryGetters, Value, GLOBAL,
+    Load, LoadMessagePack, Save, SaveYaml, Section, StateMod, Value, GLOBAL,
 };
 use serde::{Deserialize, Serialize};
 
@@ -215,7 +215,7 @@ impl<'a> Bookmark {
         let mut parents_iter = qname.resolve();
         parents_iter.next(); // Don't check this section, only check parents.
         for parent_namespace in parents_iter {
-            if let Some(parent_section) = story.get(parent_namespace) {
+            if let Some(parent_section) = story.sections.get(parent_namespace) {
                 for (var, val) in parent_section.state() {
                     if var.starts_with("$passage") {
                         Self::default_passage_expansion(var, val, section, section_state);
@@ -227,7 +227,7 @@ impl<'a> Bookmark {
 
     /// Defaults bookmark state based on the story.
     pub fn init_state(&mut self, story: &Story) {
-        for (namespace, section) in story {
+        for (namespace, section) in &story.sections {
             self.init_section_state(namespace, story, section);
         }
     }

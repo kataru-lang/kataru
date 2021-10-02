@@ -1,5 +1,5 @@
 use super::{AttributeExtractor, Attributes, Bookmark, Map, Story};
-use crate::error::{Error, Result};
+use crate::error::Result;
 use crate::vars::replace_vars;
 use serde::{Deserialize, Serialize};
 
@@ -11,20 +11,6 @@ pub struct Dialogue {
 }
 
 impl Dialogue {
-    pub fn extract_attr(
-        text: &str,
-        namespace: &str,
-        story: &Story,
-    ) -> Result<(Attributes, String)> {
-        match story.get(namespace) {
-            Some(section) => AttributeExtractor::extract_attr(text, section.attributes()),
-            None => Err(error!(
-                "No such namespace '{}', required for checking attributes in '{}'",
-                namespace, text
-            )),
-        }
-    }
-
     pub fn from_map(map: &Map<String, String>, story: &Story, bookmark: &Bookmark) -> Result<Self> {
         for (name, text) in map {
             return Self::from(name, text, story, bookmark);
@@ -33,7 +19,8 @@ impl Dialogue {
     }
 
     pub fn from(name: &str, text: &str, story: &Story, bookmark: &Bookmark) -> Result<Self> {
-        let (attributes, text) = Self::extract_attr(&text, bookmark.namespace(), story)?;
+        let (attributes, text) =
+            AttributeExtractor::extract_attr(&text, bookmark.namespace(), story)?;
 
         // For local characters, append the namespace to their name.
         let name = bookmark.qualified_character_name(story, name)?;
@@ -54,7 +41,7 @@ mod tests {
     #[test]
     fn test_dialogue() {
         let namespace = GLOBAL.to_string();
-        let story = hashmap! {
+        let story = Story::from(hashmap! {
             GLOBAL.to_string() => Section::new(
                 Config {
                     namespace,
@@ -67,7 +54,7 @@ mod tests {
                     ..Config::default()
                 }
             )
-        };
+        });
         let bookmark = Bookmark::new(hashmap! {
             GLOBAL.to_string() => Map::new()
         });

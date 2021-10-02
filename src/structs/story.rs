@@ -1,3 +1,4 @@
+use super::attributes::AttributeConfig;
 use super::{CharacterData, Map, Params, QualifiedName, RawLine, Section};
 use crate::error::{Error, Result};
 use crate::traits::SaveYaml;
@@ -7,6 +8,7 @@ use crate::{
 };
 use crate::{Bookmark, SetCommand, Value};
 use glob::glob;
+use serde::{Deserialize, Serialize};
 use std::{fmt, path::Path};
 
 pub type Passage = Vec<RawLine>;
@@ -26,39 +28,20 @@ impl FromYaml for Passages {
     }
 }
 
-pub type Story = Map<String, Section>;
-
-/// Each story getter returns an Option reference if the name is found.
-/// Returns Result<(namespace, data)>.
-pub trait StoryGetters<'a> {
-    fn resolve<T>(
-        &'a self,
-        qname: &QualifiedName,
-        getter: fn(&'a Section, &str) -> Option<T>,
-    ) -> Result<T>;
-    fn resolve_with_section<'n, T>(
-        &'a self,
-        qname: &'n QualifiedName,
-        getter: fn(&'a Section, &'n str) -> Option<T>,
-    ) -> Result<(&'n str, &'a Section, T)>;
-    fn apply_set_commands(
-        &'a self,
-        getter: fn(&'a Section) -> &Option<SetCommand>,
-        bookmark: &mut Bookmark,
-    ) -> Result<()>;
-    fn passage<'n>(
-        &'a self,
-        qname: &'n QualifiedName,
-    ) -> Result<(&'n str, &'a Section, &'a Passage)>;
-    fn character<'n>(
-        &'a self,
-        qname: &'n QualifiedName,
-    ) -> Result<(&'n str, &'a Section, &'a Option<CharacterData>)>;
-    fn value(&'a self, qname: &QualifiedName) -> Result<&'a Value>;
-    fn params(&'a self, qname: &QualifiedName) -> Result<&'a Option<Params>>;
+/// Represents the story, which is a map of namespaces to their sections.
+#[derive(Debug, Deserialize, Default, Serialize)]
+pub struct Story {
+    #[serde(flatten)]
+    pub sections: Map<String, Section>,
 }
+impl<'a> Story {
+    /// Construct a story with an empty map of sections.
+    pub fn new() -> Self {
+        Self {
+            sections: Map::new(),
+        }
+    }
 
-impl<'a> StoryGetters<'a> for Story {
     /// Iterates over possible resolutions of the identifier.
     /// Returns None if any of the namespaces don't exist or the identifier could not be found.
     fn resolve<T>(
@@ -70,8 +53,8 @@ impl<'a> StoryGetters<'a> for Story {
         Ok(data)
     }
 
-    // / Iterates over possible resolutions of the identifier.
-    // / Returns None if any of the namespaces don't exist or the identifier could not be found.
+    /// Iterates over possible resolutions of the identifier.
+    /// Returns None if any of the namespaces don't exist or the identifier could not be found.
     fn resolve_with_section<'n, T>(
         &'a self,
         qname: &'n QualifiedName,
@@ -79,7 +62,7 @@ impl<'a> StoryGetters<'a> for Story {
     ) -> Result<(&'n str, &'a Section, T)> {
         for namespace in qname.resolve() {
             // println!("Resolving '{}' in namespace '{}'", qname.name, namespace);
-            if let Some(section) = self.get(namespace) {
+            if let Some(section) = self.sections.get(namespace) {
                 if let Some(data) = getter(section, qname.name) {
                     return Ok((namespace, section, data));
                 }
@@ -93,7 +76,8 @@ impl<'a> StoryGetters<'a> for Story {
         ))
     }
 
-    fn apply_set_commands(
+    /// Applies set commands
+    pub fn apply_set_commands(
         &'a self,
         getter: fn(&'a Section) -> &Option<SetCommand>,
         bookmark: &mut Bookmark,
@@ -103,7 +87,7 @@ impl<'a> StoryGetters<'a> for Story {
         // Collect all set commands to run.
         let qname = QualifiedName::from(bookmark.namespace(), "");
         for namespace in qname.resolve() {
-            if let Some(section) = self.get(namespace) {
+            if let Some(section) = self.sections.get(namespace) {
                 if let Some(set_cmd) = getter(section) {
                     set_commands.push(&set_cmd);
                 }
@@ -118,7 +102,8 @@ impl<'a> StoryGetters<'a> for Story {
         Ok(())
     }
 
-    fn character<'n>(
+    /// Gets character data and the enclosing section by resolving `qname`.
+    pub fn character<'n>(
         &'a self,
         qname: &'n QualifiedName,
     ) -> Result<(&'n str, &'a Section, &'a Option<CharacterData>)> {
@@ -127,19 +112,24 @@ impl<'a> StoryGetters<'a> for Story {
             Err(e) => Err(error!("Invalid character: {}", e)),
         }
     }
-    fn value(&'a self, qname: &QualifiedName) -> Result<&'a Value> {
+
+    /// Gets a value by resolving `qname`.
+    pub fn value(&'a self, qname: &QualifiedName) -> Result<&'a Value> {
         match self.resolve(qname, |section, name| section.value(name)) {
             Ok(data) => Ok(data),
             Err(e) => Err(error!("Invalid variable: {}", e)),
         }
     }
-    fn params(&'a self, qname: &QualifiedName) -> Result<&'a Option<Params>> {
+    /// Gets the params for a command by resolving `qname`.
+    pub fn params(&'a self, qname: &QualifiedName) -> Result<&'a Option<Params>> {
         match self.resolve(qname, |section, name| section.params(name)) {
             Ok(data) => Ok(data),
             Err(e) => Err(error!("Invalid command: {}", e)),
         }
     }
-    fn passage<'n>(
+
+    /// Gets a passage by resolving `qname`.
+    pub fn passage<'n>(
         &'a self,
         qname: &'n QualifiedName,
     ) -> Result<(&'n str, &'a Section, &'a Passage)> {
@@ -148,10 +138,24 @@ impl<'a> StoryGetters<'a> for Story {
             Err(e) => Err(error!("Invalid passage: {}", e)),
         }
     }
+
+    /// Gets an attribute by resolving `qname`.
+    pub fn attribute<'n>(
+        &'a self,
+        qname: &'n QualifiedName,
+    ) -> Result<&'a Option<AttributeConfig>> {
+        match self.resolve(qname, |section, name| section.attribute(name)) {
+            Ok(data) => Ok(data),
+            Err(e) => Err(error!("Invalid attribute: {}", e)),
+        }
+    }
 }
-
+impl From<Map<String, Section>> for Story {
+    fn from(sections: Map<String, Section>) -> Self {
+        Self { sections }
+    }
+}
 impl<'a> FromMessagePack for Story {}
-
 impl SaveYaml for Story {}
 impl SaveMessagePack for Story {}
 impl Save for Story {}
@@ -160,12 +164,12 @@ impl FromYaml for Story {}
 fn load_section<P: AsRef<Path> + fmt::Debug>(story: &mut Story, section_path: P) -> Result<()> {
     let mut section = Section::load_yml(section_path)?;
     let namespace = section.namespace();
-    match story.get_mut(namespace) {
+    match story.sections.get_mut(namespace) {
         Some(story_section) => {
             story_section.merge(&mut section)?;
         }
         None => {
-            story.insert(namespace.to_string(), section);
+            story.sections.insert(namespace.to_string(), section);
         }
     };
     Ok(())

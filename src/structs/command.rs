@@ -1,7 +1,7 @@
 use linear_map::LinearMap;
 
 use super::QualifiedName;
-use crate::{traits::CopyMerge, Bookmark, Error, Map, Result, Story, StoryGetters, Value};
+use crate::{traits::CopyMerge, Bookmark, Error, Map, Result, Story, Value};
 use serde::{Deserialize, Serialize};
 
 pub type Params = LinearMap<String, Value>;

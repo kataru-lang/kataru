@@ -1,9 +1,8 @@
 use crate::{
     error::{Error, Result},
     structs::{
-        AssignOperator, Branches, ChoiceTarget, Dialogue, Map, Params, Passage, Passages,
+        AssignOperator, AttributeExtractor, Branches, ChoiceTarget, Map, Params, Passage, Passages,
         QualifiedName, RawChoice, RawChoices, RawCommand, RawLine, State, StateMod, Story,
-        StoryGetters,
     },
     traits::FromStr,
     Bookmark, Value,
@@ -20,7 +19,7 @@ impl<'a> Validator<'a> {
     }
 
     fn validate_text(&self, text: &str) -> Result<()> {
-        Dialogue::extract_attr(text, self.bookmark.namespace(), self.story)?;
+        AttributeExtractor::extract_attr(text, self.bookmark.namespace(), self.story)?;
         Ok(())
     }
 
@@ -251,7 +250,7 @@ impl<'a> Validator<'a> {
     /// Validates an entire story for valid passage references, HTML, conditionals.
     pub fn validate(&mut self) -> Result<()> {
         let original_position = self.bookmark.position().clone();
-        for (namespace, namespace_val) in self.story {
+        for (namespace, namespace_val) in &self.story.sections {
             self.bookmark.set_namespace(namespace.to_string());
             self.validate_passages(&namespace_val.passages)?;
         }

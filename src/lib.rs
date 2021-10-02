@@ -23,7 +23,7 @@ pub use runner::Runner;
 pub use structs::{
     AttributedSpan, Bookmark, CharacterData, Choices, Command, Config, Dialogue, Input, Line, Map,
     Operator, Params, Passage, Passages, Position, Section, SetCommand, State, StateMod, Story,
-    StoryGetters, GLOBAL,
+    GLOBAL,
 };
 pub use tagger::LineTag;
 pub use traits::{

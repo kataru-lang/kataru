@@ -43,6 +43,20 @@ fn test_attributes() {
                 }],
             }),
         ),
+        (
+            "",
+            Line::Dialogue(Dialogue {
+                name: "Alice".to_string(),
+                text: "... hey again!".to_string(),
+                attributes: vec![AttributedSpan {
+                    start: 4,
+                    end: 4,
+                    params: hashmap! { "sfx".to_string() => Some(Value::String("hey".to_string())),
+                    "emote".to_string() => Some(Value::String("angry".to_string())),
+                    "volume".to_string() => Some(Value::Number(10.))},
+                }],
+            }),
+        ),
     ];
 
     for (input, line) in &tests {
