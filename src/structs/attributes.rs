@@ -471,6 +471,14 @@ mod tests {
                 Ok((Vec::new(), "Test <b>text</b>.".to_string())),
             ),
             (
+                "<bounce>Whatever</bounce> we do, we should <bounce>stick together</bounce>.",
+                Ok((
+                    Vec::new(),
+                    "<bounce>Whatever</bounce> we do, we should <bounce>stick together</bounce>."
+                        .to_string(),
+                )),
+            ),
+            (
                 "Test </attr1>text</attr1>.",
                 Err(Error::Generic(
                     "Closing tag </attr1> had no open tag.".to_string(),
