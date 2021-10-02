@@ -249,13 +249,11 @@ impl<'a> AttributeExtractor<'a> {
                 if c == '/' {
                     // Closing tag, e.g. "</tag>"".
                     if self.start == i {
-                        println!("Closing tag!");
                         self.start = i + "/".len();
                         self.context = Context::Close;
                     }
                     // Self-closing tag, e.g. "<tag/>"".
                     else {
-                        println!("Self-closing tag!");
                         self.context = Context::SelfClose;
                     }
                 }
