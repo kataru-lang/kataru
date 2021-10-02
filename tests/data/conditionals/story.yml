@@ -13,6 +13,7 @@ Start:
   - call: SingleIf
   - call: NestedIf
   - call: ChoicesIf
+  - call: TestElse
   - Alice: Success!
 
 SingleIf:
@@ -43,6 +44,19 @@ ChoicesIf:
           No!: ChoiceNo
     else:
       - Alice: I will not say this.
+
+TestElse:
+  - if false:
+      - choices:
+          Yeah!:
+          Yes!: ChoiceYes
+          No!: ChoiceNo
+    else:
+      - Alice: I will say this.
+      - if false:
+          - Alice: I will not say this.
+        else:
+          - Alice: I will also say this.
 
 ChoiceYes:
   - Alice: Yes!

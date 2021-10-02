@@ -32,6 +32,22 @@ fn test_conditionals() {
             "",
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
+                text: "I will say this.".to_string(),
+                ..Dialogue::default()
+            }),
+        ),
+        (
+            "",
+            Line::Dialogue(Dialogue {
+                name: "Alice".to_string(),
+                text: "I will also say this.".to_string(),
+                ..Dialogue::default()
+            }),
+        ),
+        (
+            "",
+            Line::Dialogue(Dialogue {
+                name: "Alice".to_string(),
                 text: "Success!".to_string(),
                 ..Dialogue::default()
             }),
