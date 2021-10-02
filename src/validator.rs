@@ -1,11 +1,11 @@
 use crate::{
     error::{Error, Result},
     structs::{
-        AssignOperator, AttributeExtractor, Branches, ChoiceTarget, Map, Params, Passage, Passages,
-        QualifiedName, RawChoice, RawChoices, RawCommand, RawLine, State, StateMod, Story,
+        AssignOperator, AttributeExtractor, Branches, ChoiceTarget, CommandGetters, Map, Params,
+        Passage, Passages, QualifiedName, RawChoice, RawChoices, RawLine, State, StateMod, Story,
     },
     traits::FromStr,
-    Bookmark, Value,
+    Bookmark, Command, Value,
 };
 
 pub struct Validator<'a> {
@@ -84,20 +84,21 @@ impl<'a> Validator<'a> {
     }
 
     /// Validates a list of commands in the Cmd object.
-    fn validate_command(&self, cmd: &RawCommand) -> Result<()> {
-        for (command, params) in cmd {
-            let split: Vec<&str> = command.split(".").collect();
-            let command_name = match split.as_slice() {
-                [character, command] => {
-                    self.validate_character(&character)?;
-                    format!("$character.{}", command)
-                }
-                [command] => command.to_string(),
-                _ => return Err(error!("Commands can only contain one '.' delimeter.")),
-            };
-
-            self.validate_namespace_command(&self.bookmark.namespace(), &command_name, params)?;
-        }
+    fn validate_command(&self, command: &Command) -> Result<()> {
+        let split: Vec<&str> = command.name.split(".").collect();
+        let command_name = match split.as_slice() {
+            [character, command] => {
+                self.validate_character(&character)?;
+                format!("$character.{}", command)
+            }
+            [command] => command.to_string(),
+            _ => return Err(error!("Commands can only contain one '.' delimeter.")),
+        };
+        self.validate_namespace_command(
+            &self.bookmark.namespace(),
+            &command_name,
+            &command.params,
+        )?;
         Ok(())
     }
 
@@ -109,7 +110,12 @@ impl<'a> Validator<'a> {
             RawLine::Choices(choices) => self.validate_choices(choices),
             RawLine::Call(call) => self.validate_goto(&call.passage),
             RawLine::SetCommand(set_command) => self.validate_state(&set_command.set),
-            RawLine::Command(command) => self.validate_command(&command),
+            RawLine::Command(command) => {
+                self.validate_command(&command.get_full_command(&self.story, &self.bookmark)?)
+            }
+            RawLine::PositionalCommand(command) => {
+                self.validate_command(&command.get_full_command(&self.story, &self.bookmark)?)
+            }
             _ => Ok(()),
         }
     }
