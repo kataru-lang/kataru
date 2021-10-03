@@ -1,16 +1,49 @@
 use crate::{
     error::{Error, Result},
     structs::{
-        Bookmark, ChoiceTarget, Choices, CommandGetters, Dialogue, Passage, QualifiedName,
-        RawChoice, RawChoices, RawLine, Return, State, Story,
+        Bookmark, Branches, Call, ChoiceTarget, Choices, CommandGetters, Dialogue, Passage,
+        PositionalCommand, QualifiedName, RawChoice, RawChoices, RawCommand, RawLine, State, Story,
     },
-    Line, Map, Section, Value,
+    Input, Line, Map, Section, SetCommand, Value,
 };
 
-static RETURN: RawLine = RawLine::Return(Return { r#return: () });
 static EMPTY_PASSAGE: Passage = Vec::new();
 lazy_static! {
     static ref EMPTY_SECTION: Section = Section::default();
+}
+
+/// Internal struct used for the flattened array of lines.
+/// Each element is either a raw line reference,
+/// or a break statement pointing to the line to jump to.
+#[derive(Debug, Clone, Copy)]
+enum LineRef<'r> {
+    Branches(&'r Branches),
+    SetCommand(&'r SetCommand),
+    Input(&'r Input),
+    Choices(&'r RawChoices),
+    Command(&'r RawCommand),
+    PositionalCommand(&'r PositionalCommand),
+    Call(&'r Call),
+    Return,
+    Text(&'r String),
+    Dialogue(&'r Map<String, String>),
+    Break(usize),
+}
+impl<'r> From<&'r RawLine> for LineRef<'r> {
+    fn from(raw: &'r RawLine) -> Self {
+        match raw {
+            RawLine::Branches(line_ref) => Self::Branches(line_ref),
+            RawLine::SetCommand(line_ref) => Self::SetCommand(line_ref),
+            RawLine::Input(line_ref) => Self::Input(line_ref),
+            RawLine::Choices(line_ref) => Self::Choices(line_ref),
+            RawLine::Command(line_ref) => Self::Command(line_ref),
+            RawLine::PositionalCommand(line_ref) => Self::PositionalCommand(line_ref),
+            RawLine::Call(line_ref) => Self::Call(line_ref),
+            RawLine::Return(_) => Self::Return,
+            RawLine::Text(line_ref) => Self::Text(line_ref),
+            RawLine::Dialogue(line_ref) => Self::Dialogue(line_ref),
+        }
+    }
 }
 
 pub struct Runner<'r> {
@@ -25,13 +58,11 @@ pub struct Runner<'r> {
     /// Current section (list of passages enclosed in a namespace.
     pub section: &'r Section,
     /// Flattened array of line references (use `line_num` to index).
-    lines: Vec<&'r RawLine>,
+    lines: Vec<LineRef<'r>>,
     /// Loaded choice-to-passage mapping from last choices seen.
     choice_to_passage: Map<&'r str, &'r str>,
     /// Loaded choice-to-line-num mapping from last choices seen.
     choice_to_line_num: Map<&'r str, usize>,
-    /// Stack of break points.
-    breaks: Vec<usize>,
     /// Last known speaker.
     speaker: String,
 }
@@ -48,14 +79,13 @@ impl<'r> Runner<'r> {
             section: &EMPTY_SECTION,
             choice_to_passage: Map::new(),
             choice_to_line_num: Map::new(),
-            breaks: Vec::new(),
             speaker: "".to_string(),
         };
         runner.goto()?;
         Ok(runner)
     }
 
-    fn readline(&self) -> Result<&'r RawLine> {
+    fn readline(&self) -> Result<LineRef<'r>> {
         if self.bookmark.line() >= self.lines.len() {
             return Err(error!(
                 "Invalid line number {} in passage '{}'",
@@ -71,12 +101,12 @@ impl<'r> Runner<'r> {
     /// i.e. when a choice is being made.
     pub fn next(&mut self, mut input: &str) -> Result<Line> {
         loop {
-            let raw_line = self.readline()?;
-            // println!("{:#?}", raw_line);
-            match raw_line {
+            let line_ref = self.readline()?;
+            // println!("Run L{}: {:#?}", self.bookmark.position().line, line_ref);
+            match line_ref {
                 // When a choice is encountered, it should first be returned for display.
                 // Second time it's encountered, go to the chosen passage.
-                RawLine::Choices(raw_choices) => {
+                LineRef::Choices(raw_choices) => {
                     // If empty input, choices are being returned for display.
                     if input.is_empty() {
                         let choices = self.load_choices(raw_choices)?;
@@ -87,11 +117,17 @@ impl<'r> Runner<'r> {
                             return Ok(Line::Choices(choices));
                         }
                     } else {
+                        // If should jump to passage.
                         if let Some(passage_name) = self.choice_to_passage.remove(input) {
-                            self.call(passage_name.to_string())?;
-                        } else if let Some(skip_lines) = self.choice_to_line_num.remove(input) {
-                            let next_line = raw_choices.take(self.bookmark, skip_lines);
-                            self.breaks.push(next_line);
+                            self.call_choice(raw_choices, passage_name.to_string())?;
+                        }
+                        // If should jump to line number.
+                        else if let Some(skip_lines) = self.choice_to_line_num.remove(input) {
+                            if skip_lines > 0 {
+                                self.bookmark.skip_lines(skip_lines);
+                            } else {
+                                self.bookmark.next_line();
+                            }
                         } else {
                             return Ok(Line::InvalidChoice);
                         }
@@ -99,7 +135,7 @@ impl<'r> Runner<'r> {
                 }
                 // When input is encountered, it should first be returned for display.
                 // Second time it's encountered, modify state.
-                RawLine::Input(input_cmd) => {
+                LineRef::Input(input_cmd) => {
                     if input.is_empty() {
                         return Ok(Line::Input(input_cmd.clone()));
                     } else {
@@ -111,14 +147,13 @@ impl<'r> Runner<'r> {
                         self.bookmark.next_line();
                     }
                 }
-                RawLine::Branches(branches) => {
-                    let next_line = branches.take(&mut self.bookmark)?;
-                    self.breaks.push(next_line);
+                LineRef::Branches(branches) => {
+                    branches.take(&mut self.bookmark)?;
                 }
-                RawLine::Call(call) => {
+                LineRef::Call(call) => {
                     self.call(call.passage.clone())?;
                 }
-                RawLine::Return(_) => {
+                LineRef::Return => {
                     self.run_on_exit()?;
                     match self.bookmark.stack.pop() {
                         Some(position) => {
@@ -128,35 +163,29 @@ impl<'r> Runner<'r> {
                         None => return Ok(Line::End),
                     }
                 }
-                RawLine::Break => {
-                    let last_break = self.breaks.pop();
-                    self.bookmark.set_line(match last_break {
-                        Some(line_num) => line_num,
-                        None => 0,
-                    });
-                }
-                RawLine::Command(raw_command) => {
+                LineRef::Break(line_num) => self.bookmark.set_line(line_num),
+                LineRef::Command(raw_command) => {
                     self.bookmark.next_line();
                     let command = raw_command.get_full_command(&self.story, &self.bookmark)?;
                     return Ok(Line::Command(command));
                 }
-                RawLine::PositionalCommand(positional_command) => {
+                LineRef::PositionalCommand(positional_command) => {
                     self.bookmark.next_line();
                     let command =
                         positional_command.get_full_command(&self.story, &self.bookmark)?;
                     return Ok(Line::Command(command));
                 }
-                RawLine::SetCommand(set) => {
+                LineRef::SetCommand(set) => {
                     self.bookmark.next_line();
                     self.bookmark.set_state(&set.set)?;
                 }
-                RawLine::Dialogue(map) => {
+                LineRef::Dialogue(map) => {
                     self.bookmark.next_line();
                     let dialogue = Dialogue::from_map(map, &self.story, &self.bookmark)?;
                     self.speaker = dialogue.name.clone();
                     return Ok(Line::Dialogue(dialogue));
                 }
-                RawLine::Text(text) => {
+                LineRef::Text(text) => {
                     self.bookmark.next_line();
                     return Ok(Line::Dialogue(Dialogue::from(
                         &self.speaker,
@@ -165,7 +194,6 @@ impl<'r> Runner<'r> {
                         self.bookmark,
                     )?));
                 }
-                _ => return Err(error!("Unknown error.")),
             };
             input = "";
         }
@@ -175,7 +203,7 @@ impl<'r> Runner<'r> {
     /// This requires that the current line is a return statement, and
     /// that this section has no `on_exit` callback.
     fn can_optimize_tail_call(&self) -> bool {
-        if let RawLine::Return(_) = self.lines[self.bookmark.line()] {
+        if let LineRef::Return = self.lines[self.bookmark.line()] {
             return self.section.on_exit().is_none();
         }
         false
@@ -184,19 +212,27 @@ impl<'r> Runner<'r> {
     /// Calls the default target for this choices object.
     /// If the default is lines, then we skip all lines in standard choices
     /// to land on the first default embedded passage line.
-    fn call_default(&mut self, raw: &RawChoices) -> Result<()> {
-        match &raw.default {
+    fn call_default(&mut self, raw_choices: &RawChoices) -> Result<()> {
+        match &raw_choices.default {
             ChoiceTarget::None => Err(error!("No choice target available.")),
             ChoiceTarget::Lines(_lines) => {
                 self.bookmark
-                    .skip_lines(raw.line_len() - raw.default.line_len() - 1);
+                    .skip_lines(raw_choices.line_len() - raw_choices.default.line_len() - 1);
                 Ok(())
             }
             ChoiceTarget::PassageName(passage_name) => {
-                self.bookmark.skip_lines(raw.line_len() - 2);
-                self.call(passage_name.clone())
+                self.call_choice(raw_choices, passage_name.clone())
             }
         }
+    }
+
+    /// Calls a choice.
+    /// Before calling, it advances the pointer to one step above where choices ends on the stack.
+    fn call_choice(&mut self, raw_choices: &RawChoices, passage_name: String) -> Result<()> {
+        // Skip to one line before last line of choices.
+        // This ensures that the line number on the stack is the next line after this choice.
+        self.bookmark.skip_lines(raw_choices.line_len() - 1);
+        self.call(passage_name)
     }
 
     /// Call the configured passage by putting return position on stack.
@@ -243,7 +279,7 @@ impl<'r> Runner<'r> {
     pub fn load_snapshot(&mut self, name: &str) -> Result<()> {
         self.bookmark.load_snapshot(name)?;
         self.load_bookmark_position()?;
-        if let RawLine::Choices(raw_choices) = self.readline()? {
+        if let LineRef::Choices(raw_choices) = self.readline()? {
             self.load_choices(raw_choices)?;
         }
 
@@ -255,69 +291,40 @@ impl<'r> Runner<'r> {
     fn load_passage(&mut self, lines: &'r [RawLine]) {
         self.lines = vec![];
         self.load_lines(lines);
-        self.lines.push(&RETURN);
-        // for (i, e) in self.lines.iter().enumerate() {
-        //     println!("{}: {:?}", i, e);
-        // }
-
-        self.breaks = vec![];
-        self.load_breaks();
-    }
-
-    /// Initialize the line break stack.
-    /// Loop through each line in the flattened array until current line
-    /// number is reached.
-    /// Each time a branch is detected, push the end of the branch on the break stack.
-    /// We must remove breaks that we pass through.
-    fn load_breaks(&mut self) {
-        for (line_num, line) in self.lines.iter().enumerate() {
-            if line_num >= self.bookmark.line() {
-                break;
-            }
-
-            // If we pass the last break, remove it from the stack.
-            if let Some(last_break) = self.breaks.last() {
-                if line_num > *last_break {
-                    self.breaks.pop();
-                }
-            }
-            match line {
-                RawLine::Branches(branches) => {
-                    self.breaks.push(line_num + branches.line_len());
-                }
-                RawLine::Choices(choices) => {
-                    self.breaks.push(line_num + choices.line_len());
-                }
-                _ => (),
-            }
+        // If lines doesn't end in a return, push a return.
+        match self.lines.last() {
+            Some(LineRef::Return) => (),
+            None | Some(_) => self.lines.push(LineRef::Return),
         }
+
+        // println!("\nLoaded new passage:");
+        // for (i, e) in self.lines.iter().enumerate() {
+        //     println!("L{}: {:?}", i, e);
+        // }
     }
 
     /// Loads lines into a single flat array of references.
+    /// For anything that requires control flow (branches, choices), store the position
+    /// we need to jump to afterwards using a `Break(line_num)`.
     fn load_lines(&mut self, lines: &'r [RawLine]) {
         for line in lines {
-            self.lines.push(&line);
+            self.lines.push(LineRef::from(line));
             match line {
                 RawLine::Branches(branches) => {
-                    // Add breaks before each lines except the first.
-                    let mut is_first = true;
+                    let branch_end = self.lines.len() - 1 + branches.line_len();
                     for (_expression, branch_lines) in &branches.exprs {
-                        if !is_first {
-                            self.lines.push(&RawLine::Break);
-                        }
                         self.load_lines(branch_lines);
-                        is_first = false;
+                        self.lines.push(LineRef::Break(branch_end));
                     }
+                    // Remove the last break, since it's redundant.
+                    self.lines.pop();
                 }
                 RawLine::Choices(choices) => {
-                    let mut is_first = true;
+                    let choices_end = self.lines.len() - 1 + choices.line_len();
                     let mut load_target = |target: &'r ChoiceTarget| match target {
                         ChoiceTarget::Lines(lines) => {
-                            if !is_first {
-                                self.lines.push(&RawLine::Break);
-                            }
                             self.load_lines(lines);
-                            is_first = false;
+                            self.lines.push(LineRef::Break(choices_end));
                         }
                         _ => {}
                     };
@@ -331,6 +338,13 @@ impl<'r> Runner<'r> {
                             }
                         }
                     }
+
+                    // Remove the last break, since it's redundant.
+                    if let Some(LineRef::Break(_)) = self.lines.last() {
+                        self.lines.pop();
+                    }
+
+                    // Add the default lines if they exist.
                     match &choices.default {
                         ChoiceTarget::Lines(lines) => self.load_lines(lines),
                         _ => (),

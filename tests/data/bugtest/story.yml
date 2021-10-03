@@ -1,0 +1,17 @@
+---
+namespace: global
+
+characters:
+  Alice:
+---
+# ssss
+Start:
+  - if true:
+      - if false:
+          - Alice: Nope
+        else:
+          - Alice: Else
+      - Alice: Yep
+    else:
+      - Alice: Nope
+  - Alice: Done

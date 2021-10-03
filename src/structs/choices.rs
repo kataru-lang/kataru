@@ -49,7 +49,7 @@ impl RawChoices {
 
     /// Returns equivalent number of lines for the embedded passages.
     /// If this choices object has no embedded passages, `line_len(choices) == 1`.
-    /// Otherwise it's `1 + the line length of each embedded passage + number of embedded passages`.
+    /// Otherwise it's `the line length of each embedded passage + number of embedded passages`.
     /// This includes all conditionals.
     pub fn line_len(&self) -> usize {
         let mut length = 1 + self.default.line_len();
@@ -68,12 +68,13 @@ impl RawChoices {
                 _ => (),
             }
         }
+
+        // If we added breaks and there was no default, we must remove the last break.
+        if length > 1 && self.default.line_len() == 0 {
+            length -= 1;
+        }
+
         length
-    }
-    pub fn take(&self, bookmark: &mut Bookmark, skip_lines: usize) -> usize {
-        let next_line = bookmark.line() + self.line_len() - skip_lines;
-        bookmark.skip_lines(skip_lines);
-        next_line
     }
 }
 impl<'a> IntoIterator for &'a RawChoices {
@@ -206,8 +207,11 @@ mod tests {
               - default1
               - default2
         "#;
+        // Human count is one higher (9)
 
         let raw = RawChoices::from_yml(choices_str).unwrap();
+        assert_eq!(raw.line_len(), 8);
+
         let mut choice_to_passage = Map::default();
         let mut choice_to_line_num = Map::default();
 
@@ -246,5 +250,22 @@ mod tests {
                 "f" => 3,
             }
         );
+    }
+
+    #[test]
+    fn test_choices_length() {
+        let choices_str = r#"
+            choices:
+              if $var1 > 0:
+                yes:
+                    - A: "2" 
+                no:
+                    - A: "4"
+                    - "5"
+              maybe:
+                - A: "6"
+        "#;
+        let raw = RawChoices::from_yml(choices_str).unwrap();
+        assert_eq!(raw.line_len(), 7); // Should be 7
     }
 }

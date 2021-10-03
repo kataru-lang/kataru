@@ -40,8 +40,6 @@ pub enum RawLine {
     Return(Return),
     Text(String),
     Dialogue(Map<String, String>),
-    Break,
-    End,
 }
 
 /// Public interface for a line in a Kataru script.

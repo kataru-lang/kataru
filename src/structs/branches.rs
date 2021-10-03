@@ -57,9 +57,9 @@ impl Branches {
         Ok(next_line)
     }
 
-    /// A branch has one line for each expression,
-    /// plus one break for each consecutive expression,
-    /// plus the length of all of its contained lines.
+    /// A branch is the length of all it's sub-parts, plus one break
+    /// line for each expression except for the last expression.
+    /// Finally, has one extra line for the branch itself.
     pub fn line_len(&self) -> usize {
         let mut length = self.exprs.len();
         for (_expr, branch_lines) in &self.exprs {
