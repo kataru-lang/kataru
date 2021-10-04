@@ -3,6 +3,9 @@ namespace: global
 
 characters:
   Alice:
+  A:
+  Bee:
+
 ---
 # ssss
 Start:
@@ -15,3 +18,17 @@ Start:
     else:
       - Alice: Nope
   - Alice: Done
+  - choices:
+      wait silently:
+        - Bee: Tell me if you see anything suspicious.
+        - A: "..."
+        - Bee: <nervous/>Have you seen anyone looking remotely bloodthirsty?
+        - A: Nah.
+        - Bee: <emote/>Cool.
+        - AThink: We lapse into comfortable silence.
+      chat2:
+        - A: Test
+      chat:
+        - Bee: Tell me if you see anything suspicious.
+        - A: Yes mam.
+  - Alice: Done second

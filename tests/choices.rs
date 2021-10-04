@@ -45,6 +45,21 @@ fn test_choices() {
         ),
         (
             "",
+            Line::Choices(Choices {
+                choices: vec!["yes".to_string(), "no".to_string()],
+                ..Choices::default()
+            }),
+        ),
+        (
+            "yes",
+            Line::Dialogue(Dialogue {
+                name: "Alice".to_string(),
+                text: "yes".to_string(),
+                ..Dialogue::default()
+            }),
+        ),
+        (
+            "",
             Line::Dialogue(Dialogue {
                 name: "Alice".to_string(),
                 text: "Default".to_string(),

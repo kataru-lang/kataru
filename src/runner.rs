@@ -123,11 +123,7 @@ impl<'r> Runner<'r> {
                         }
                         // If should jump to line number.
                         else if let Some(skip_lines) = self.choice_to_line_num.remove(input) {
-                            if skip_lines > 0 {
-                                self.bookmark.skip_lines(skip_lines);
-                            } else {
-                                self.bookmark.next_line();
-                            }
+                            self.bookmark.skip_lines(skip_lines + 1);
                         } else {
                             return Ok(Line::InvalidChoice);
                         }

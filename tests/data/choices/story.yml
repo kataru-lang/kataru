@@ -23,6 +23,11 @@ Start:
           - No no no 1 # 5, 6
       maybe:
         - Alice: Embedded maybe # 7
+  - choices:
+      yes:
+        - Alice: "yes"
+      no:
+        - Alice: "no"
   - choices: # 8
       if $var1 < 0:
         yes:
