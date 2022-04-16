@@ -121,24 +121,25 @@ impl<'a> Bookmark {
         ))
     }
 
-    /// Returns mutable state.
-    pub fn state(&'a mut self) -> Result<&'a mut State> {
-        match self.state.get_mut(&self.position.namespace) {
-            Some(state) => Ok(state),
-            None => Err(error!("Invalid namespace {}", &self.position.namespace)),
+    /// Gets the value for a given variable.
+    pub fn set_value(&'a mut self, statemod: StateMod, value: Value) -> Result<()> {
+        let qname = QualifiedName::from(&self.position.namespace, statemod.var);
+        for namespace in qname.resolve() {
+            if let Some(section) = self.state.get_mut(namespace) {
+                if let Some(value_mut) = section.get_mut(qname.name) {
+                    return statemod.apply(value_mut, value);
+                }
+            } else {
+                return Err(error!("No state for namespace '{}'", namespace));
+            }
         }
-    }
-
-    /// Returns mutable global state.
-    pub fn global_state(&'a mut self) -> Result<&'a mut State> {
-        match self.state.get_mut(GLOBAL) {
-            Some(state) => Ok(state),
-            None => Err(error!("No global namespace")),
-        }
+        Err(error!(
+            "Var '{}' could not be found in namespace '{}' nor any of its parents.",
+            qname.name, qname.namespace
+        ))
     }
 
     /// Given a mapping of state changes, updates the bookmark's state.
-    /// `passage` is required for $passage variables.
     pub fn set_state(&mut self, state: &State) -> Result<()> {
         for (key, value) in state {
             // If a expression, evaluate. TODO: avoid clone.
@@ -148,20 +149,18 @@ impl<'a> Bookmark {
             // If contains ${passage} expansion, text should refer to the replaced text.
             // Otherwise it should simply be the key.
             let replaced: String;
-            let mut text = key;
+            let mut statemod_expr = key;
             if key.starts_with("$passage") {
-                replaced = format!("${}{}", &self.position.passage, &text["$passage".len()..]);
-                text = &replaced;
+                replaced = format!(
+                    "${}{}",
+                    &self.position.passage,
+                    &statemod_expr["$passage".len()..]
+                );
+                statemod_expr = &replaced;
             }
 
-            let statemod = StateMod::from_str(text)?;
-            let local_state = self.state()?;
-            if local_state.contains_key(statemod.var) {
-                statemod.apply(local_state, value)?;
-            } else {
-                let global_state = self.global_state()?;
-                statemod.apply(global_state, value)?;
-            }
+            // Parse the statemod expression and update state accordingly.
+            self.set_value(StateMod::from_str(statemod_expr)?, value)?;
         }
         Ok(())
     }

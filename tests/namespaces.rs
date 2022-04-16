@@ -136,6 +136,15 @@ fn test_namespaces() {
                 ..Dialogue::default()
             }),
         ),
+        // - LocalCharacter: Value of namespace1:var is $var
+        (
+            "",
+            Line::Dialogue(Dialogue {
+                name: "namespace1:LocalCharacter".to_string(),
+                text: "Value of namespace1:var is false".to_string(),
+                ..Dialogue::default()
+            }),
+        ),
     ];
 
     for (input, line) in &tests {

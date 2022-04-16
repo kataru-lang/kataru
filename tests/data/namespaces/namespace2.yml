@@ -4,5 +4,6 @@ namespace: namespace1:namespace2
 Start:
   - set:
       $globvar: $CONST
-
+      $var: false
   - LocalCharacter: Visited namespace2 start $Start.visited time(s)
+  - LocalCharacter: Value of namespace1:var is $var
