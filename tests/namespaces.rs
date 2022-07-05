@@ -86,7 +86,7 @@ fn test_namespaces() {
         (
             "",
             Line::Command(Command {
-                name: "namespace1:LocalCharacter.LocalMethod".to_string(),
+                name: "namespace1:LocalCharacter.LocalCharacterMethod".to_string(),
                 params: linear_map! {"param1".to_string() => Value::Number(1.),
                 "param2".to_string() => Value::String("two".to_string()),
                 "param3".to_string() => Value::Bool(true)},
@@ -95,7 +95,7 @@ fn test_namespaces() {
         (
             "",
             Line::Command(Command {
-                name: "namespace1:LocalCharacter.LocalMethod".to_string(),
+                name: "namespace1:LocalCharacter.LocalCharacterMethod".to_string(),
                 params: linear_map! {"param1".to_string() => Value::Number(3.),
                 "param2".to_string() => Value::String("two".to_string()),
                 "param3".to_string() => Value::Bool(true)},
@@ -104,7 +104,7 @@ fn test_namespaces() {
         (
             "",
             Line::Command(Command {
-                name: "namespace1:LocalCharacter.LocalMethod".to_string(),
+                name: "namespace1:LocalCharacter.LocalCharacterMethod".to_string(),
                 params: linear_map! {"param1".to_string() => Value::Number(1.),
                 "param2".to_string() => Value::String("two".to_string()),
                 "param3".to_string() => Value::Bool(false)},
