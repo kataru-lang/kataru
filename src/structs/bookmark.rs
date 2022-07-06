@@ -256,12 +256,8 @@ impl<'a> Bookmark {
     /// Gets the qualified character name (prefixed with namespace if not global).
     pub fn qualified_character_name(&self, story: &Story, character: &str) -> Result<String> {
         let qname = QualifiedName::from(self.namespace(), character);
-        let (namespace, _section, _chardata) = story.character(&qname)?;
-        if namespace == GLOBAL {
-            Ok(character.to_string())
-        } else {
-            Ok(format!("{}:{}", namespace, qname.name))
-        }
+        let (resolved_namespace, _section, _chardata) = story.character(&qname)?;
+        Ok(qname.to_string(resolved_namespace))
     }
 }
 

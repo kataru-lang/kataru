@@ -102,7 +102,7 @@ impl<'a> Story {
         Ok(())
     }
 
-    /// Gets character data and the enclosing section by resolving `qname`.
+    /// Gets character data and the containing section by resolving `qname`.
     pub fn character<'n>(
         &'a self,
         qname: &'n QualifiedName,
@@ -112,6 +112,18 @@ impl<'a> Story {
             Err(e) => Err(error!("Invalid character: {}", e)),
         }
     }
+
+    /// Gets the command name and the containing section by resolving `qname`.
+    pub fn command<'n>(
+        &'a self,
+        qname: &'n QualifiedName,
+    ) -> Result<(&'n str, &'a Section, &'a Option<Params>)> {
+        match self.resolve_with_section(qname, |section, name| section.params(name)) {
+            Ok((namespace, section, data)) => Ok((namespace, section, data)),
+            Err(e) => Err(error!("Invalid command: {}", e)),
+        }
+    }
+
 
     /// Gets a value by resolving `qname`.
     pub fn value(&'a self, qname: &QualifiedName) -> Result<&'a Value> {

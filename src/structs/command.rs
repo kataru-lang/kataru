@@ -80,56 +80,84 @@ where
         }
     }
 
-    /// Gets a qualified command name (prefixed with namespace if not global).
-    fn get_qualified_command(
-        story: &Story,
+    /// Builds a command with an optional character name.
+    /// To build a normal command, pass `character_name = ""`.
+    fn build_command_with_character<'s>(
+        story: &'s Story,
         bookmark: &Bookmark,
-        character: &str,
         command_name: &str,
-    ) -> Result<String> {
-        let character = bookmark.qualified_character_name(story, character)?;
-        Ok(format!("{}.{}", character, command_name))
+        params: &ParamsT,
+        character_name: &str,
+    ) -> Result<Command> {
+        // Character commands need $character prepended before lookup in the story config.
+        let normalized_name = if character_name.is_empty() {
+            command_name.to_string()
+        } else {
+            format!("$character.{}", command_name)
+        };
+        let qname = QualifiedName::from(bookmark.namespace(), &normalized_name);
+        let (resolved_namespace, _section, default_param_opt) = story.command(&qname)?;
+
+        Ok(Command {
+            name: if character_name.is_empty() {
+                // Non-character commands need their qualified namespace prepended.
+                // E.g. "namespace:command".
+                qname.to_string(resolved_namespace)
+            } else {
+                // Character commands need their qualified character prepended.
+                // E.g. "namespace:character.command".
+                format!(
+                    "{}.{}",
+                    bookmark.qualified_character_name(story, character_name)?,
+                    command_name
+                )
+            },
+            params: match default_param_opt {
+                Some(default_params) => params.merge_params(default_params)?,
+                None => params.merge_params(&EMPTY_PARAMS)?,
+            },
+        })
     }
 
     /// Returns the (normalized_name, qualified_command) strings.
     /// If thhe command is prefixed by a character, returns $character.command in normalized name for lookup.
-    /// IF the character is local, the qualified_command will have the namespace prepended.
-    fn get_command_components(
+    /// If the character is local, the qualified_command will have the namespace prepended.
+    fn build_init_command(
         story: &Story,
         bookmark: &Bookmark,
         command_name: &str,
-    ) -> Result<(String, String)> {
+        params: &ParamsT,
+    ) -> Result<Command> {
+        // Split on "." to identify character commands.
         let split: Vec<&str> = command_name.split(".").collect();
-
-        // Handle character commands
-        match split.as_slice() {
-            [character, command_name] => Ok((
-                format!("$character.{}", command_name),
-                Self::get_qualified_command(story, bookmark, character, command_name)?,
-            )),
-            [command_name] => Ok((command_name.to_string(), command_name.to_string())),
-            _ => return Err(error!("Commands can only contain one '.' delimeter.")),
-        }
+        let (character_name, command_name) = match split.as_slice() {
+            [character_name, command_name] => (character_name, command_name),
+            [command_name] => (&"", command_name),
+            _ => {
+                return Err(error!(
+                    "Commands can only contain one '.' delimeter, but was '{}'",
+                    command_name
+                ))
+            }
+        };
+        Self::build_command_with_character(
+            story,
+            bookmark,
+            command_name,
+            params,
+            character_name,
+        )
     }
 
     /// Get the vector of qualified commands with default parameters included.
-    fn get_full_command(&self, story: &Story, bookmark: &Bookmark) -> Result<Command> {
+    fn build_command(&self, story: &Story, bookmark: &Bookmark) -> Result<Command> {
         let (command_name, params) = self.get_first()?;
-        let mut command = Command::default();
-        let (normalized_name, qualified_command) =
-            Self::get_command_components(story, bookmark, command_name)?;
-
-        let default_params = RawCommand::get_default_params(story, bookmark, &normalized_name)?;
-        // Merge params with their defaults.
-        let mut merged_params = params.merge_params(default_params)?;
+        let mut command = Self::build_init_command(story, bookmark, command_name, params)?;
 
         // If the params have variable names, replace with variable value.
-        for (_var, val) in merged_params.iter_mut() {
+        for (_var, val) in command.params.iter_mut() {
             val.eval_as_expr(bookmark)?;
         }
-
-        command.name = qualified_command;
-        command.params = merged_params;
 
         Ok(command)
     }

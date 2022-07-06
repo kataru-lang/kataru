@@ -162,13 +162,13 @@ impl<'r> Runner<'r> {
                 LineRef::Break(line_num) => self.bookmark.set_line(line_num),
                 LineRef::Command(raw_command) => {
                     self.bookmark.next_line();
-                    let command = raw_command.get_full_command(&self.story, &self.bookmark)?;
+                    let command = raw_command.build_command(&self.story, &self.bookmark)?;
                     return Ok(Line::Command(command));
                 }
                 LineRef::PositionalCommand(positional_command) => {
                     self.bookmark.next_line();
                     let command =
-                        positional_command.get_full_command(&self.story, &self.bookmark)?;
+                        positional_command.build_command(&self.story, &self.bookmark)?;
                     return Ok(Line::Command(command));
                 }
                 LineRef::SetCommand(set) => {

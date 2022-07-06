@@ -11,6 +11,9 @@ commands:
     param2: ""
     param3: false
 
+  LocalCommand:
+    param: 0
+
 characters:
   LocalCharacter:
 
@@ -30,4 +33,5 @@ Start:
   - LocalCharacter.LocalCharacterMethod: [1, two]
   - LocalCharacter.GlobalMethod: {} # namespace1:LocalCharacter.GlobalMethod
   - GlobalCharacter.GlobalMethod: {}
+  - LocalCommand: [0]
   - call: namespace1:namespace2:Start

@@ -127,6 +127,15 @@ fn test_namespaces() {
                 "param".to_string() => Value::String("".to_string())},
             }),
         ),
+        // Make sure local commands get namespace appended.
+        (
+            "",
+            Line::Command(Command {
+                name: "namespace1:LocalCommand".to_string(),
+                params: linear_map! {
+                "param".to_string() => Value::Number(0.0)},
+            }),
+        ),
         // - LocalCharacter: Visited namespace2 start $Start:visited time(s).
         (
             "",
@@ -143,6 +152,15 @@ fn test_namespaces() {
                 name: "namespace1:LocalCharacter".to_string(),
                 text: "Value of namespace1:var is false".to_string(),
                 ..Dialogue::default()
+            }),
+        ),
+         // Make sure local commands work in other namespaces.
+         (
+            "",
+            Line::Command(Command {
+                name: "namespace1:LocalCommand".to_string(),
+                params: linear_map! {
+                "param".to_string() => Value::Number(0.0)},
             }),
         ),
     ];

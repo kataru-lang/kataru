@@ -41,10 +41,23 @@ impl<'a> QualifiedName<'a> {
         }
     }
 
+    // Returns an iterator over each possible namespace.
+    // This is used for recursively checking which namespace a QName belongs in.
     pub fn resolve(&'a self) -> NamespaceResolver<'a> {
         NamespaceResolver::new(self.namespace)
     }
+
+    // Given the resolved namespace, returns the formatted string for the qualified name.
+    // If the resolved namespace is global, this returns a copy of self.name.
+    pub fn to_string(&self, resolved_namespace: &str) -> String {
+        if resolved_namespace == GLOBAL {
+            self.name.to_string()
+        } else {
+            format!("{}:{}", resolved_namespace, self.name)
+        }
+    }
 }
+
 enum ResolverState {
     Start,
     Iter,

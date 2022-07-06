@@ -7,3 +7,4 @@ Start:
       $var: false
   - LocalCharacter: Visited namespace2 start $Start.visited time(s)
   - LocalCharacter: Value of namespace1:var is $var
+  - namespace1:LocalCommand: [0]
