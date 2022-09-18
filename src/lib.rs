@@ -21,9 +21,9 @@ pub use error::{Error, Result};
 pub use packer::pack;
 pub use runner::Runner;
 pub use structs::{
-    AttributedSpan, Bookmark, CharacterData, Choices, Command, Config, Dialogue, Input, Line, Map,
-    Operator, Params, Passage, Passages, Position, Section, SetCommand, State, StateMod, Story,
-    GLOBAL,
+    AssignOperator, AttributedSpan, Bookmark, CharacterData, Choices, Command, Config, Dialogue,
+    Input, Line, Map, Operator, Params, Passage, Passages, Position, Section, SetCommand, State,
+    StateMod, Story, GLOBAL,
 };
 pub use tagger::LineTag;
 pub use traits::{
