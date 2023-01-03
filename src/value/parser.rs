@@ -2,24 +2,23 @@ use super::Value;
 use crate::{Bookmark, Error, Result};
 use pest::{
     iterators::Pair,
-    prec_climber::{Assoc, Operator as PrecOp, PrecClimber},
+    pratt_parser::{Assoc, Op, PrattParser},
     Parser,
 };
 
 lazy_static! {
     /// Static climber to be reused each `eval` call.
     /// Defines order of operations (PEMDAS, then comparator, then conjunctions).
-    static ref CLIMBER: PrecClimber<Rule> = PrecClimber::new(vec![
-        PrecOp::new(Rule::And, Assoc::Left) | PrecOp::new(Rule::Or, Assoc::Left),
-        PrecOp::new(Rule::Eq, Assoc::Left)
-            | PrecOp::new(Rule::Neq, Assoc::Left)
-            | PrecOp::new(Rule::Lt, Assoc::Left)
-            | PrecOp::new(Rule::Leq, Assoc::Left)
-            | PrecOp::new(Rule::Gt, Assoc::Left)
-            | PrecOp::new(Rule::Geq, Assoc::Left),
-        PrecOp::new(Rule::Add, Assoc::Left) | PrecOp::new(Rule::Sub, Assoc::Left),
-        PrecOp::new(Rule::Mul, Assoc::Left) | PrecOp::new(Rule::Div, Assoc::Left),
-    ]);
+    static ref PARSER: PrattParser<Rule> = PrattParser::new()
+    .op(Op::infix(Rule::And, Assoc::Left) | Op::infix(Rule::Or, Assoc::Left))
+    .op(Op::infix(Rule::Eq, Assoc::Left)
+        | Op::infix(Rule::Neq, Assoc::Left)
+        | Op::infix(Rule::Lt, Assoc::Left)
+        | Op::infix(Rule::Leq, Assoc::Left)
+        | Op::infix(Rule::Gt, Assoc::Left)
+        | Op::infix(Rule::Geq, Assoc::Left))
+    .op(Op::infix(Rule::Add, Assoc::Left) | Op::infix(Rule::Sub, Assoc::Left))
+    .op(Op::infix(Rule::Mul, Assoc::Left) | Op::infix(Rule::Div, Assoc::Left));
 }
 
 /// Pest parser generated from ast/grammar.pest.
@@ -40,7 +39,7 @@ impl Value {
 
     /// Evaluates an expression from a `Pair` tree.
     fn eval_expr<'i>(pair: Pair<'i, Rule>, bookmark: &Bookmark) -> Result<Value> {
-        // Define lambdas for use by precedence climber.
+        // Define lambdas for use by the parser.
         let primary = |pair| Self::eval_expr(pair, bookmark);
         let infix = |lhs: Result<Value>, op: Pair<Rule>, rhs: Result<Value>| match (lhs, rhs) {
             (Ok(lhs), Ok(rhs)) => Self::eval_binary_expr(lhs, op, rhs),
@@ -49,7 +48,10 @@ impl Value {
         };
 
         match pair.as_rule() {
-            Rule::BinaryExpr => CLIMBER.climb(pair.into_inner(), primary, infix),
+            Rule::BinaryExpr => PARSER
+                .map_primary(primary)
+                .map_infix(infix)
+                .parse(pair.into_inner()),
             Rule::UnaryExpr => {
                 let mut it = pair.into_inner();
                 let op = it.next();
