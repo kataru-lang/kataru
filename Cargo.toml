@@ -1,6 +1,9 @@
 [package]
 authors = ["Josiah Putman <joshikatsu@gmail.com>"]
+description = "Kataru - the YAML-based dialogue engine for game development."
+documentation = "https://kataru-lang.github.io/#/README"
 edition = "2018"
+license = "MIT OR Apache-2.0"
 name = "kataru"
 version = "0.1.0"
 
