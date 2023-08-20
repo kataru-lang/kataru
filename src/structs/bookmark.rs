@@ -6,6 +6,7 @@ use crate::{
     Load, LoadMessagePack, Save, SaveYaml, Section, StateMod, Value, GLOBAL,
 };
 use serde::{Deserialize, Serialize};
+use std::{fmt, path::Path};
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct Position {
@@ -258,6 +259,25 @@ impl<'a> Bookmark {
         let qname = QualifiedName::from(self.namespace(), character);
         let (resolved_namespace, _section, _chardata) = story.character(&qname)?;
         Ok(qname.to_string(resolved_namespace))
+    }
+
+    /// Load a bookmark, or create a new one if it doesn't exist.
+    pub fn load_or_default<P: AsRef<Path> + fmt::Debug>(
+        path: P,
+        story: &Story,
+        default_passage: String,
+    ) -> Result<Self> {
+        if !path.as_ref().exists() {
+            let mut bookmark = Self::default();
+            bookmark.init_state(story);
+            bookmark.set_passage(default_passage);
+            bookmark.save(path)?;
+            Ok(bookmark)
+        } else {
+            let mut bookmark = Self::load(path)?;
+            bookmark.init_state(story);
+            Ok(bookmark)
+        }
     }
 }
 
