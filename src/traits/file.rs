@@ -61,7 +61,7 @@ fn is_yaml<P: AsRef<Path> + fmt::Debug>(path: P) -> bool {
 
 pub trait Load: LoadMessagePack + LoadYaml {
     fn load<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self> {
-        if path.as_ref().exists() {
+        if !path.as_ref().exists() {
             return Err(error! {"Path did not exist: {:?}", path});
         }
         if is_yaml(&path) {

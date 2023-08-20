@@ -267,15 +267,15 @@ impl<'a> Bookmark {
         story: &Story,
         default_passage: String,
     ) -> Result<Self> {
-        if !path.as_ref().exists() {
+        if path.as_ref().exists() {
+            let mut bookmark = Self::load(path)?;
+            bookmark.init_state(story);
+            Ok(bookmark)
+        } else {
             let mut bookmark = Self::default();
             bookmark.init_state(story);
             bookmark.set_passage(default_passage);
             bookmark.save(path)?;
-            Ok(bookmark)
-        } else {
-            let mut bookmark = Self::load(path)?;
-            bookmark.init_state(story);
             Ok(bookmark)
         }
     }
