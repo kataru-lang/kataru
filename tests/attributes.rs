@@ -1,4 +1,4 @@
-use kataru::{AttributedSpan, Bookmark, Dialogue, Line, LoadYaml, Runner, Story, Validator, Value};
+use kataru::{AttributedSpan, Bookmark, Dialogue, Line, LoadYaml, Runner, Story, Value};
 #[macro_use]
 extern crate linear_map;
 use maplit::hashmap;
@@ -6,15 +6,9 @@ use maplit::hashmap;
 /// Tests attribute parsing.
 #[test]
 fn test_attributes() {
-    let story: Story = Story::load_yml("./tests/data/attributes").unwrap();
-    let mut bookmark: Bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
-    bookmark.init_state(&story);
-
-    // println!("{:#?}", bookmark.state);
-
-    Validator::new(&story, &mut bookmark).validate().unwrap();
-
-    let mut runner: Runner = Runner::new(&mut bookmark, &story).unwrap();
+    let story = Story::load_yml("./tests/data/attributes").unwrap();
+    let bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
+    let mut runner = Runner::new(bookmark, story, true).unwrap();
 
     let tests = vec![
         (
@@ -60,6 +54,6 @@ fn test_attributes() {
     ];
 
     for (input, line) in &tests {
-        assert_eq!(&runner.next(input).unwrap(), line);
+        assert_eq!(runner.next(input).unwrap(), line.clone());
     }
 }

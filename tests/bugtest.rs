@@ -1,4 +1,4 @@
-use kataru::{Bookmark, Choices, Dialogue, Line, LoadYaml, Runner, Story, Validator};
+use kataru::{Bookmark, Choices, Dialogue, Line, LoadYaml, Runner, Story};
 #[macro_use]
 extern crate linear_map;
 
@@ -6,15 +6,9 @@ extern crate linear_map;
 #[test]
 fn test_attributes() {
     let story: Story = Story::load_yml("./tests/data/bugtest").unwrap();
-    let mut bookmark: Bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
-    bookmark.init_state(&story);
-
-    // println!("{:#?}", bookmark.state);
-    // println!("{:#?}", story.sections["global"].passages);
-
-    Validator::new(&story, &mut bookmark).validate().unwrap();
-
-    let mut runner: Runner = Runner::new(&mut bookmark, &story).unwrap();
+    let bookmark: Bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
+    let mut runner = Runner::new(bookmark, story, true).unwrap();
+    runner.validate().unwrap();
     // return;
 
     let tests = vec![

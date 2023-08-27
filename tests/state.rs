@@ -1,6 +1,4 @@
-use kataru::{
-    Bookmark, Choices, Command, Dialogue, Input, Line, Load, Runner, Save, Story, Validator, Value,
-};
+use kataru::{Bookmark, Choices, Command, Dialogue, Input, Line, Load, Runner, Save, Story, Value};
 use maplit::hashmap;
 #[macro_use]
 extern crate linear_map;
@@ -10,14 +8,8 @@ extern crate linear_map;
 fn test_state() {
     // Load story from directory.
     let story: Story = Story::load("./tests/data/state").unwrap();
-    let mut bookmark: Bookmark = Bookmark::load("./tests/data/bookmark.yml").unwrap();
-    bookmark.init_state(&story);
-
-    // println!("{:#?}", bookmark);
-
-    Validator::new(&story, &mut bookmark).validate().unwrap();
-
-    let mut runner: Runner = Runner::new(&mut bookmark, &story).unwrap();
+    let bookmark: Bookmark = Bookmark::load("./tests/data/bookmark.yml").unwrap();
+    let mut runner = Runner::new(bookmark, story, true).unwrap();
 
     let tests = vec![
         // TestBool: { bool: not $boolVar }
@@ -181,13 +173,30 @@ fn test_state() {
 
     // Try the same tests on the compiled.
     let compiled_story_path = "./tests/data/compiled/state/compiled_story.bin";
-    story.save(compiled_story_path).unwrap();
+    Story::load("./tests/data/state")
+        .unwrap()
+        .save(compiled_story_path)
+        .unwrap();
     let story = Story::load(compiled_story_path).unwrap();
-    let mut bookmark: Bookmark = Bookmark::load("./tests/data/bookmark.yml").unwrap();
-    bookmark.init_state(&story);
-    runner = Runner::new(&mut bookmark, &story).unwrap();
+    let bookmark: Bookmark = Bookmark::load("./tests/data/bookmark.yml").unwrap();
+    runner = Runner::new(bookmark, story, true).unwrap();
 
     for (input, line) in &tests {
         assert_eq!(&runner.next(input).unwrap(), line);
     }
+
+    // Try running just the default test.
+    assert_eq!(
+        runner.run("Default".to_string()).unwrap(),
+        Line::Dialogue(Dialogue {
+            name: "Alice".to_string(),
+            text: "default".to_string(),
+            ..Dialogue::default()
+        })
+    );
+    // Make sure the stack was cleared and we don't return to some previous passage.
+    assert_eq!(
+        runner.next("").unwrap(),
+        Line::End
+    );
 }

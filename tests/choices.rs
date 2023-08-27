@@ -1,16 +1,11 @@
-use kataru::{Bookmark, Choices, Dialogue, Line, LoadYaml, Runner, Story, Validator};
+use kataru::{Bookmark, Choices, Dialogue, Line, LoadYaml, Runner, Story};
 
 /// Tests basic $character commands.
 #[test]
 fn test_choices() {
-    let story: Story = Story::load_yml("./tests/data/choices").unwrap();
-    // println!("story: {:#?}", story);
-    let mut bookmark: Bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
-    bookmark.init_state(&story);
-
-    Validator::new(&story, &mut bookmark).validate().unwrap();
-
-    let mut runner: Runner = Runner::new(&mut bookmark, &story).unwrap();
+    let story = Story::load_yml("./tests/data/choices").unwrap();
+    let bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
+    let mut runner = Runner::new(bookmark, story, true).unwrap();
 
     let tests = vec![
         (

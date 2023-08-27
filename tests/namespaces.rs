@@ -13,7 +13,7 @@ fn test_namespaces() {
 
     Validator::new(&story, &mut bookmark).validate().unwrap();
 
-    let mut runner: Runner = Runner::new(&mut bookmark, &story).unwrap();
+    let mut runner = Runner::new(bookmark, story, true).unwrap();
 
     let tests = vec![
         (

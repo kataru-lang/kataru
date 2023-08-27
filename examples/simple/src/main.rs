@@ -30,23 +30,6 @@ fn await_key(input: &mut String) {
     *input = String::new();
 }
 
-/// Validate the story.
-/// Return true iff story is valid.
-#[cfg(debug_assertions)]
-fn print_validation(story: &Story, bookmark: &mut Bookmark) -> bool {
-    println!("{}", "Validating story...".bold().cyan());
-    match Validator::new(story, bookmark).validate() {
-        Err(e) => {
-            println!("{}", format!("{}", e).red());
-            false
-        }
-        Ok(_) => {
-            println!("{}", "Validated story successfully.".bold().green());
-            true
-        }
-    }
-}
-
 fn run_command(runner: &mut Runner, command: &str, _params: &LinearMap<String, Value>) {
     match command {
         "ClearScreen" => print!("{}[2J", 27 as char),
@@ -135,23 +118,17 @@ fn handle_line(runner: &mut Runner, input: &mut String) -> bool {
 fn main() {
     // Load the story.
     println!("{}", "Loading story...".bold().cyan());
-    let mut bookmark = Bookmark::from_yml(include_str!(
-        "../kataru/bookmark.yml"
-    ))
-    .unwrap();
+    let bookmark = Bookmark::from_yml(include_str!("../kataru/bookmark.yml")).unwrap();
     let story = Story::load(r"./kataru/story").unwrap();
     // println!("{:#?}", story);
 
-    bookmark.init_state(&story);
-
-    #[cfg(debug_assertions)]
-    if !print_validation(&story, &mut bookmark) {
-        return;
-    }
-
-    bookmark.init_state(&story);
-    let mut runner = Runner::new(&mut bookmark, &story).unwrap();
+    let mut runner = match Runner::new(bookmark, story, true) {
+        Err(err) => {
+            println!("{}", format!("{}", err).red());
+            return;
+        }
+        Ok(runner) => runner,
+    };
     let mut input = String::new();
-
     while handle_line(&mut runner, &mut input) {}
 }
