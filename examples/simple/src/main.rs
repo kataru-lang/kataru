@@ -136,10 +136,10 @@ fn main() {
     // Load the story.
     println!("{}", "Loading story...".bold().cyan());
     let mut bookmark = Bookmark::from_yml(include_str!(
-        "C:/Users/Joshi/Dev/Unity/unity-cutesy/Assets/StreamingAssets/Kataru/Bookmark.yml"
+        "../kataru/bookmark.yml"
     ))
     .unwrap();
-    let story = Story::load(r"C:\Users\Joshi\Dev\Unity\unity-cutesy\Assets\Kataru\Editor").unwrap();
+    let story = Story::load(r"./kataru/story").unwrap();
     // println!("{:#?}", story);
 
     bookmark.init_state(&story);

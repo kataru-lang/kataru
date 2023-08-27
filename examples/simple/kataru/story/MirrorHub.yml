@@ -1,9 +1,0 @@
----
-namespace: global
-
-onPassage:
-  set:
-    $passage.visited +: 1
----
-MirrorHub:
-  - LoadScene: { scene: $defaultScene }
