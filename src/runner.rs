@@ -18,7 +18,7 @@ lazy_static! {
 #[self_referencing]
 pub struct Runner {
     /// Story to read. Cannot be moved or will cause compiler error, since state holds references to it.
-    pub story: Story,
+    story: Story,
 
     /// Internal state.
     #[borrows(story)]
@@ -81,6 +81,15 @@ impl Runner {
     pub fn next(&mut self, input: &str) -> Result<Line> {
         self.with_state_mut(|state| state.next(input))
     }
+
+    /// Public getter for the story.
+    pub fn story(&self) -> &Story {
+        self.borrow_story()
+    }
+    /// Public getter for the bookmark.
+    pub fn bookmark(&self) -> &Bookmark {
+        &self.borrow_state().bookmark
+    }
 }
 
 /// Internal struct used for the flattened array of lines.
@@ -123,9 +132,6 @@ struct RunnerState<'story> {
     bookmark: Bookmark,
     /// The story the runner references.
     story: &'story Story,
-    /// Current section name
-    pub section_name: String,
-
     /// Flattened array of line references (use `line_num` to index).
     lines: Vec<LineRef<'story>>,
     /// Loaded choice-to-passage mapping from last choices seen.
@@ -142,7 +148,6 @@ impl<'story> RunnerState<'story> {
             bookmark,
             story,
             lines: Vec::default(),
-            section_name: String::default(),
             choice_to_passage: Map::default(),
             choice_to_line_num: Map::default(),
             speaker: String::default(),
@@ -313,10 +318,9 @@ impl<'story> RunnerState<'story> {
     /// that this section has no `on_exit` callback.
     fn can_optimize_tail_call(&self) -> bool {
         if let LineRef::Return = self.lines[self.bookmark.line()] {
-            if let Some(section) = self.story.sections.get(&self.section_name) {
-                section.on_exit().is_none()
-            } else {
-                false
+            match self.has_on_exit_cmd() {
+                Err(_) => false,
+                Ok(has_on_exit) => !has_on_exit,
             }
         } else {
             false
@@ -433,10 +437,18 @@ impl<'story> RunnerState<'story> {
             .apply_set_commands(|section| section.on_enter(), &mut self.bookmark)
     }
 
-    /// Runs the `onEnter` set command.
+    /// Runs the `onExit` set command.
     fn run_on_exit(&mut self) -> Result<()> {
         self.story
             .apply_set_commands(|section| section.on_exit(), &mut self.bookmark)
+    }
+
+    /// Returns true if the current section has an `onExit` command to run.
+    fn has_on_exit_cmd(&self) -> Result<bool> {
+        let set_commands = self
+            .story
+            .get_set_commands(|section| section.on_exit(), &self.bookmark)?;
+        Ok(!set_commands.is_empty())
     }
 
     /// Loads the current passage based on the bookmark's position.

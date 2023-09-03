@@ -76,12 +76,12 @@ impl<'a> Story {
         ))
     }
 
-    /// Applies set commands
-    pub fn apply_set_commands(
+    /// Get all set commands to be run.
+    pub fn get_set_commands(
         &'a self,
         getter: fn(&'a Section) -> &Option<SetCommand>,
-        bookmark: &mut Bookmark,
-    ) -> Result<()> {
+        bookmark: &Bookmark,
+    ) -> Result<Vec<&SetCommand>> {
         let mut set_commands: Vec<&SetCommand> = Vec::new();
 
         // Collect all set commands to run.
@@ -95,6 +95,16 @@ impl<'a> Story {
                 return Err(error!("Invalid namespace '{}'", namespace));
             }
         }
+        Ok(set_commands)
+    }
+
+    /// Applies set commands
+    pub fn apply_set_commands(
+        &'a self,
+        getter: fn(&'a Section) -> &Option<SetCommand>,
+        bookmark: &mut Bookmark,
+    ) -> Result<()> {
+        let set_commands = self.get_set_commands(getter, bookmark)?;
         // Apply all  set commands to bookmark.
         for set_command in set_commands {
             bookmark.set_state(&set_command.set)?;
@@ -123,7 +133,6 @@ impl<'a> Story {
             Err(e) => Err(error!("Invalid command: {}", e)),
         }
     }
-
 
     /// Gets a value by resolving `qname`.
     pub fn value(&'a self, qname: &QualifiedName) -> Result<&'a Value> {
