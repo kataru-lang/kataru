@@ -9,7 +9,7 @@ fn test_state() {
     // Load story from directory.
     let story: Story = Story::load("./tests/data/state").unwrap();
     let bookmark: Bookmark = Bookmark::load("./tests/data/bookmark.yml").unwrap();
-    let mut runner = Runner::new(bookmark, story, true).unwrap();
+    let mut runner = Runner::init(bookmark, story, true).unwrap();
 
     let tests = vec![
         // TestBool: { bool: not $boolVar }
@@ -179,7 +179,7 @@ fn test_state() {
         .unwrap();
     let story = Story::load(compiled_story_path).unwrap();
     let bookmark: Bookmark = Bookmark::load("./tests/data/bookmark.yml").unwrap();
-    runner = Runner::new(bookmark, story, true).unwrap();
+    runner = Runner::init(bookmark, story, true).unwrap();
 
     for (input, line) in &tests {
         assert_eq!(&runner.next(input).unwrap(), line);
@@ -195,8 +195,5 @@ fn test_state() {
         })
     );
     // Make sure the stack was cleared and we don't return to some previous passage.
-    assert_eq!(
-        runner.next("").unwrap(),
-        Line::End
-    );
+    assert_eq!(runner.next("").unwrap(), Line::End);
 }

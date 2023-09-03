@@ -13,7 +13,7 @@ fn test_namespaces() {
 
     Validator::new(&story, &mut bookmark).validate().unwrap();
 
-    let mut runner = Runner::new(bookmark, story, true).unwrap();
+    let mut runner = Runner::init(bookmark, story, true).unwrap();
 
     let tests = vec![
         (
@@ -154,8 +154,8 @@ fn test_namespaces() {
                 ..Dialogue::default()
             }),
         ),
-         // Make sure local commands work in other namespaces.
-         (
+        // Make sure local commands work in other namespaces.
+        (
             "",
             Line::Command(Command {
                 name: "namespace1:LocalCommand".to_string(),

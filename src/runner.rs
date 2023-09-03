@@ -1,31 +1,87 @@
+/// Public `Runner` interface for Kataru.
 use crate::{
     error::{Error, Result},
     structs::{
         Bookmark, Branches, Call, ChoiceTarget, Choices, CommandGetters, Dialogue,
-        PositionalCommand, QualifiedName, RawChoice, RawChoices, RawCommand, RawLine, Section, State, Story,
+        PositionalCommand, QualifiedName, RawChoice, RawChoices, RawCommand, RawLine, Section,
+        State, Story,
     },
-    Input, Line, Map, SetCommand, Value, Validator,
+    Input, Line, Map, SetCommand, Validator, Value,
 };
-
-use std::{marker::PhantomPinned, pin::Pin};
 
 lazy_static! {
     static ref EMPTY_SECTION: Section = Section::default();
     static ref EMPTY_STORY: Story = Story::default();
 }
 
-/// Story pinned to a specific memory address.
-/// This allows the runner to store references to the story while also owning it.
-struct PinnedStory {
-    inner: Story,
-    _pin: PhantomPinned
-}
-impl PinnedStory {
-    fn new(story: Story) -> Pin<Box<Self>> {
-        Box::pin(Self { inner: story, _pin: PhantomPinned })
-    }
+/// Public struct for running Kataru scripts.
+#[self_referencing]
+pub struct Runner {
+    /// Story to read. Cannot be moved or will cause compiler error, since state holds references to it.
+    pub story: Story,
+
+    /// Internal state.
+    #[borrows(story)]
+    #[covariant]
+    state: RunnerState<'this>,
 }
 
+/// Public interface to runner.
+impl Runner {
+    /// Construct a dialogue runner from a bookmark and a story.
+    /// Both are moved into the runner. Story is moved to a pinned location
+    /// on the heap so that it can't be moved.
+    pub fn init(bookmark: Bookmark, story: Story, validate: bool) -> Result<Self> {
+        let mut runner: Self = RunnerTryBuilder {
+            story,
+            state_builder: |story| RunnerState::try_new(bookmark, story),
+        }
+        .try_build()?;
+        if validate {
+            runner.validate()?;
+        }
+        Ok(runner)
+    }
+
+    /// Load a bookmark.
+    pub fn load_bookmark(&mut self, bookmark: Bookmark) -> Result<()> {
+        self.with_state_mut(|state| state.load_bookmark(bookmark))
+    }
+
+    /// Go to the passage specified in bookmark.
+    /// This public API method automatically triggers `run_on_passage`.
+    pub fn goto(&mut self, passage_name: String) -> Result<()> {
+        self.with_state_mut(|state| state.goto(passage_name))
+    }
+
+    /// Set the bookmark and goto that passage. Run the first line and return.
+    /// This clears the stack.
+    pub fn run(&mut self, passage_name: String) -> Result<Line> {
+        self.with_state_mut(|state| state.run(passage_name))
+    }
+
+    /// Validate the story.
+    pub fn validate(&mut self) -> Result<()> {
+        self.with_state_mut(|state| state.validate())
+    }
+
+    /// Save a snapshot of the current position to be loaded later.
+    pub fn save_snapshot(&mut self, name: &str) {
+        self.with_state_mut(|state| state.save_snapshot(name))
+    }
+
+    // Load a previously named snapshot.
+    pub fn load_snapshot(&mut self, name: &str) -> Result<()> {
+        self.with_state_mut(|state| state.load_snapshot(name))
+    }
+
+    /// Gets the next dialogue line from the story based on the user's input.
+    /// Internally, a single call to `next()` may result in multiple lines being processed,
+    /// i.e. when a choice is being made.
+    pub fn next(&mut self, input: &str) -> Result<Line> {
+        self.with_state_mut(|state| state.next(input))
+    }
+}
 
 /// Internal struct used for the flattened array of lines.
 /// Each element is either a raw line reference,
@@ -61,16 +117,15 @@ impl<'story> From<&'story RawLine> for LineRef<'story> {
     }
 }
 
-pub struct Runner<'story> {
+/// Internal runner state.
+struct RunnerState<'story> {
     /// Reference to bookmark to mutate as we progress through the story.
-    pub bookmark: Bookmark,
-    /// Story to read. Pinned so it can't be moved.
-    story: Pin<Box<PinnedStory>>,
-    //// Current line number.
-    pub line_num: usize,
+    bookmark: Bookmark,
+    /// The story the runner references.
+    story: &'story Story,
     /// Current section name
     pub section_name: String,
-    
+
     /// Flattened array of line references (use `line_num` to index).
     lines: Vec<LineRef<'story>>,
     /// Loaded choice-to-passage mapping from last choices seen.
@@ -81,35 +136,27 @@ pub struct Runner<'story> {
     speaker: String,
 }
 
-impl<'story> Runner<'story> {
-    /// Construct a dialogue runner from a bookmark and a story.
-    /// Both are moved into the runner. Story is moved to a pinned location
-    /// on the heap so that it can't be moved.
-    pub fn new(bookmark: Bookmark, story: Story, validate: bool) -> Result<Self> {
-        // Flatten dialogue lines
-        let mut runner = Self {
+impl<'story> RunnerState<'story> {
+    pub fn try_new(bookmark: Bookmark, story: &'story Story) -> Result<Self> {
+        let mut state = Self {
             bookmark,
-            story: PinnedStory::new(story),
-            line_num: 0,
-            lines: Vec::new(),
-            section_name: "".to_string(),
-            choice_to_passage: Map::new(),
-            choice_to_line_num: Map::new(),
-            speaker: "".to_string(),
+            story,
+            lines: Vec::default(),
+            section_name: String::default(),
+            choice_to_passage: Map::default(),
+            choice_to_line_num: Map::default(),
+            speaker: String::default(),
         };
-        runner.bookmark.init_state(runner.story());
-        if validate {
-            runner.validate()?;
-        }
-        runner.load_bookmark_position()?;
-        Ok(runner)
+        state.bookmark.init_state(state.story);
+        state.load_passage()?;
+        Ok(state)
     }
 
-    /// Load a bookmark.
+    /// Load a new bookmark.
     pub fn load_bookmark(&mut self, bookmark: Bookmark) -> Result<()> {
         self.bookmark = bookmark;
-        self.bookmark.init_state(self.story());
-        self.load_bookmark_position()
+        self.bookmark.init_state(self.story);
+        self.load_passage()
     }
 
     /// Go to the passage specified in bookmark.
@@ -117,7 +164,7 @@ impl<'story> Runner<'story> {
     pub fn goto(&mut self, passage_name: String) -> Result<()> {
         self.bookmark.set_passage(passage_name);
         self.bookmark.set_line(0);
-        self.load_bookmark_position()?;
+        self.load_passage()?;
         self.run_on_enter()?;
         Ok(())
     }
@@ -132,7 +179,7 @@ impl<'story> Runner<'story> {
 
     /// Validate the story.
     pub fn validate(&mut self) -> Result<()> {
-        Validator::new(self.story(), &mut self.bookmark).validate()
+        Validator::new(self.story, &mut self.bookmark).validate()
     }
 
     /// Save a snapshot of the current position to be loaded later.
@@ -143,7 +190,7 @@ impl<'story> Runner<'story> {
     // Load a previously named snapshot.
     pub fn load_snapshot(&mut self, name: &str) -> Result<()> {
         self.bookmark.load_snapshot(name)?;
-        self.load_bookmark_position()?;
+        self.load_passage()?;
         if let LineRef::Choices(raw_choices) = self.readline()? {
             self.load_choices(raw_choices)?;
         }
@@ -209,7 +256,7 @@ impl<'story> Runner<'story> {
                     match self.bookmark.stack.pop() {
                         Some(position) => {
                             self.bookmark.set_position(position);
-                            self.load_bookmark_position()?;
+                            self.load_passage()?;
                         }
                         None => return Ok(Line::End),
                     }
@@ -217,13 +264,12 @@ impl<'story> Runner<'story> {
                 LineRef::Break(line_num) => self.bookmark.set_line(line_num),
                 LineRef::Command(raw_command) => {
                     self.bookmark.next_line();
-                    let command = raw_command.build_command(self.story(), &self.bookmark)?;
+                    let command = raw_command.build_command(self.story, &self.bookmark)?;
                     return Ok(Line::Command(command));
                 }
                 LineRef::PositionalCommand(positional_command) => {
                     self.bookmark.next_line();
-                    let command =
-                        positional_command.build_command(self.story(), &self.bookmark)?;
+                    let command = positional_command.build_command(self.story, &self.bookmark)?;
                     return Ok(Line::Command(command));
                 }
                 LineRef::SetCommand(set) => {
@@ -232,7 +278,7 @@ impl<'story> Runner<'story> {
                 }
                 LineRef::Dialogue(map) => {
                     self.bookmark.next_line();
-                    let dialogue = Dialogue::from_map(map, self.story(), &self.bookmark)?;
+                    let dialogue = Dialogue::from_map(map, self.story, &self.bookmark)?;
                     self.speaker = dialogue.name.clone();
                     return Ok(Line::Dialogue(dialogue));
                 }
@@ -241,7 +287,7 @@ impl<'story> Runner<'story> {
                     return Ok(Line::Dialogue(Dialogue::from(
                         &self.speaker,
                         text,
-                        self.story(),
+                        self.story,
                         &self.bookmark,
                     )?));
                 }
@@ -249,14 +295,8 @@ impl<'story> Runner<'story> {
             input = "";
         }
     }
-    
-    // Getter for the story. The story is assumed constant after the Runner has been constructed.
-    fn story(&self) -> &'story Story {
-        unsafe {
-            std::mem::transmute::<&Story, &'story Story>(&self.story.inner)
-        }
-    }
 
+    /// Reads the current line.
     fn readline(&self) -> Result<LineRef<'story>> {
         if self.bookmark.line() >= self.lines.len() {
             return Err(error!(
@@ -273,8 +313,8 @@ impl<'story> Runner<'story> {
     /// that this section has no `on_exit` callback.
     fn can_optimize_tail_call(&self) -> bool {
         if let LineRef::Return = self.lines[self.bookmark.line()] {
-            if let Some(section) = self.story().sections.get(&self.section_name) {
-                section.on_exit().is_none() 
+            if let Some(section) = self.story.sections.get(&self.section_name) {
+                section.on_exit().is_none()
             } else {
                 false
             }
@@ -335,24 +375,7 @@ impl<'story> Runner<'story> {
         Ok(choices)
     }
 
-    /// Loads lines into a single flat array of references.
-    /// Initializes breakpoint stack.
-    fn load_passage(&mut self, lines: &'story [RawLine]) {
-        self.lines = vec![];
-        self.load_lines(lines);
-        // If lines doesn't end in a return, push a return.
-        match self.lines.last() {
-            Some(LineRef::Return) => (),
-            None | Some(_) => self.lines.push(LineRef::Return),
-        }
-
-        // println!("\nLoaded new passage:");
-        // for (i, e) in self.lines.iter().enumerate() {
-        //     println!("L{}: {:?}", i, e);
-        // }
-    }
-
-    /// Loads lines into a single flat array of references.
+    /// Loads lines into a single flat array of references and initializes breakpoint stack.
     /// For anything that requires control flow (branches, choices), store the position
     /// we need to jump to afterwards using a `Break(line_num)`.
     fn load_lines(&mut self, lines: &'story [RawLine]) {
@@ -406,25 +429,38 @@ impl<'story> Runner<'story> {
 
     /// Runs the `onEnter` set command.
     fn run_on_enter(&mut self) -> Result<()> {
-        self.story()
+        self.story
             .apply_set_commands(|section| section.on_enter(), &mut self.bookmark)
     }
 
     /// Runs the `onEnter` set command.
     fn run_on_exit(&mut self) -> Result<()> {
-        self.story()
+        self.story
             .apply_set_commands(|section| section.on_exit(), &mut self.bookmark)
     }
 
-    /// Gets the current passage based on the bookmark's position.
-    /// Loads the lines into its flattened form.
+    /// Loads the current passage based on the bookmark's position.
     /// Automatically handles updating of namespace.
-    fn load_bookmark_position(&mut self) -> Result<()> {
+    pub fn load_passage(&mut self) -> Result<()> {
         let qname = QualifiedName::from(self.bookmark.namespace(), self.bookmark.passage());
-        let (namespace, _section, passage) = self.story().passage(&qname)?;
+        let (namespace, _section, passage) = self.story.passage(&qname)?;
         let (namespace, passage_name) = (namespace.to_string(), qname.name.to_string());
         self.bookmark.update_position(namespace, passage_name);
-        self.load_passage(passage);
+
+        self.lines.clear();
+        self.load_lines(passage);
+
+        // If lines doesn't end in a return, push a return.
+        match self.lines.last() {
+            Some(LineRef::Return) => (),
+            None | Some(_) => self.lines.push(LineRef::Return),
+        }
+
+        // Debug statements.
+        // println!("\nLoaded new passage:");
+        // for (i, e) in self.lines.iter().enumerate() {
+        //     println!("L{}: {:?}", i, e);
+        // }
         Ok(())
     }
 }

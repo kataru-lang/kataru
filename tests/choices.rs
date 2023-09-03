@@ -5,7 +5,7 @@ use kataru::{Bookmark, Choices, Dialogue, Line, LoadYaml, Runner, Story};
 fn test_choices() {
     let story = Story::load_yml("./tests/data/choices").unwrap();
     let bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
-    let mut runner = Runner::new(bookmark, story, true).unwrap();
+    let mut runner = Runner::init(bookmark, story, true).unwrap();
 
     let tests = vec![
         (

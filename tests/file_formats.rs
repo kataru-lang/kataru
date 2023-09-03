@@ -5,7 +5,7 @@ use kataru::{Bookmark, Dialogue, Line, LoadYaml, Runner, Story};
 fn test_story2() {
     let story: Story = Story::load_yml("./tests/data/file_formats").unwrap();
     let bookmark: Bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
-    let mut runner = Runner::new(bookmark, story, true).unwrap();
+    let mut runner = Runner::init(bookmark, story, true).unwrap();
 
     let tests = vec![(
         "",
@@ -31,7 +31,7 @@ fn test_default_bookmark() {
         "Start".to_string(),
     )
     .unwrap();
-    let mut runner = Runner::new(bookmark, story, true).unwrap();
+    let mut runner = Runner::init(bookmark, story, true).unwrap();
 
     let tests = vec![(
         "",

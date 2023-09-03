@@ -5,7 +5,7 @@ use kataru::{Bookmark, Choices, Dialogue, Line, LoadYaml, Runner, Story};
 fn test_conditionals() {
     let story: Story = Story::load_yml("./tests/data/conditionals").unwrap();
     let bookmark: Bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
-    let mut runner: Runner = Runner::new(bookmark, story, true).unwrap();
+    let mut runner: Runner = Runner::init(bookmark, story, true).unwrap();
 
     let tests = vec![
         (

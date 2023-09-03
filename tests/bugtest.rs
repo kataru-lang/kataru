@@ -7,7 +7,7 @@ extern crate linear_map;
 fn test_attributes() {
     let story: Story = Story::load_yml("./tests/data/bugtest").unwrap();
     let bookmark: Bookmark = Bookmark::load_yml("./tests/data/bookmark.yml").unwrap();
-    let mut runner = Runner::new(bookmark, story, true).unwrap();
+    let mut runner = Runner::init(bookmark, story, true).unwrap();
     runner.validate().unwrap();
     // return;
 

@@ -5,6 +5,9 @@ extern crate lazy_static;
 extern crate maplit;
 
 #[macro_use]
+extern crate ouroboros;
+
+#[macro_use]
 mod error;
 
 #[macro_use]
