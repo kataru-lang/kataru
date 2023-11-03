@@ -1,48 +1,52 @@
-Program = _{ SOI ~ Expr ~ EOF }
+Program = _{ SOI ~ Expression ~ EOF }
 
 // Expressions
-Expr = _{ BinaryExpr | UnaryExpr }
-UnaryExpr = { UnaryOperator ~ Term }
-BinaryExpr = { (Term ~ BinaryOperator)* ~ Term }
-Term = _{ Atom | UnaryExpr | "(" ~ Expr ~ ")" }
+// An expression is a sequence of operands connected by unary or binary operators.
+// The AST will only have expression groups for expressions that must be evaluated.
+// Values and Variables are exposed directly.
+// Binary operators can be chained, thus binary expressions can be arbitrarily long.
+UnaryExpression  =  { UnaryOperator ~ UnaryOperand }
+BinaryExpression =  { (BinaryOperand ~ BinaryOperator)+ ~ BinaryOperand }
+Expression       = _{ BinaryExpression | UnaryExpression | UnaryOperand }
+UnaryOperand     = _{ Atom | "(" ~ Expression ~ ")" }
+BinaryOperand    = _{ UnaryExpression | UnaryOperand }
 
 // Operators
-Operator = _{ UnaryOperator | BinaryOperator }
-UnaryOperator = _{ Not | Add | Sub }
-BinaryOperator = _{ Add | Sub | Mul | Div | And | Or | Eq | Neq | Leq | Lt | Geq | Gt}
-Not = { "not" }
-Add = { "+" }
-Sub = { "-" }
-Mul = { "*" }
-Div = { "/" }
-And = { "and" }
-Or = { "or" }
-Eq = { "==" }
-Neq = { "!=" }
-Leq = { "<=" }
-Lt = { "<" }
-Geq = { ">=" }
-Gt = { ">" }
+UnaryOperator  = _{ Not | Add | Sub }
+BinaryOperator = _{ Add | Sub | Mul | Div | And | Or | Eq | Neq | Leq | Lt | Geq | Gt }
+Not            =  { "not" }
+Add            =  { "+" }
+Sub            =  { "-" }
+Mul            =  { "*" }
+Div            =  { "/" }
+And            =  { "and" }
+Or             =  { "or" }
+Eq             =  { "==" }
+Neq            =  { "!=" }
+Leq            =  { "<=" }
+Lt             =  { "<" }
+Geq            =  { ">=" }
+Gt             =  { ">" }
 
 // Strings
-UnsafeStringChar = _{"\"" | "(" | ")" | NEWLINE}
-NonQuoteWhitespaceChar = _{!(UnsafeStringChar | WHITESPACE) ~ ANY}
-NonQuoteNewlineChar = _{!UnsafeStringChar ~ ANY}
-UnquotedString = _{ !UnaryOperator ~ NonQuoteWhitespaceChar+ }
-String = @{ NonQuoteNewlineChar* }
-QuotedString = _{"\"" ~ String ~ "\""}
+UnsafeStringChar       = _{ "\"" | "(" | ")" | NEWLINE }
+NonQuoteWhitespaceChar = _{ !(UnsafeStringChar | WHITESPACE) ~ ANY }
+NonQuoteNewlineChar    = _{ !UnsafeStringChar ~ ANY }
+UnquotedString         = _{ !UnaryOperator ~ NonQuoteWhitespaceChar+ }
+String                 = @{ NonQuoteNewlineChar* }
+QuotedString           = _{ "\"" ~ String ~ "\"" }
 
 // Values
-Number = {(Add | Sub)? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)?}
-Bool = _{ "true" | "false" }
-Value = @{ Number | Bool | UnquotedString }
+Number =  { (Add | Sub)? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
+Bool   =  { "true" | "false" }
+Value  = ${ Number | Bool | UnquotedString }
 
 // Variables
 VariableRef = _{ "$" ~ Variable }
-Variable = @{ UnquotedString }
+Variable    = ${ UnquotedString }
 
-Atom = _{QuotedString | VariableRef | Value}
+Atom = _{ QuotedString | VariableRef | Value }
 
 // Override builtins
 WHITESPACE = _{ " " | "\t" }
-EOF = _{ EOI | ";" }
+EOF        = _{ EOI | ";" }

@@ -48,11 +48,11 @@ impl Value {
         };
 
         match pair.as_rule() {
-            Rule::BinaryExpr => PARSER
+            Rule::BinaryExpression => PARSER
                 .map_primary(primary)
                 .map_infix(infix)
                 .parse(pair.into_inner()),
-            Rule::UnaryExpr => {
+            Rule::UnaryExpression => {
                 let mut it = pair.into_inner();
                 let op = it.next();
                 let inner = it.next();
