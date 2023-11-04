@@ -13,6 +13,7 @@ mod error;
 #[macro_use]
 mod runner;
 mod packer;
+mod parser;
 mod structs;
 mod tagger;
 mod traits;
@@ -20,7 +21,7 @@ mod validator;
 mod value;
 mod vars;
 
-pub use error::{Error, Result};
+pub use error::{Error, Result, TryFrom};
 pub use packer::pack;
 pub use runner::Runner;
 pub use structs::{

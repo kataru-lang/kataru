@@ -1,0 +1,75 @@
+File = _{ SOI ~ StartDocument ~ Headers? ~ StartDocument ~ Passages ~ EOI }
+
+Headers  = _{ Header ~ ("\n"+ ~ Header)* }
+Header   = _{ NamespaceHeader | StateHeader }
+Passages =  { StartDocument ~ Passage* }
+Passage  =  { Identifier ~ ":\n" ~ PUSH(Indentation) ~ DROP }
+
+StartDocument = { ("---" | "===") }
+
+State         =  { "state" }
+StateHeader   = _{ State ~ ":\n" ~ VariableEntries }
+VariableEntry =  { Identifier ~ ":" ~ WhiteSpace ~ Expression }
+// Variable entries all at the same indentation
+VariableEntries = _{ PUSH(Indentation) ~ VariableEntry ~ ("\n" ~ PEEK_ALL ~ VariableEntry)* }
+
+Namespace       =  { "namespace" }
+NamespaceHeader = _{ (Namespace ~ ":" ~ WhiteSpace ~ Identifier) }
+
+Identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+
+// Map with single uniform level of indentation.
+IndentedMap = _{
+    PUSH(Indentation) ~ VariableEntry ~ ("\n" ~ PEEK_ALL ~ VariableEntry)* ~ DROP
+}
+
+Indentation = _{ (" " | "\t")+ }
+
+// Expressions
+// An expression is a sequence of operands connected by unary or binary operators.
+// The AST will only have expression groups for expressions that must be evaluated.
+// Values and Variables are exposed directly.
+// Binary operators can be chained, thus binary expressions can be arbitrarily long.
+UnaryExpression  =  { UnaryOperator ~ UnaryOperand }
+BinaryExpression =  { (BinaryOperand ~ BinaryOperator)+ ~ BinaryOperand }
+Expression       = _{ BinaryExpression | UnaryExpression | UnaryOperand }
+UnaryOperand     = _{ Atom | "(" ~ Expression ~ ")" }
+BinaryOperand    = _{ UnaryExpression | UnaryOperand }
+
+// Operators
+UnaryOperator  = _{ WhiteSpace? ~ (Not | Add | Sub) ~ WhiteSpace? }
+BinaryOperator = _{ WhiteSpace? ~ (Add | Sub | Mul | Div | And | Or | Eq | Neq | Leq | Lt | Geq | Gt) ~ WhiteSpace? }
+Not            =  { "not" }
+Add            =  { "+" }
+Sub            =  { "-" }
+Mul            =  { "*" }
+Div            =  { "/" }
+And            =  { "and" }
+Or             =  { "or" }
+Eq             =  { "==" }
+Neq            =  { "!=" }
+Leq            =  { "<=" }
+Lt             =  { "<" }
+Geq            =  { ">=" }
+Gt             =  { ">" }
+
+// Strings
+UnsafeStringChar       = _{ "\"" | "(" | ")" | NEWLINE }
+NonQuoteWhitespaceChar = _{ !(UnsafeStringChar | WhiteSpace) ~ ANY }
+NonQuoteNewlineChar    = _{ !UnsafeStringChar ~ ANY }
+UnquotedString         =  { !UnaryOperator ~ NonQuoteWhitespaceChar+ }
+String                 = @{ NonQuoteNewlineChar* }
+QuotedString           =  { "\"" ~ String ~ "\"" }
+
+// Values
+Number =  { (Add | Sub)? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
+Bool   =  { "true" | "false" }
+Value  = _{ Number | Bool | QuotedString | UnquotedString }
+
+// Variables
+Variable = @{ "$" ~ UnquotedString }
+
+Atom = _{ QuotedString | Variable | Value }
+
+// Override builtins
+WhiteSpace = _{ " " | "\t" }

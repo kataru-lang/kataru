@@ -41,3 +41,7 @@ macro_rules! error {
         res
     }}
 }
+
+pub trait TryFrom<T>: Sized {
+    fn try_from(value: T) -> Result<Self>;
+}
