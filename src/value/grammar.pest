@@ -12,8 +12,8 @@ UnaryOperand     = _{ Atom | "(" ~ Expression ~ ")" }
 BinaryOperand    = _{ UnaryExpression | UnaryOperand }
 
 // Operators
-UnaryOperator  = _{ Not | Add | Sub }
-BinaryOperator = _{ Add | Sub | Mul | Div | And | Or | Eq | Neq | Leq | Lt | Geq | Gt }
+UnaryOperator  = _{ WhiteSpace? ~ (Not | Add | Sub) ~ WhiteSpace? }
+BinaryOperator = _{ WhiteSpace? ~ (Add | Sub | Mul | Div | And | Or | Eq | Neq | Leq | Lt | Geq | Gt) ~ WhiteSpace? }
 Not            =  { "not" }
 Add            =  { "+" }
 Sub            =  { "-" }
@@ -30,16 +30,16 @@ Gt             =  { ">" }
 
 // Strings
 UnsafeStringChar       = _{ "\"" | "(" | ")" | NEWLINE }
-NonQuoteWhitespaceChar = _{ !(UnsafeStringChar | WHITESPACE) ~ ANY }
+NonQuoteWhitespaceChar = _{ !(UnsafeStringChar | WhiteSpace) ~ ANY }
 NonQuoteNewlineChar    = _{ !UnsafeStringChar ~ ANY }
-UnquotedString         = _{ !UnaryOperator ~ NonQuoteWhitespaceChar+ }
+UnquotedString         =  { !UnaryOperator ~ NonQuoteWhitespaceChar+ }
 String                 = @{ NonQuoteNewlineChar* }
-QuotedString           = _{ "\"" ~ String ~ "\"" }
+QuotedString           =  { "\"" ~ String ~ "\"" }
 
 // Values
 Number =  { (Add | Sub)? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
 Bool   =  { "true" | "false" }
-Value  = ${ Number | Bool | UnquotedString }
+Value  = _{ Number | Bool | QuotedString | UnquotedString }
 
 // Variables
 VariableRef = _{ "$" ~ Variable }
@@ -48,5 +48,5 @@ Variable    = ${ UnquotedString }
 Atom = _{ QuotedString | VariableRef | Value }
 
 // Override builtins
-WHITESPACE = _{ " " | "\t" }
+WhiteSpace = _{ " " | "\t" }
 EOF        = _{ EOI | ";" }

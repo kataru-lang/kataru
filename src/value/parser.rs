@@ -65,7 +65,9 @@ impl Value {
                 }
             }
             Rule::Variable => Value::from_var(pair.as_str(), bookmark),
-            Rule::Value | Rule::String => Value::from_yml(pair.as_str()),
+            Rule::Bool | Rule::Number | Rule::QuotedString | Rule::UnquotedString => {
+                Value::from_yml(pair.as_str())
+            }
             _ => {
                 return Ok(Value::Number(0.));
             }
