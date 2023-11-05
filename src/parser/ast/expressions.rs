@@ -1,5 +1,5 @@
 use super::operators::{BinaryOperator, UnaryOperator};
-use crate::parser::{span::Spanned, Rule};
+use crate::parser::Rule;
 use crate::{Error, Result, TryFrom};
 use pest::iterators::{Pair, Pairs};
 
@@ -38,10 +38,10 @@ impl TryFrom<Pairs<'_, Rule>> for UnaryExpression {
 
 #[derive(Debug, PartialEq)]
 pub enum Expression {
-    Number(Spanned<f64>),
-    String(Spanned<String>),
-    Bool(Spanned<bool>),
-    Variable(Spanned<String>),
+    Number(f64),
+    String(String),
+    Bool(bool),
+    Variable(String),
     BinaryExpression(BinaryExpression),
     UnaryExpression(UnaryExpression),
 }
@@ -54,61 +54,49 @@ impl TryFrom<Pair<'_, Rule>> for Expression {
             Rule::UnaryExpression => {
                 Self::UnaryExpression(UnaryExpression::try_from(pair.into_inner())?)
             }
-            Rule::Bool => Self::Bool(Spanned::<bool>::try_from(pair)?),
-            Rule::Number => Self::Number(Spanned::<f64>::try_from(pair)?),
-            Rule::String => Self::String(Spanned::<String>::try_from(pair)?),
-            Rule::Variable => Self::Variable(Spanned::<String>::try_from(pair)?),
+            Rule::Bool => Self::Bool(bool::try_from(pair)?),
+            Rule::Number => Self::Number(f64::try_from(pair)?),
+            Rule::String => Self::String(String::try_from(pair)?),
+            Rule::Variable => Self::Variable(String::try_from(pair)?),
             _ => unreachable!("Invalid rule type: {:?}", pair.as_rule()),
         })
     }
 }
 
-impl TryFrom<Pair<'_, Rule>> for Spanned<bool> {
+impl TryFrom<Pair<'_, Rule>> for bool {
     fn try_from(pair: Pair<'_, Rule>) -> Result<Self> {
-        Ok(Self {
-            span: pair.as_span().into(),
-            inner: match pair.as_str() {
-                "true" => true,
-                "True" => true,
-                "false" => false,
-                "False" => false,
-                _ => return Err(error!("Invalid bool")),
-            },
+        Ok(match pair.as_str() {
+            "true" => true,
+            "True" => true,
+            "false" => false,
+            "False" => false,
+            _ => return Err(error!("Invalid bool")),
         })
     }
 }
 
-impl TryFrom<Pair<'_, Rule>> for Spanned<String> {
+impl TryFrom<Pair<'_, Rule>> for String {
     fn try_from(pair: Pair<'_, Rule>) -> Result<Self> {
-        Ok(Self {
-            span: pair.as_span().into(),
-            inner: pair.as_str().to_owned(),
-        })
+        Ok(pair.as_str().to_owned())
     }
 }
 
-impl TryFrom<Pair<'_, Rule>> for Spanned<f64> {
+impl TryFrom<Pair<'_, Rule>> for f64 {
     fn try_from(pair: Pair<'_, Rule>) -> Result<Self> {
-        Ok(Self {
-            span: pair.as_span().into(),
-            inner: pair
-                .as_str()
-                .parse::<f64>()
-                .map_err(|_| error!("Invalid float returned by grammar: '{}'", pair.as_str()))?,
-        })
+        Ok(pair
+            .as_str()
+            .parse::<f64>()
+            .map_err(|_| error!("Invalid float returned by grammar: '{}'", pair.as_str()))?)
     }
 }
+
 #[cfg(test)]
 mod tests {
     use pest::Parser;
 
     use super::{BinaryExpression, Expression};
     use crate::{
-        parser::{
-            ast::operators::BinaryOperator,
-            span::{Span, Spanned},
-            Rule, StoryParser,
-        },
+        parser::{ast::operators::BinaryOperator, Rule, StoryParser},
         TryFrom,
     };
     #[test]
@@ -118,25 +106,10 @@ mod tests {
         assert_eq!(
             expression,
             Expression::BinaryExpression(BinaryExpression {
-                lhs: Box::new(Expression::Variable(Spanned {
-                    span: Span { start: 0, end: 2 },
-                    inner: "$x".to_string()
-                })),
+                lhs: Box::new(Expression::Variable("$x".to_string())),
                 rhs: vec![
-                    (
-                        BinaryOperator::Add,
-                        Expression::Number(Spanned {
-                            span: Span { start: 5, end: 6 },
-                            inner: 1.0
-                        })
-                    ),
-                    (
-                        BinaryOperator::Sub,
-                        Expression::Number(Spanned {
-                            span: Span { start: 9, end: 10 },
-                            inner: 2.0
-                        })
-                    )
+                    (BinaryOperator::Add, Expression::Number(1.0)),
+                    (BinaryOperator::Sub, Expression::Number(2.0))
                 ]
             })
         )

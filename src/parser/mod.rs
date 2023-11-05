@@ -1,4 +1,6 @@
 mod ast;
+#[cfg(feature = "lsp")]
+pub mod semtokens;
 mod span;
 use crate::parser::ast::Expression;
 use crate::{Result, TryFrom};

@@ -1,4 +1,5 @@
 mod expressions;
-mod operators;
-
+mod file;
+pub(crate) mod operators;
+mod passages;
 pub use expressions::Expression;
