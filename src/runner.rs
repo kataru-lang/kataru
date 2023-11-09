@@ -6,7 +6,7 @@ use crate::{
         PositionalCommand, QualifiedName, RawChoice, RawChoices, RawCommand, RawLine, Section,
         State, Story,
     },
-    Input, Line, Map, SetCommand, Validator, Value,
+    Input, Line, Map, SetCommand, StateMod, Validator, Value,
 };
 
 lazy_static! {
@@ -89,6 +89,11 @@ impl Runner {
     /// Public getter for the bookmark.
     pub fn bookmark(&self) -> &Bookmark {
         &self.borrow_state().bookmark
+    }
+
+    /// Public setter for setting values.
+    pub fn set_state(&mut self, statemod: StateMod, value: Value) -> Result<()> {
+        self.with_state_mut(|state| state.set_state(statemod, value))
     }
 }
 
@@ -299,6 +304,10 @@ impl<'story> RunnerState<'story> {
             };
             input = "";
         }
+    }
+
+    pub fn set_state(&mut self, statemod: StateMod, value: Value) -> Result<()> {
+        self.bookmark.set_value(statemod, value)
     }
 
     /// Reads the current line.
