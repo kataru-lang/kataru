@@ -158,7 +158,9 @@ impl<'story> RunnerState<'story> {
             speaker: String::default(),
         };
         state.bookmark.init_state(state.story);
-        state.load_passage()?;
+        if !state.bookmark.passage().is_empty() {
+            state.load_passage()?;
+        }
         Ok(state)
     }
 
@@ -312,6 +314,9 @@ impl<'story> RunnerState<'story> {
 
     /// Reads the current line.
     fn readline(&self) -> Result<LineRef<'story>> {
+        if self.bookmark.passage().is_empty() {
+            return Ok(LineRef::Return);
+        }
         if self.bookmark.line() >= self.lines.len() {
             return Err(error!(
                 "Invalid line number {} in passage '{}'",
@@ -483,5 +488,16 @@ impl<'story> RunnerState<'story> {
         //     println!("L{}: {:?}", i, e);
         // }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Bookmark, Line, Runner, Story};
+
+    #[test]
+    fn test_default_bookmark() {
+        let mut runner = Runner::init(Bookmark::default(), Story::default(), true).unwrap();
+        assert_eq!(runner.next("").unwrap(), Line::End);
     }
 }

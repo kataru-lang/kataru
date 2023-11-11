@@ -6,7 +6,7 @@ use crate::{
     traits::{FromMessagePack, FromYaml, Load, LoadYaml, Merge, Save, SaveMessagePack},
     LoadMessagePack,
 };
-use crate::{Bookmark, SetCommand, Value};
+use crate::{Bookmark, Config, SetCommand, Value, GLOBAL};
 use glob::glob;
 use serde::{Deserialize, Serialize};
 use std::{fmt, path::Path};
@@ -29,10 +29,26 @@ impl FromYaml for Passages {
 }
 
 /// Represents the story, which is a map of namespaces to their sections.
-#[derive(Debug, Deserialize, Default, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Story {
     #[serde(flatten)]
     pub sections: Map<String, Section>,
+}
+impl Default for Story {
+    fn default() -> Self {
+        let mut sections = Map::default();
+        sections.insert(
+            GLOBAL.into(),
+            Section {
+                config: Config {
+                    namespace: GLOBAL.into(),
+                    ..Default::default()
+                },
+                passages: Passages::default(),
+            },
+        );
+        Self { sections }
+    }
 }
 impl<'a> Story {
     /// Construct a story with an empty map of sections.
@@ -199,7 +215,7 @@ fn load_section<P: AsRef<Path> + fmt::Debug>(story: &mut Story, section_path: P)
 impl LoadYaml for Story {
     /// Loads a story from a given directory or YAML file.
     fn load_yml<P: AsRef<Path> + fmt::Debug>(path: P) -> Result<Self> {
-        let mut story = Self::new();
+        let mut story = Self::default();
 
         // Handle loading a single path story.
         if path.as_ref().is_file() {
