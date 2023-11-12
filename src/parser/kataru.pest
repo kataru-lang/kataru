@@ -1,22 +1,27 @@
-// Builtins
-COMMENT = { WhiteSpace* ~ "#" ~ (!NEWLINE ~ ANY)* }
+// Kataru Parsing Expression Grammar.
 
-// Whitespace
-WhiteSpace       = _{ " " | "\t" }
-WhiteSpaceLine   = _{ WhiteSpace | NEWLINE }
-SectionSeparator = _{ WhiteSpace* ~ NEWLINE ~ WhiteSpaceLine* }
-Indentation      = _{ WhiteSpace+ }
+// Builtins
+COMMENT = { SPACE* ~ "#" ~ (!NEWLINE ~ ANY)* }
+
+// SPACE
+// Sematnic indentation should be handled with the following pattern:
+// PUSH(INDENTATION) ~ X ~ (PEEK_INDENTATION ~ X)* ~ DROP
+SPACE            = _{ " " | "\t" }
+BLANK_LINE       = _{ SPACE* ~ NEWLINE }
+SPACE_OR_LINE    = _{ SPACE | NEWLINE }
+INDENTATION      = _{ SPACE+ }
+PEEK_INDENTATION = _{ NEWLINE ~ (BLANK_LINE)* ~ PEEK_ALL }
 
 // Common
 Identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 Variable   = @{ "$" ~ Identifier }
 
 // Top level file
-File         = _{ SOI ~ WhiteSpaceLine* ~ FileHeader ~ SectionSeparator ~ FilePassages ~ WhiteSpaceLine* ~ EOI }
-FileHeader   = _{ StartDocument ~ (SectionSeparator ~ Headers)? }
-FilePassages = _{ StartDocument ~ (SectionSeparator ~ Passages)? }
+File         = _{ SOI ~ BLANK_LINE* ~ FileHeader ~ BLANK_LINE* ~ FilePassages ~ BLANK_LINE* ~ EOI }
+FileHeader   = _{ StartDocument ~ (BLANK_LINE* ~ Headers)? }
+FilePassages = _{ StartDocument ~ (BLANK_LINE* ~ Passages)? }
 
-Headers = _{ WhiteSpaceLine* ~ Header ~ (NEWLINE ~ WhiteSpaceLine* ~ Header)* }
+Headers = _{ BLANK_LINE* ~ Header ~ (NEWLINE ~ BLANK_LINE* ~ Header)* }
 Header  = _{ NamespaceHeader | StateHeader | CharactersHeader | CommandsHeader }
 
 StartDocument = { "---" | "===" }
@@ -28,54 +33,56 @@ Expansion          = _{ (PassageExpansion | CharacterExpansion) ~ "." }
 
 // State and variables
 state               =  { "state" }
-StateHeader         = _{ state ~ ":" ~ (NEWLINE+ ~ VariableDefinitions)? }
+StateHeader         = _{ state ~ ":" ~ (BLANK_LINE+ ~ VariableDefinitions)? }
 VariableDeclaration = _{ Expansion? ~ Identifier }
-VariableDefinition  =  { VariableDeclaration ~ ":" ~ WhiteSpace ~ Expression }
-VariableDefinitions = _{ PUSH(Indentation) ~ VariableDefinition ~ (NEWLINE ~ PEEK_ALL ~ VariableDefinition)* ~ DROP }
+VariableDefinition  =  { VariableDeclaration ~ ":" ~ SPACE ~ Expression }
+VariableDefinitions = _{ PUSH(INDENTATION) ~ VariableDefinition ~ (PEEK_INDENTATION ~ VariableDefinition)* ~ DROP }
 
 // Namespace
 namespace       =  { "namespace" }
-NamespaceHeader = _{ (namespace ~ ":" ~ WhiteSpace ~ Namespace) }
+NamespaceHeader = _{ (namespace ~ ":" ~ SPACE ~ Namespace) }
 Namespace       = _{ global | Identifier }
 global          =  { "global" }
 
 // Characters
 characters           =  { "characters" }
+CharacterName        = @{ Identifier }
 CharactersHeader     = _{ characters ~ ":" ~ (NEWLINE ~ CharacterDefinitions)? }
-CharacterDefinition  =  { Identifier ~ ":" ~ (NEWLINE+ ~ CharacterDataEntries)? }
-CharacterDefinitions = _{ PUSH(Indentation) ~ CharacterDefinition ~ (NEWLINE ~ PEEK_ALL ~ CharacterDefinition)* ~ DROP }
-CharacterDataEntries = _{ PUSH(Indentation) ~ CharacterDataEntry ~ (NEWLINE ~ PEEK_ALL ~ CharacterDataEntry)* ~ DROP }
-CharacterDataEntry   =  { Identifier ~ ":" ~ WhiteSpace ~ Expression }
+CharacterDefinition  =  { CharacterName ~ ":" ~ (NEWLINE+ ~ CharacterDataEntries)? }
+CharacterDefinitions = _{ PUSH(INDENTATION) ~ CharacterDefinition ~ (PEEK_INDENTATION ~ CharacterDefinition)* ~ DROP }
+CharacterDataEntries = _{ PUSH(INDENTATION) ~ CharacterDataEntry ~ (PEEK_INDENTATION ~ CharacterDataEntry)* ~ DROP }
+CharacterDataEntry   =  { Identifier ~ ":" ~ SPACE ~ Expression }
 
 // Commands
 commands           =  { "commands" }
 CommandName        = @{ Identifier }
 CommandsHeader     = _{ commands ~ ":" ~ (NEWLINE+ ~ CommandDefinitions)? }
 CommandDeclaration = _{ Expansion? ~ CommandName }
-CommandDefinitions = _{ PUSH(Indentation) ~ Command ~ (NEWLINE ~ PEEK_ALL ~ Command)* ~ DROP }
+CommandDefinitions = _{ PUSH(INDENTATION) ~ Command ~ (PEEK_INDENTATION ~ Command)* ~ DROP }
 
 Command                    =  { CommandDeclaration ~ ":" ~ CommandParams? }
-CommandCall                =  { (Identifier ~ ".")? ~ CommandName ~ ":" ~ CommandParams? }
-CommandParam               =  { Identifier ~ ":" ~ WhiteSpace ~ Expression }
-CommandParams              = _{ (WhiteSpace+ ~ CommandParamsBrace) | (NEWLINE+ ~ CommandParamsFlow) }
-CommandParamsFlow          = _{ PUSH(Indentation) ~ CommandParam ~ (NEWLINE ~ PEEK_ALL ~ CharacterDataEntry)* ~ DROP }
-CommandParamsBrace         = _{ "{" ~ WhiteSpaceLine* ~ CommandParamsCsv ~ WhiteSpaceLine* ~ "}" }
-CommandParamsCsv           = _{ CommandParam ~ ("," ~ WhiteSpaceLine* ~ CommandParam)* }
-CommandPositionalCall      =  { (Identifier ~ ".")? ~ Identifier ~ ":" ~ WhiteSpaceLine+ ~ CommandPositionalParams? }
-CommandPositionalParams    = _{ "[" ~ WhiteSpaceLine* ~ CommandPositionalParamsCsv ~ WhiteSpaceLine* ~ "]" }
-CommandPositionalParamsCsv = _{ Expression ~ ("," ~ WhiteSpaceLine* ~ Expression)* }
+CommandCall                =  { (Identifier ~ ".")? ~ CommandName ~ ":" ~ CommandParams }
+CommandParam               =  { Identifier ~ ":" ~ SPACE ~ Expression }
+CommandParams              = _{ (SPACE+ ~ CommandParamsBrace) | (NEWLINE+ ~ CommandParamsFlow) }
+CommandParamsFlow          = _{ PUSH(INDENTATION) ~ CommandParam ~ (PEEK_INDENTATION ~ CharacterDataEntry)* ~ DROP }
+CommandParamsBrace         = _{ "{" ~ SPACE_OR_LINE* ~ CommandParamsCsv ~ SPACE_OR_LINE* ~ "}" }
+CommandParamsCsv           = _{ CommandParam ~ ("," ~ SPACE_OR_LINE* ~ CommandParam)* }
+CommandPositionalCall      =  { (Identifier ~ ".")? ~ CommandName ~ ":" ~ SPACE_OR_LINE+ ~ CommandPositionalParams }
+CommandPositionalParams    = _{ "[" ~ SPACE_OR_LINE* ~ CommandPositionalParamsCsv ~ SPACE_OR_LINE* ~ "]" }
+CommandPositionalParamsCsv = _{ Expression ~ ("," ~ SPACE_OR_LINE* ~ Expression)* }
 
 Passages              = _{ Passage* }
-Passage               =  { Identifier ~ ":" ~ (NEWLINE+ ~ Lines)? }
-LineDialogue          =  { Identifier ~ ":" ~ WhiteSpace ~ StringWithVariable }
+PassageName           = @{ Identifier }
+Passage               = _{ PassageName ~ ":" ~ (BLANK_LINE+ ~ Lines)? }
+LineDialogue          =  { CharacterName ~ ":" ~ SPACE ~ StringWithVariable }
 LineContinued         =  { (!Variable ~ ANY) ~ Variable ~ ANY }
-LineVariant           = _{ (LineDialogue | LineContinued | CommandCall | CommandPositionalCall) }
-Line                  = _{ "-" ~ (WhiteSpace ~ LineVariant)? }
+LineVariant           = _{ (LineDialogue | LineContinued | CommandPositionalCall | CommandCall) }
+Line                  = _{ "-" ~ (SPACE ~ LineVariant)? }
 FormatExpression      =  { "{" ~ Expression ~ "}" }
 FormatExpressionOrVar = _{ FormatExpression | Variable }
 StringLiteral         =  { (!(NEWLINE | FormatExpressionOrVar) ~ ANY)+ }
 StringWithVariable    = _{ StringLiteral ~ (FormatExpressionOrVar ~ StringLiteral?)* }
-Lines                 = _{ PUSH(Indentation) ~ Line ~ (NEWLINE ~ PEEK_ALL ~ Line)* ~ DROP }
+Lines                 = _{ PUSH(INDENTATION) ~ Line ~ (NEWLINE+ ~ PEEK_ALL ~ Line)* ~ DROP }
 
 // Expressions
 // An expression is a sequence of operands connected by unary or binary operators.
@@ -89,8 +96,8 @@ UnaryOperand     = _{ Atom | "(" ~ Expression ~ ")" }
 BinaryOperand    = _{ UnaryExpression | UnaryOperand }
 
 // Operators
-UnaryOperator  = _{ WhiteSpace? ~ (Not | Add | Sub) ~ WhiteSpace? }
-BinaryOperator = _{ WhiteSpace? ~ (Add | Sub | Mul | Div | And | Or | Eq | Neq | Leq | Lt | Geq | Gt) ~ WhiteSpace? }
+UnaryOperator  = _{ SPACE? ~ (Not | Add | Sub) ~ SPACE? }
+BinaryOperator = _{ SPACE? ~ (Add | Sub | Mul | Div | And | Or | Eq | Neq | Leq | Lt | Geq | Gt) ~ SPACE? }
 Not            =  { "not" }
 Add            =  { "+" }
 Sub            =  { "-" }
@@ -106,12 +113,12 @@ Geq            =  { ">=" }
 Gt             =  { ">" }
 
 // Strings
-UnsafeStringChar       = _{ "\"" | "(" | ")" | NEWLINE }
-NonQuoteWhitespaceChar = _{ !(UnsafeStringChar | WhiteSpace) ~ ANY }
-NonQuoteNewlineChar    = _{ !UnsafeStringChar ~ ANY }
-UnquotedString         =  { !UnaryOperator ~ NonQuoteWhitespaceChar+ }
-String                 = @{ NonQuoteNewlineChar* }
-QuotedString           =  { "\"" ~ String ~ "\"" }
+UnsafeStringChar    = _{ "\"" | "(" | ")" | NEWLINE }
+NonQuoteSPACEChar   = _{ !(UnsafeStringChar | SPACE) ~ ANY }
+NonQuoteNewlineChar = _{ !UnsafeStringChar ~ ANY }
+UnquotedString      =  { !UnaryOperator ~ NonQuoteSPACEChar+ }
+String              = @{ NonQuoteNewlineChar* }
+QuotedString        =  { "\"" ~ String ~ "\"" }
 
 // Values
 Number = @{ (Add | Sub)? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
