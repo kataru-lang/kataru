@@ -6,7 +6,7 @@ use crate::{
         PositionalCommand, QualifiedName, RawChoice, RawChoices, RawCommand, RawLine, Section,
         State, Story,
     },
-    Input, Line, Map, SetCommand, Validator, Value,
+    Input, Line, Map, SetCommand, StateMod, Validator, Value,
 };
 
 lazy_static! {
@@ -90,6 +90,11 @@ impl Runner {
     pub fn bookmark(&self) -> &Bookmark {
         &self.borrow_state().bookmark
     }
+
+    /// Public setter for setting values.
+    pub fn set_state(&mut self, statemod: StateMod, value: Value) -> Result<()> {
+        self.with_state_mut(|state| state.set_state(statemod, value))
+    }
 }
 
 /// Internal struct used for the flattened array of lines.
@@ -153,7 +158,9 @@ impl<'story> RunnerState<'story> {
             speaker: String::default(),
         };
         state.bookmark.init_state(state.story);
-        state.load_passage()?;
+        if !state.bookmark.passage().is_empty() {
+            state.load_passage()?;
+        }
         Ok(state)
     }
 
@@ -301,8 +308,15 @@ impl<'story> RunnerState<'story> {
         }
     }
 
+    pub fn set_state(&mut self, statemod: StateMod, value: Value) -> Result<()> {
+        self.bookmark.set_value(statemod, value)
+    }
+
     /// Reads the current line.
     fn readline(&self) -> Result<LineRef<'story>> {
+        if self.bookmark.passage().is_empty() {
+            return Ok(LineRef::Return);
+        }
         if self.bookmark.line() >= self.lines.len() {
             return Err(error!(
                 "Invalid line number {} in passage '{}'",
@@ -474,5 +488,16 @@ impl<'story> RunnerState<'story> {
         //     println!("L{}: {:?}", i, e);
         // }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Bookmark, Line, Runner, Story};
+
+    #[test]
+    fn test_default_bookmark() {
+        let mut runner = Runner::init(Bookmark::default(), Story::default(), true).unwrap();
+        assert_eq!(runner.next("").unwrap(), Line::End);
     }
 }

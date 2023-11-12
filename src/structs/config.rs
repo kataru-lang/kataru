@@ -44,7 +44,7 @@ impl Merge for Config {
             self.on_enter = other.on_enter.clone();
         }
         if self.on_exit.is_none() && other.on_exit.is_some() {
-            self.on_enter = other.on_exit.clone();
+            self.on_exit = other.on_exit.clone();
         }
         Ok(())
     }

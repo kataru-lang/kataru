@@ -1,4 +1,7 @@
-use kataru::{Bookmark, Choices, Command, Dialogue, Input, Line, Load, Runner, Save, Story, Value};
+use kataru::{
+    AssignOperator, Bookmark, Choices, Command, Dialogue, Input, Line, Load, Runner, Save,
+    StateMod, Story, Value,
+};
 use maplit::hashmap;
 #[macro_use]
 extern crate linear_map;
@@ -10,6 +13,27 @@ fn test_state() {
     let story: Story = Story::load("./tests/data/state").unwrap();
     let bookmark: Bookmark = Bookmark::load("./tests/data/bookmark.yml").unwrap();
     let mut runner = Runner::init(bookmark, story, true).unwrap();
+
+    runner
+        .set_state(
+            StateMod {
+                var: "var",
+                op: AssignOperator::None,
+            },
+            Value::Number(2.0),
+        )
+        .unwrap();
+    assert_eq!(runner.bookmark().value("var").unwrap(), &Value::Number(2.0));
+    runner
+        .set_state(
+            StateMod {
+                var: "var",
+                op: AssignOperator::None,
+            },
+            Value::Number(1.0),
+        )
+        .unwrap();
+    assert_eq!(runner.bookmark().value("var").unwrap(), &Value::Number(1.0));
 
     let tests = vec![
         // TestBool: { bool: not $boolVar }
