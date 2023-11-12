@@ -1,29 +1,81 @@
-File = _{ SOI ~ StartDocument ~ Headers? ~ StartDocument ~ Passages ~ EOI }
+// Builtins
+COMMENT = { WhiteSpace* ~ "#" ~ (!NEWLINE ~ ANY)* }
 
-Headers  = _{ Header ~ ("\n"+ ~ Header)* }
-Header   = _{ NamespaceHeader | StateHeader }
-Passages =  { StartDocument ~ Passage* }
-Passage  =  { Identifier ~ ":\n" ~ PUSH(Indentation) ~ DROP }
+// Whitespace
+WhiteSpace       = _{ " " | "\t" }
+WhiteSpaceLine   = _{ WhiteSpace | NEWLINE }
+SectionSeparator = _{ WhiteSpace* ~ NEWLINE ~ WhiteSpaceLine* }
+Indentation      = _{ WhiteSpace+ }
 
-StartDocument = { ("---" | "===") }
-
-State         =  { "state" }
-StateHeader   = _{ State ~ ":\n" ~ VariableEntries }
-VariableEntry =  { Identifier ~ ":" ~ WhiteSpace ~ Expression }
-// Variable entries all at the same indentation
-VariableEntries = _{ PUSH(Indentation) ~ VariableEntry ~ ("\n" ~ PEEK_ALL ~ VariableEntry)* }
-
-Namespace       =  { "namespace" }
-NamespaceHeader = _{ (Namespace ~ ":" ~ WhiteSpace ~ Identifier) }
-
+// Common
 Identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+Variable   = @{ "$" ~ Identifier }
 
-// Map with single uniform level of indentation.
-IndentedMap = _{
-    PUSH(Indentation) ~ VariableEntry ~ ("\n" ~ PEEK_ALL ~ VariableEntry)* ~ DROP
-}
+// Top level file
+File         = _{ SOI ~ WhiteSpaceLine* ~ FileHeader ~ SectionSeparator ~ FilePassages ~ WhiteSpaceLine* ~ EOI }
+FileHeader   = _{ StartDocument ~ (SectionSeparator ~ Headers)? }
+FilePassages = _{ StartDocument ~ (SectionSeparator ~ Passages)? }
 
-Indentation = _{ (" " | "\t")+ }
+Headers = _{ WhiteSpaceLine* ~ Header ~ (NEWLINE ~ WhiteSpaceLine* ~ Header)* }
+Header  = _{ NamespaceHeader | StateHeader | CharactersHeader | CommandsHeader }
+
+StartDocument = { "---" | "===" }
+
+// Expansions
+PassageExpansion   =  { "$passage" }
+CharacterExpansion =  { "$character" }
+Expansion          = _{ (PassageExpansion | CharacterExpansion) ~ "." }
+
+// State and variables
+state               =  { "state" }
+StateHeader         = _{ state ~ ":" ~ (NEWLINE+ ~ VariableDefinitions)? }
+VariableDeclaration = _{ Expansion? ~ Identifier }
+VariableDefinition  =  { VariableDeclaration ~ ":" ~ WhiteSpace ~ Expression }
+VariableDefinitions = _{ PUSH(Indentation) ~ VariableDefinition ~ (NEWLINE ~ PEEK_ALL ~ VariableDefinition)* ~ DROP }
+
+// Namespace
+namespace       =  { "namespace" }
+NamespaceHeader = _{ (namespace ~ ":" ~ WhiteSpace ~ Namespace) }
+Namespace       = _{ global | Identifier }
+global          =  { "global" }
+
+// Characters
+characters           =  { "characters" }
+CharactersHeader     = _{ characters ~ ":" ~ (NEWLINE ~ CharacterDefinitions)? }
+CharacterDefinition  =  { Identifier ~ ":" ~ (NEWLINE+ ~ CharacterDataEntries)? }
+CharacterDefinitions = _{ PUSH(Indentation) ~ CharacterDefinition ~ (NEWLINE ~ PEEK_ALL ~ CharacterDefinition)* ~ DROP }
+CharacterDataEntries = _{ PUSH(Indentation) ~ CharacterDataEntry ~ (NEWLINE ~ PEEK_ALL ~ CharacterDataEntry)* ~ DROP }
+CharacterDataEntry   =  { Identifier ~ ":" ~ WhiteSpace ~ Expression }
+
+// Commands
+commands           =  { "commands" }
+CommandName        = @{ Identifier }
+CommandsHeader     = _{ commands ~ ":" ~ (NEWLINE+ ~ CommandDefinitions)? }
+CommandDeclaration = _{ Expansion? ~ CommandName }
+CommandDefinitions = _{ PUSH(Indentation) ~ Command ~ (NEWLINE ~ PEEK_ALL ~ Command)* ~ DROP }
+
+Command                    =  { CommandDeclaration ~ ":" ~ CommandParams? }
+CommandCall                =  { (Identifier ~ ".")? ~ CommandName ~ ":" ~ CommandParams? }
+CommandParam               =  { Identifier ~ ":" ~ WhiteSpace ~ Expression }
+CommandParams              = _{ (WhiteSpace+ ~ CommandParamsBrace) | (NEWLINE+ ~ CommandParamsFlow) }
+CommandParamsFlow          = _{ PUSH(Indentation) ~ CommandParam ~ (NEWLINE ~ PEEK_ALL ~ CharacterDataEntry)* ~ DROP }
+CommandParamsBrace         = _{ "{" ~ WhiteSpaceLine* ~ CommandParamsCsv ~ WhiteSpaceLine* ~ "}" }
+CommandParamsCsv           = _{ CommandParam ~ ("," ~ WhiteSpaceLine* ~ CommandParam)* }
+CommandPositionalCall      =  { (Identifier ~ ".")? ~ Identifier ~ ":" ~ WhiteSpaceLine+ ~ CommandPositionalParams? }
+CommandPositionalParams    = _{ "[" ~ WhiteSpaceLine* ~ CommandPositionalParamsCsv ~ WhiteSpaceLine* ~ "]" }
+CommandPositionalParamsCsv = _{ Expression ~ ("," ~ WhiteSpaceLine* ~ Expression)* }
+
+Passages              = _{ Passage* }
+Passage               =  { Identifier ~ ":" ~ (NEWLINE+ ~ Lines)? }
+LineDialogue          =  { Identifier ~ ":" ~ WhiteSpace ~ StringWithVariable }
+LineContinued         =  { (!Variable ~ ANY) ~ Variable ~ ANY }
+LineVariant           = _{ (LineDialogue | LineContinued | CommandCall | CommandPositionalCall) }
+Line                  = _{ "-" ~ (WhiteSpace ~ LineVariant)? }
+FormatExpression      =  { "{" ~ Expression ~ "}" }
+FormatExpressionOrVar = _{ FormatExpression | Variable }
+StringLiteral         =  { (!(NEWLINE | FormatExpressionOrVar) ~ ANY)+ }
+StringWithVariable    = _{ StringLiteral ~ (FormatExpressionOrVar ~ StringLiteral?)* }
+Lines                 = _{ PUSH(Indentation) ~ Line ~ (NEWLINE ~ PEEK_ALL ~ Line)* ~ DROP }
 
 // Expressions
 // An expression is a sequence of operands connected by unary or binary operators.
@@ -62,14 +114,7 @@ String                 = @{ NonQuoteNewlineChar* }
 QuotedString           =  { "\"" ~ String ~ "\"" }
 
 // Values
-Number =  { (Add | Sub)? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
-Bool   =  { "true" | "false" }
+Number = @{ (Add | Sub)? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
+Bool   = @{ "true" | "false" }
 Value  = _{ Number | Bool | QuotedString | UnquotedString }
-
-// Variables
-Variable = @{ "$" ~ UnquotedString }
-
-Atom = _{ QuotedString | Variable | Value }
-
-// Override builtins
-WhiteSpace = _{ " " | "\t" }
+Atom   = _{ QuotedString | Variable | Value }
