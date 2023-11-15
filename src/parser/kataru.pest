@@ -24,8 +24,9 @@ VariableDefinitions = _{ START_INDENTATION ~ VariableDefinition ~ (PEEK_INDENTAT
 
 // Namespace
 namespace       =  { "namespace" }
-NamespaceHeader = _{ (namespace ~ ":" ~ SPACE ~ Namespace) }
-Namespace       = _{ global | Identifier }
+NamespaceHeader = _{ (namespace ~ ":" ~ SPACE ~ NamespaceId) }
+NamespaceId     = _{ global | Identifier }
+Namespace       = @{ Identifier }
 global          =  { "global" }
 
 // Characters
@@ -73,6 +74,7 @@ StringWithVariable    = _{ StringLiteral ~ (FormatExpressionOrVar ~ StringLitera
 // Passages
 Passages          = _{ (Passage ~ BLANK_LINE*)* }
 PassageName       = @{ Identifier }
+PassageReference  =  { (Namespace ~ ":")* ~ PassageName }
 Passage           = _{ PassageName ~ ":" ~ (BLANK_LINE+ ~ Lines)? }
 Dialogue          =  { CharacterName ~ ":" ~ SPACE ~ StringWithVariable }
 DialogueContinued =  { StringWithVariable }
@@ -85,7 +87,7 @@ ChoiceMapBrace  = _{ "{" ~ SPACE_OR_LINE* ~ ChoiceMapCsv ~ SPACE_OR_LINE* ~ "}" 
 ChoiceMapCsv    = _{ Choice ~ ("," ~ SPACE_OR_LINE* ~ Choice)* }
 ChoiceMapFlow   = _{ START_INDENTATION ~ Choice ~ (PEEK_INDENTATION ~ Choice)* ~ DROP }
 Choice          =  { (ChoiceCondition | ChoiceExplicit | ChoiceLines) }
-ChoiceExplicit  = _{ ChoiceString ~ ":" ~ (SPACE+ ~ PassageName) }
+ChoiceExplicit  = _{ ChoiceString ~ ":" ~ (SPACE+ ~ PassageReference) }
 ChoiceLines     = _{ ChoiceString ~ ":" ~ (BLANK_LINE+ ~ Lines)? }
 ChoiceCondition = _{ IfExpression ~ ":" ~ ChoiceMap }
 ChoiceKey       = _{ IfExpression | ChoiceString }
@@ -107,7 +109,7 @@ SetOperator  =  { SPACE ~ (Add | Sub) }
 Setter       = _{ (VariableDeclaration | Variable) ~ SetOperator? ~ ":" ~ SPACE ~ Expression }
 Setters      = _{ (SPACE+ ~ SettersBrace) | (BLANK_LINE+ ~ SettersFlow) }
 SettersFlow  = _{ START_INDENTATION ~ Setter ~ (PEEK_INDENTATION ~ Setter)* ~ DROP }
-SettersBrace = _{ "{" ~ SPACE_OR_LINE* ~ CommandParamsCsv ~ SPACE_OR_LINE* ~ "}" }
+SettersBrace = _{ "{" ~ SPACE_OR_LINE* ~ SetterCsv ~ SPACE_OR_LINE* ~ "}" }
 SetterCsv    = _{ Setter ~ ("," ~ SPACE_OR_LINE* ~ Setter)* }
 
 // Input
@@ -120,7 +122,7 @@ InputStatement = { (VariableDeclaration | Variable) ~ ":" ~ SPACE ~ StringWithVa
 
 // Call/Return
 call   = { "call" }
-Call   = { call ~ ":" ~ SPACE ~ PassageName }
+Call   = { call ~ ":" ~ SPACE ~ PassageReference }
 return = { "return" }
 Return = { return ~ ":" }
 
