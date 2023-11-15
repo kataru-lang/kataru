@@ -31,7 +31,7 @@ impl SemanticTokenType {
             Rule::Variable => SemanticTokenType::Variable,
             Rule::Number => SemanticTokenType::Number,
             Rule::QuotedString | Rule::UnquotedString => SemanticTokenType::String,
-            Rule::Namespace | Rule::State => SemanticTokenType::Keyword,
+            Rule::namespace | Rule::state | Rule::r#if => SemanticTokenType::Keyword,
             _ => return None,
         })
     }

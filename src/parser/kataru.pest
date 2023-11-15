@@ -1,14 +1,14 @@
 // Kataru Parsing Expression Grammar.
 
 // Top level file
-File         = _{ SOI ~ BLANK_LINE* ~ FileHeader ~ BLANK_LINE* ~ FilePassages ~ BLANK_LINE* ~ EOI }
-FileHeader   = _{ StartDocument ~ (BLANK_LINE* ~ Headers)? }
-FilePassages = _{ StartDocument ~ (BLANK_LINE* ~ Passages)? }
+File          = _{ SOI ~ BLANK_LINE* ~ FileHeader ~ BLANK_LINE* ~ FilePassages ~ BLANK_LINE* ~ EOI }
+FileHeader    = _{ StartDocument ~ (BLANK_LINE* ~ Headers)? }
+FilePassages  = _{ StartDocument ~ (BLANK_LINE* ~ Passages)? }
+StartDocument =  { "---" | "===" }
 
-StartDocument = { "---" | "===" }
-
+// Headers
 Headers = _{ BLANK_LINE* ~ Header ~ (NEWLINE ~ BLANK_LINE* ~ Header)* }
-Header  = _{ NamespaceHeader | StateHeader | CharactersHeader | CommandsHeader }
+Header  = _{ NamespaceHeader | StateHeader | CharactersHeader | CommandsHeader | OnExitHeader | OnEnterHeader }
 
 // Expansions
 PassageExpansion   =  { "$passage" }
@@ -38,21 +38,31 @@ CharacterDataEntries = _{ START_INDENTATION ~ CharacterDataEntry ~ (PEEK_INDENTA
 CharacterDataEntry   =  { Identifier ~ ":" ~ SPACE ~ Expression }
 
 // Commands
-commands                   =  { "commands" }
-CommandName                = @{ Identifier }
-CommandsHeader             = _{ commands ~ ":" ~ (NEWLINE+ ~ CommandDefinitions)? }
-CommandDeclaration         = _{ Expansion? ~ CommandName }
-CommandDefinitions         = _{ START_INDENTATION ~ Command ~ (PEEK_INDENTATION ~ Command)* ~ DROP }
-Command                    =  { CommandDeclaration ~ ":" ~ CommandParams? }
-CommandCall                =  { (Identifier ~ ".")? ~ CommandName ~ ":" ~ CommandParams }
-CommandParam               =  { Identifier ~ ":" ~ SPACE ~ Expression }
-CommandParams              = _{ (SPACE+ ~ CommandParamsBrace) | (NEWLINE+ ~ CommandParamsFlow) }
-CommandParamsFlow          = _{ START_INDENTATION ~ CommandParam ~ (PEEK_INDENTATION ~ CharacterDataEntry)* ~ DROP }
-CommandParamsBrace         = _{ "{" ~ SPACE_OR_LINE* ~ CommandParamsCsv ~ SPACE_OR_LINE* ~ "}" }
-CommandParamsCsv           = _{ CommandParam ~ ("," ~ SPACE_OR_LINE* ~ CommandParam)* }
+commands           =  { "commands" }
+CommandName        = @{ Identifier }
+CommandsHeader     = _{ commands ~ ":" ~ (BLANK_LINE+ ~ CommandDefinitions)? }
+CommandDeclaration = _{ Expansion? ~ CommandName }
+CommandDefinitions = _{ START_INDENTATION ~ Command ~ (PEEK_INDENTATION ~ Command)* ~ DROP }
+Command            =  { CommandDeclaration ~ ":" ~ CommandParams? }
+CommandCall        =  { (Identifier ~ ".")? ~ CommandName ~ ":" ~ CommandParams }
+
+// Command params
+CommandParam       =  { Identifier ~ ":" ~ SPACE ~ Expression }
+CommandParams      = _{ (SPACE+ ~ CommandParamsBrace) | (BLANK_LINE+ ~ CommandParamsFlow) }
+CommandParamsFlow  = _{ START_INDENTATION ~ CommandParam ~ (PEEK_INDENTATION ~ CommandParam)* ~ DROP }
+CommandParamsBrace = _{ "{" ~ SPACE_OR_LINE* ~ CommandParamsCsv ~ SPACE_OR_LINE* ~ "}" }
+CommandParamsCsv   = _{ CommandParam ~ ("," ~ SPACE_OR_LINE* ~ CommandParam)* }
+
+// Command positional
 CommandPositionalCall      =  { (Identifier ~ ".")? ~ CommandName ~ ":" ~ SPACE_OR_LINE+ ~ CommandPositionalParams }
 CommandPositionalParams    = _{ "[" ~ SPACE_OR_LINE* ~ CommandPositionalParamsCsv ~ SPACE_OR_LINE* ~ "]" }
 CommandPositionalParamsCsv = _{ Expression ~ ("," ~ SPACE_OR_LINE* ~ Expression)* }
+
+// Enter/exit
+onExit        = { "onExit" }
+OnExitHeader  = { onExit ~ ":" ~ BLANK_LINE+ ~ START_INDENTATION ~ Set ~ DROP }
+onEnter       = { "onEnter" }
+OnEnterHeader = { onEnter ~ ":" ~ BLANK_LINE+ ~ START_INDENTATION ~ Set ~ DROP }
 
 // Format strings
 FormatExpression      = _{ "{" ~ Expression ~ "}" }
@@ -61,29 +71,53 @@ StringLiteral         =  { (!(NEWLINE | FormatExpressionOrVar) ~ ANY)+ }
 StringWithVariable    = _{ StringLiteral ~ (FormatExpressionOrVar ~ StringLiteral?)* }
 
 // Passages
-Passages          = _{ Passage* }
+Passages          = _{ (Passage ~ BLANK_LINE*)* }
 PassageName       = @{ Identifier }
 Passage           = _{ PassageName ~ ":" ~ (BLANK_LINE+ ~ Lines)? }
 Dialogue          =  { CharacterName ~ ":" ~ SPACE ~ StringWithVariable }
 DialogueContinued =  { StringWithVariable }
 
 // Choices
-choices        =  { "choices" }
-Choices        =  { choices ~ ":" ~ (BLANK_LINE+ ~ ChoiceMap) }
-ChoiceMap      = _{ START_INDENTATION ~ Choice ~ (PEEK_INDENTATION ~ Choice)* ~ DROP }
-Choice         =  { (ChoiceExplicit | ChoiceLines) }
-ChoiceExplicit = _{ ChoiceString ~ ":" ~ (SPACE+ ~ PassageName) }
-ChoiceLines    = _{ ChoiceString ~ ":" ~ (BLANK_LINE+ ~ Lines)? }
-ChoiceString   = @{ UnquotedStringKey | QuotedString }
+choices         =  { "choices" }
+Choices         =  { choices ~ ":" ~ ChoiceMap }
+ChoiceMap       = _{ (SPACE_OR_LINE+ ~ ChoiceMapBrace) | (BLANK_LINE+ ~ ChoiceMapFlow) }
+ChoiceMapBrace  = _{ "{" ~ SPACE_OR_LINE* ~ ChoiceMapCsv ~ SPACE_OR_LINE* ~ "}" }
+ChoiceMapCsv    = _{ Choice ~ ("," ~ SPACE_OR_LINE* ~ Choice)* }
+ChoiceMapFlow   = _{ START_INDENTATION ~ Choice ~ (PEEK_INDENTATION ~ Choice)* ~ DROP }
+Choice          =  { (ChoiceCondition | ChoiceExplicit | ChoiceLines) }
+ChoiceExplicit  = _{ ChoiceString ~ ":" ~ (SPACE+ ~ PassageName) }
+ChoiceLines     = _{ ChoiceString ~ ":" ~ (BLANK_LINE+ ~ Lines)? }
+ChoiceCondition = _{ IfExpression ~ ":" ~ ChoiceMap }
+ChoiceKey       = _{ IfExpression | ChoiceString }
+ChoiceString    = @{ UnquotedStringKey | QuotedString }
 
 // Conditionals
 if              = { "if" }
 else            = { "else" }
-IfStatement     = { if ~ SPACE ~ Expression ~ ":" ~ (BLANK_LINE+ ~ Lines)? }
-ElseIfStatement = { START_INDENTATION ~ else ~ SPACE ~ if ~ SPACE ~ Expression ~ ":" ~ (BLANK_LINE+ ~ Lines)? ~ DROP }
+IfExpression    = { if ~ SPACE ~ Expression }
+IfStatement     = { IfExpression ~ ":" ~ (BLANK_LINE+ ~ Lines)? }
+ElseIfStatement = { START_INDENTATION ~ else ~ SPACE ~ IfExpression ~ ":" ~ (BLANK_LINE+ ~ Lines)? ~ DROP }
 ElseStatement   = { START_INDENTATION ~ else ~ ":" ~ (BLANK_LINE+ ~ Lines)? ~ DROP }
-// Conditional = { IfStatement ~ BLANK_LINE+ ~ ( ElseIfStatement)* ~ (BLANK_LINE+ ~ ElseStatement)? }
-Conditional = { IfStatement ~ (BLANK_LINE+ ~ ElseIfStatement)* ~ (BLANK_LINE+ ~ ElseStatement)? }
+Conditional     = { IfStatement ~ (BLANK_LINE+ ~ ElseIfStatement)* ~ (BLANK_LINE+ ~ ElseStatement)? }
+
+// Set
+set          =  { "set" }
+Set          =  { set ~ ":" ~ Setters }
+SetOperator  =  { SPACE ~ (Add | Sub) }
+Setter       = _{ (VariableDeclaration | Variable) ~ SetOperator? ~ ":" ~ SPACE ~ Expression }
+Setters      = _{ (SPACE+ ~ SettersBrace) | (BLANK_LINE+ ~ SettersFlow) }
+SettersFlow  = _{ START_INDENTATION ~ Setter ~ (PEEK_INDENTATION ~ Setter)* ~ DROP }
+SettersBrace = _{ "{" ~ SPACE_OR_LINE* ~ CommandParamsCsv ~ SPACE_OR_LINE* ~ "}" }
+SetterCsv    = _{ Setter ~ ("," ~ SPACE_OR_LINE* ~ Setter)* }
+
+// Input
+input          = { "input" }
+Input          = { input ~ ":" ~ InputVariant }
+InputVariant   = { (SPACE+ ~ InputBrace) | (BLANK_LINE+ ~ InputFlow) }
+InputFlow      = { START_INDENTATION ~ InputStatement ~ DROP }
+InputBrace     = { "{" ~ SPACE_OR_LINE* ~ InputStatement ~ SPACE_OR_LINE* ~ "}" }
+InputStatement = { (VariableDeclaration | Variable) ~ ":" ~ SPACE ~ StringWithVariable }
+
 // Call/Return
 call   = { "call" }
 Call   = { call ~ ":" ~ SPACE ~ PassageName }
@@ -92,7 +126,7 @@ Return = { return ~ ":" }
 
 // Lines
 Line     = _{
-    (Call | Return | Choices | Conditional | CommandPositionalCall | CommandCall | Dialogue | DialogueContinued)
+    (Call | Return | Choices | Conditional | Set | Input | CommandPositionalCall | CommandCall | Dialogue | DialogueContinued)
 }
 LineFlow = _{ "-" ~ (SPACE ~ Line)? }
 Lines    = _{ START_INDENTATION ~ LineFlow ~ (PEEK_INDENTATION ~ LineFlow)* ~ DROP }
@@ -141,7 +175,7 @@ Value  = _{ Number | Bool | QuotedString | UnquotedString }
 Atom   = _{ QuotedString | Variable | Value }
 
 // Common
-Identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+Identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_" | ".")* }
 Variable   = @{ "$" ~ Identifier }
 
 // Whitespace and comments
