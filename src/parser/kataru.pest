@@ -55,7 +55,7 @@ CommandPositionalParams    = _{ "[" ~ SPACE_OR_LINE* ~ CommandPositionalParamsCs
 CommandPositionalParamsCsv = _{ Expression ~ ("," ~ SPACE_OR_LINE* ~ Expression)* }
 
 // Format strings
-FormatExpression      =  { "{" ~ Expression ~ "}" }
+FormatExpression      = _{ "{" ~ Expression ~ "}" }
 FormatExpressionOrVar = _{ FormatExpression | Variable }
 StringLiteral         =  { (!(NEWLINE | FormatExpressionOrVar) ~ ANY)+ }
 StringWithVariable    = _{ StringLiteral ~ (FormatExpressionOrVar ~ StringLiteral?)* }
@@ -65,7 +65,7 @@ Passages          = _{ Passage* }
 PassageName       = @{ Identifier }
 Passage           = _{ PassageName ~ ":" ~ (BLANK_LINE+ ~ Lines)? }
 Dialogue          =  { CharacterName ~ ":" ~ SPACE ~ StringWithVariable }
-DialogueContinued =  { (!Variable ~ ANY) ~ Variable ~ ANY }
+DialogueContinued =  { StringWithVariable }
 
 // Choices
 choices        =  { "choices" }
@@ -77,13 +77,22 @@ ChoiceLines    = _{ ChoiceString ~ ":" ~ (BLANK_LINE+ ~ Lines)? }
 ChoiceString   = @{ UnquotedStringKey | QuotedString }
 
 // Conditionals
-if          = { "if" }
-else        = { "else" }
-IfStatement = { if ~ SPACE ~ Expression ~ ":" }
+if              = { "if" }
+else            = { "else" }
+IfStatement     = { if ~ SPACE ~ Expression ~ ":" ~ (BLANK_LINE+ ~ Lines)? }
+ElseIfStatement = { START_INDENTATION ~ else ~ SPACE ~ if ~ SPACE ~ Expression ~ ":" ~ (BLANK_LINE+ ~ Lines)? ~ DROP }
+ElseStatement   = { START_INDENTATION ~ else ~ ":" ~ (BLANK_LINE+ ~ Lines)? ~ DROP }
+// Conditional = { IfStatement ~ BLANK_LINE+ ~ ( ElseIfStatement)* ~ (BLANK_LINE+ ~ ElseStatement)? }
+Conditional = { IfStatement ~ (BLANK_LINE+ ~ ElseIfStatement)* ~ (BLANK_LINE+ ~ ElseStatement)? }
+// Call/Return
+call   = { "call" }
+Call   = { call ~ ":" ~ SPACE ~ PassageName }
+return = { "return" }
+Return = { return ~ ":" }
 
 // Lines
 Line     = _{
-    (Choices | Dialogue | DialogueContinued | CommandPositionalCall | CommandCall)
+    (Call | Return | Choices | Conditional | CommandPositionalCall | CommandCall | Dialogue | DialogueContinued)
 }
 LineFlow = _{ "-" ~ (SPACE ~ Line)? }
 Lines    = _{ START_INDENTATION ~ LineFlow ~ (PEEK_INDENTATION ~ LineFlow)* ~ DROP }
