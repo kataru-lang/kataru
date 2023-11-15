@@ -1,30 +1,14 @@
 // Kataru Parsing Expression Grammar.
 
-// Builtins
-COMMENT = { SPACE* ~ "#" ~ (!NEWLINE ~ ANY)* }
-
-// SPACE
-// Sematnic indentation should be handled with the following pattern:
-// PUSH(INDENTATION) ~ X ~ (PEEK_INDENTATION ~ X)* ~ DROP
-SPACE            = _{ " " | "\t" }
-BLANK_LINE       = _{ SPACE* ~ NEWLINE }
-SPACE_OR_LINE    = _{ SPACE | NEWLINE }
-INDENTATION      = _{ SPACE+ }
-PEEK_INDENTATION = _{ NEWLINE ~ (BLANK_LINE)* ~ PEEK_ALL }
-
-// Common
-Identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
-Variable   = @{ "$" ~ Identifier }
-
 // Top level file
 File         = _{ SOI ~ BLANK_LINE* ~ FileHeader ~ BLANK_LINE* ~ FilePassages ~ BLANK_LINE* ~ EOI }
 FileHeader   = _{ StartDocument ~ (BLANK_LINE* ~ Headers)? }
 FilePassages = _{ StartDocument ~ (BLANK_LINE* ~ Passages)? }
 
+StartDocument = { "---" | "===" }
+
 Headers = _{ BLANK_LINE* ~ Header ~ (NEWLINE ~ BLANK_LINE* ~ Header)* }
 Header  = _{ NamespaceHeader | StateHeader | CharactersHeader | CommandsHeader }
-
-StartDocument = { "---" | "===" }
 
 // Expansions
 PassageExpansion   =  { "$passage" }
@@ -36,7 +20,7 @@ state               =  { "state" }
 StateHeader         = _{ state ~ ":" ~ (BLANK_LINE+ ~ VariableDefinitions)? }
 VariableDeclaration = _{ Expansion? ~ Identifier }
 VariableDefinition  =  { VariableDeclaration ~ ":" ~ SPACE ~ Expression }
-VariableDefinitions = _{ PUSH(INDENTATION) ~ VariableDefinition ~ (PEEK_INDENTATION ~ VariableDefinition)* ~ DROP }
+VariableDefinitions = _{ START_INDENTATION ~ VariableDefinition ~ (PEEK_INDENTATION ~ VariableDefinition)* ~ DROP }
 
 // Namespace
 namespace       =  { "namespace" }
@@ -49,40 +33,60 @@ characters           =  { "characters" }
 CharacterName        = @{ Identifier }
 CharactersHeader     = _{ characters ~ ":" ~ (NEWLINE ~ CharacterDefinitions)? }
 CharacterDefinition  =  { CharacterName ~ ":" ~ (NEWLINE+ ~ CharacterDataEntries)? }
-CharacterDefinitions = _{ PUSH(INDENTATION) ~ CharacterDefinition ~ (PEEK_INDENTATION ~ CharacterDefinition)* ~ DROP }
-CharacterDataEntries = _{ PUSH(INDENTATION) ~ CharacterDataEntry ~ (PEEK_INDENTATION ~ CharacterDataEntry)* ~ DROP }
+CharacterDefinitions = _{ START_INDENTATION ~ CharacterDefinition ~ (PEEK_INDENTATION ~ CharacterDefinition)* ~ DROP }
+CharacterDataEntries = _{ START_INDENTATION ~ CharacterDataEntry ~ (PEEK_INDENTATION ~ CharacterDataEntry)* ~ DROP }
 CharacterDataEntry   =  { Identifier ~ ":" ~ SPACE ~ Expression }
 
 // Commands
-commands           =  { "commands" }
-CommandName        = @{ Identifier }
-CommandsHeader     = _{ commands ~ ":" ~ (NEWLINE+ ~ CommandDefinitions)? }
-CommandDeclaration = _{ Expansion? ~ CommandName }
-CommandDefinitions = _{ PUSH(INDENTATION) ~ Command ~ (PEEK_INDENTATION ~ Command)* ~ DROP }
-
+commands                   =  { "commands" }
+CommandName                = @{ Identifier }
+CommandsHeader             = _{ commands ~ ":" ~ (NEWLINE+ ~ CommandDefinitions)? }
+CommandDeclaration         = _{ Expansion? ~ CommandName }
+CommandDefinitions         = _{ START_INDENTATION ~ Command ~ (PEEK_INDENTATION ~ Command)* ~ DROP }
 Command                    =  { CommandDeclaration ~ ":" ~ CommandParams? }
 CommandCall                =  { (Identifier ~ ".")? ~ CommandName ~ ":" ~ CommandParams }
 CommandParam               =  { Identifier ~ ":" ~ SPACE ~ Expression }
 CommandParams              = _{ (SPACE+ ~ CommandParamsBrace) | (NEWLINE+ ~ CommandParamsFlow) }
-CommandParamsFlow          = _{ PUSH(INDENTATION) ~ CommandParam ~ (PEEK_INDENTATION ~ CharacterDataEntry)* ~ DROP }
+CommandParamsFlow          = _{ START_INDENTATION ~ CommandParam ~ (PEEK_INDENTATION ~ CharacterDataEntry)* ~ DROP }
 CommandParamsBrace         = _{ "{" ~ SPACE_OR_LINE* ~ CommandParamsCsv ~ SPACE_OR_LINE* ~ "}" }
 CommandParamsCsv           = _{ CommandParam ~ ("," ~ SPACE_OR_LINE* ~ CommandParam)* }
 CommandPositionalCall      =  { (Identifier ~ ".")? ~ CommandName ~ ":" ~ SPACE_OR_LINE+ ~ CommandPositionalParams }
 CommandPositionalParams    = _{ "[" ~ SPACE_OR_LINE* ~ CommandPositionalParamsCsv ~ SPACE_OR_LINE* ~ "]" }
 CommandPositionalParamsCsv = _{ Expression ~ ("," ~ SPACE_OR_LINE* ~ Expression)* }
 
-Passages              = _{ Passage* }
-PassageName           = @{ Identifier }
-Passage               = _{ PassageName ~ ":" ~ (BLANK_LINE+ ~ Lines)? }
-LineDialogue          =  { CharacterName ~ ":" ~ SPACE ~ StringWithVariable }
-LineContinued         =  { (!Variable ~ ANY) ~ Variable ~ ANY }
-LineVariant           = _{ (LineDialogue | LineContinued | CommandPositionalCall | CommandCall) }
-Line                  = _{ "-" ~ (SPACE ~ LineVariant)? }
+// Format strings
 FormatExpression      =  { "{" ~ Expression ~ "}" }
 FormatExpressionOrVar = _{ FormatExpression | Variable }
 StringLiteral         =  { (!(NEWLINE | FormatExpressionOrVar) ~ ANY)+ }
 StringWithVariable    = _{ StringLiteral ~ (FormatExpressionOrVar ~ StringLiteral?)* }
-Lines                 = _{ PUSH(INDENTATION) ~ Line ~ (NEWLINE+ ~ PEEK_ALL ~ Line)* ~ DROP }
+
+// Passages
+Passages          = _{ Passage* }
+PassageName       = @{ Identifier }
+Passage           = _{ PassageName ~ ":" ~ (BLANK_LINE+ ~ Lines)? }
+Dialogue          =  { CharacterName ~ ":" ~ SPACE ~ StringWithVariable }
+DialogueContinued =  { (!Variable ~ ANY) ~ Variable ~ ANY }
+
+// Choices
+choices        =  { "choices" }
+Choices        =  { choices ~ ":" ~ (BLANK_LINE+ ~ ChoiceMap) }
+ChoiceMap      = _{ START_INDENTATION ~ Choice ~ (PEEK_INDENTATION ~ Choice)* ~ DROP }
+Choice         =  { (ChoiceExplicit | ChoiceLines) }
+ChoiceExplicit = _{ ChoiceString ~ ":" ~ (SPACE+ ~ PassageName) }
+ChoiceLines    = _{ ChoiceString ~ ":" ~ (BLANK_LINE+ ~ Lines)? }
+ChoiceString   = @{ UnquotedStringKey | QuotedString }
+
+// Conditionals
+if          = { "if" }
+else        = { "else" }
+IfStatement = { if ~ SPACE ~ Expression ~ ":" }
+
+// Lines
+Line     = _{
+    (Choices | Dialogue | DialogueContinued | CommandPositionalCall | CommandCall)
+}
+LineFlow = _{ "-" ~ (SPACE ~ Line)? }
+Lines    = _{ START_INDENTATION ~ LineFlow ~ (PEEK_INDENTATION ~ LineFlow)* ~ DROP }
 
 // Expressions
 // An expression is a sequence of operands connected by unary or binary operators.
@@ -119,9 +123,25 @@ NonQuoteNewlineChar = _{ !UnsafeStringChar ~ ANY }
 UnquotedString      =  { !UnaryOperator ~ NonQuoteSPACEChar+ }
 String              = @{ NonQuoteNewlineChar* }
 QuotedString        =  { "\"" ~ String ~ "\"" }
+UnquotedStringKey   =  { (!(NEWLINE | (":" ~ SPACE_OR_LINE)) ~ ANY)+ }
 
 // Values
 Number = @{ (Add | Sub)? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
 Bool   = @{ "true" | "false" }
 Value  = _{ Number | Bool | QuotedString | UnquotedString }
 Atom   = _{ QuotedString | Variable | Value }
+
+// Common
+Identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+Variable   = @{ "$" ~ Identifier }
+
+// Whitespace and comments
+// Sematnic indentation should be handled with the following pattern:
+// START_INDENTATION ~ X ~ (PEEK_INDENTATION ~ X)* ~ DROP
+SPACE             = _{ " " | "\t" }
+BLANK_LINE        = _{ SPACE* ~ NEWLINE }
+SPACE_OR_LINE     = _{ SPACE | NEWLINE }
+INDENTATION       = _{ SPACE+ }
+PEEK_INDENTATION  = _{ NEWLINE ~ (BLANK_LINE)* ~ PEEK_ALL }
+START_INDENTATION = _{ PEEK_ALL ~ PUSH(INDENTATION) }
+COMMENT           =  { SPACE* ~ "#" ~ (!NEWLINE ~ ANY)* }
