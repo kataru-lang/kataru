@@ -27,11 +27,23 @@ pub enum SemanticTokenType {
 impl SemanticTokenType {
     pub fn try_from(rule: Rule) -> Option<Self> {
         Some(match rule {
+            Rule::COMMENT => SemanticTokenType::Comment,
             Rule::Add | Rule::Sub | Rule::Mul | Rule::Div => SemanticTokenType::Operator,
             Rule::Variable => SemanticTokenType::Variable,
             Rule::Number => SemanticTokenType::Number,
-            Rule::QuotedString | Rule::UnquotedString => SemanticTokenType::String,
-            Rule::namespace | Rule::state | Rule::r#if => SemanticTokenType::Keyword,
+            Rule::QuotedString | Rule::StringId | Rule::StringLiteral => SemanticTokenType::String,
+            Rule::namespace
+            | Rule::state
+            | Rule::set
+            | Rule::input
+            | Rule::r#else
+            | Rule::call
+            | Rule::r#if
+            | Rule::And
+            | Rule::Or
+            | Rule::Not
+            | Rule::default
+            | Rule::global => SemanticTokenType::Keyword,
             _ => return None,
         })
     }

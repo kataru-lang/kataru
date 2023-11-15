@@ -24,7 +24,7 @@ VariableDefinitions = _{ START_INDENTATION ~ VariableDefinition ~ (PEEK_INDENTAT
 
 // Namespace
 namespace       =  { "namespace" }
-NamespaceHeader = _{ (namespace ~ ":" ~ SPACE ~ NamespaceId) }
+NamespaceHeader = _{ (namespace ~ ":" ~ SPACE ~ NamespaceId ~ (":" ~ Namespace)*) }
 NamespaceId     = _{ global | Identifier }
 Namespace       = @{ Identifier }
 global          =  { "global" }
@@ -66,32 +66,36 @@ onEnter       = { "onEnter" }
 OnEnterHeader = { onEnter ~ ":" ~ BLANK_LINE+ ~ START_INDENTATION ~ Set ~ DROP }
 
 // Format strings
-FormatExpression      = _{ "{" ~ Expression ~ "}" }
-FormatExpressionOrVar = _{ FormatExpression | Variable }
-StringLiteral         =  { (!(NEWLINE | FormatExpressionOrVar) ~ ANY)+ }
-StringWithVariable    = _{ StringLiteral ~ (FormatExpressionOrVar ~ StringLiteral?)* }
+FormatExpression         = _{ "{" ~ Expression ~ "}" }
+FormatExpressionOrVar    = _{ FormatExpression | Variable }
+StringLiteral            =  { (!(NEWLINE | FormatExpressionOrVar | "\"") ~ ANY)+ }
+StringWithVariable       = _{ StringLiteral ~ (FormatExpressionOrVar ~ StringLiteral?)* }
+QuotedStringWithVariable = _{ "\"" ~ StringWithVariable ~ "\"" }
 
 // Passages
 Passages          = _{ (Passage ~ BLANK_LINE*)* }
 PassageName       = @{ Identifier }
 PassageReference  =  { (Namespace ~ ":")* ~ PassageName }
 Passage           = _{ PassageName ~ ":" ~ (BLANK_LINE+ ~ Lines)? }
-Dialogue          =  { CharacterName ~ ":" ~ SPACE ~ StringWithVariable }
-DialogueContinued =  { StringWithVariable }
+Dialogue          =  { CharacterName ~ ":" ~ SPACE ~ DialogueString }
+DialogueContinued =  { DialogueString }
+DialogueString    = _{ QuotedStringWithVariable | StringWithVariable }
 
 // Choices
 choices         =  { "choices" }
-Choices         =  { choices ~ ":" ~ ChoiceMap }
+default         =  { "default" }
+Choices         =  { choices ~ ":" ~ ChoiceMap ~ (BLANK_LINE+ ~ ChoiceDefault)? }
 ChoiceMap       = _{ (SPACE_OR_LINE+ ~ ChoiceMapBrace) | (BLANK_LINE+ ~ ChoiceMapFlow) }
 ChoiceMapBrace  = _{ "{" ~ SPACE_OR_LINE* ~ ChoiceMapCsv ~ SPACE_OR_LINE* ~ "}" }
 ChoiceMapCsv    = _{ Choice ~ ("," ~ SPACE_OR_LINE* ~ Choice)* }
 ChoiceMapFlow   = _{ START_INDENTATION ~ Choice ~ (PEEK_INDENTATION ~ Choice)* ~ DROP }
-Choice          =  { (ChoiceCondition | ChoiceExplicit | ChoiceLines) }
-ChoiceExplicit  = _{ ChoiceString ~ ":" ~ (SPACE+ ~ PassageReference) }
-ChoiceLines     = _{ ChoiceString ~ ":" ~ (BLANK_LINE+ ~ Lines)? }
+Choice          =  { (ChoiceCondition | ChoiceStatic) }
+ChoiceStatic    = _{ StringKey ~ ":" ~ (ChoiceExplicit | ChoiceLines) }
+ChoiceExplicit  = _{ (SPACE+ ~ PassageReference) }
+ChoiceLines     = _{ (BLANK_LINE+ ~ Lines)? }
 ChoiceCondition = _{ IfExpression ~ ":" ~ ChoiceMap }
-ChoiceKey       = _{ IfExpression | ChoiceString }
-ChoiceString    = @{ UnquotedStringKey | QuotedString }
+ChoiceKey       = _{ IfExpression | StringKey }
+ChoiceDefault   =  { START_INDENTATION ~ default ~ ":" ~ (ChoiceExplicit | ChoiceLines) ~ DROP }
 
 // Conditionals
 if              = { "if" }
@@ -162,19 +166,24 @@ Geq            =  { ">=" }
 Gt             =  { ">" }
 
 // Strings
-UnsafeStringChar    = _{ "\"" | "(" | ")" | NEWLINE }
-NonQuoteSPACEChar   = _{ !(UnsafeStringChar | SPACE) ~ ANY }
-NonQuoteNewlineChar = _{ !UnsafeStringChar ~ ANY }
-UnquotedString      =  { !UnaryOperator ~ NonQuoteSPACEChar+ }
-String              = @{ NonQuoteNewlineChar* }
-QuotedString        =  { "\"" ~ String ~ "\"" }
-UnquotedStringKey   =  { (!(NEWLINE | (":" ~ SPACE_OR_LINE)) ~ ANY)+ }
+Char = {
+    !("\"" | "\\") ~ ANY
+  | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+  | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+}
+// Additionally disallow () and spaces for unquoted strings in expressions.
+CharExpressionSafe =  { !(SPACE | "(" | ")") ~ Char }
+String             = @{ Char* }
+QuotedString       =  { "\"" ~ String ~ "\"" }
+UnquotedStringKey  = _{ (!(NEWLINE | (":" ~ SPACE_OR_LINE)) ~ ANY)+ }
+StringKey          = @{ QuotedString | UnquotedStringKey }
 
 // Values
-Number = @{ (Add | Sub)? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
-Bool   = @{ "true" | "false" }
-Value  = _{ Number | Bool | QuotedString | UnquotedString }
-Atom   = _{ QuotedString | Variable | Value }
+Number   = @{ (Add | Sub)? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
+Bool     = @{ "true" | "false" }
+StringId = @{ !UnaryOperator ~ CharExpressionSafe+ }
+Value    = _{ Number | Bool | QuotedString | StringId }
+Atom     = _{ QuotedString | Variable | Value }
 
 // Common
 Identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_" | ".")* }
