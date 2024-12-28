@@ -6,7 +6,7 @@ use crate::{
         PositionalCommand, QualifiedName, RawChoice, RawChoices, RawCommand, RawLine, Section,
         State, Story,
     },
-    Input, Line, Map, SetCommand, StateMod, Validator, Value,
+    Input, Line, Map, Save, SetCommand, StateMod, Validator, Value,
 };
 
 lazy_static! {
@@ -73,6 +73,22 @@ impl Runner {
     // Load a previously named snapshot.
     pub fn load_snapshot(&mut self, name: &str) -> Result<()> {
         self.with_state_mut(|state| state.load_snapshot(name))
+    }
+
+    /// Save the story to the given path.
+    pub fn load_story(&mut self, story: Story, validate: bool) -> Result<()> {
+        *self = Runner::init(self.bookmark().clone(), story, validate)?;
+        Ok(())
+    }
+
+    /// Save the story to the given path.
+    pub fn save_story(&mut self, path: &str) -> Result<()> {
+        self.story().save(path)
+    }
+
+    /// Save the bookmark to the given path.
+    pub fn save_bookmark(&mut self, path: &str) -> Result<()> {
+        self.bookmark().save(path)
     }
 
     /// Gets the next dialogue line from the story based on the user's input.
