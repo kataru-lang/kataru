@@ -119,8 +119,8 @@ impl Runner {
     }
 
     /// Public getter for variable state.
-    pub fn get_state(&mut self, varname: &str) -> Result<&Value> {
-        self.with_state_mut(|state| state.get_state(varname))
+    pub fn get_state(&self, varname: &str) -> Result<&Value> {
+        self.with_state(|state| state.get_state(varname))
     }
 
     /// Sets the line number in the bookmark.
@@ -350,7 +350,7 @@ impl<'story> RunnerState<'story> {
         self.bookmark.set_value(statemod, value)
     }
     /// Return the state value for the given varname.
-    pub fn get_state(&mut self, varname: &str) -> Result<&Value> {
+    pub fn get_state(&self, varname: &str) -> Result<&Value> {
         self.bookmark.value(varname)
     }
 
