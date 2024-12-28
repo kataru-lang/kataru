@@ -32,8 +32,8 @@ impl<'a> Validator<'a> {
     /// Validate that the dialogue contains valid text and configured characters only.
     fn validate_dialogue(&self, dialogue: &Map<String, String>) -> Result<()> {
         for (name, text) in dialogue {
-            self.validate_character(&name)?;
-            self.validate_text(&text)?;
+            self.validate_character(name)?;
+            self.validate_text(text)?;
         }
         Ok(())
     }
@@ -76,7 +76,7 @@ impl<'a> Validator<'a> {
     ) -> Result<()> {
         match self
             .story
-            .params(&QualifiedName::from(namespace, &command_name))?
+            .params(&QualifiedName::from(namespace, command_name))?
         {
             Some(config_params) => Self::validate_params(command_name, params, config_params),
             None => Ok(()),
@@ -88,7 +88,7 @@ impl<'a> Validator<'a> {
         let split: Vec<&str> = command.name.split(".").collect();
         let command_name = match split.as_slice() {
             [character, command] => {
-                self.validate_character(&character)?;
+                self.validate_character(character)?;
                 format!("$character.{}", command)
             }
             [command] => command.to_string(),
@@ -99,11 +99,7 @@ impl<'a> Validator<'a> {
                 ))
             }
         };
-        self.validate_namespace_command(
-            &self.bookmark.namespace(),
-            &command_name,
-            &command.params,
-        )?;
+        self.validate_namespace_command(self.bookmark.namespace(), &command_name, &command.params)?;
         Ok(())
     }
 
@@ -116,10 +112,10 @@ impl<'a> Validator<'a> {
             RawLine::Call(call) => self.validate_goto(&call.passage),
             RawLine::SetCommand(set_command) => self.validate_state(&set_command.set),
             RawLine::Command(command) => {
-                self.validate_command(&command.build_command(&self.story, &self.bookmark)?)
+                self.validate_command(&command.build_command(self.story, self.bookmark)?)
             }
             RawLine::PositionalCommand(command) => {
-                self.validate_command(&command.build_command(&self.story, &self.bookmark)?)
+                self.validate_command(&command.build_command(self.story, self.bookmark)?)
             }
             _ => Ok(()),
         }
@@ -191,7 +187,7 @@ impl<'a> Validator<'a> {
             [var] => {
                 if let Ok(value) = self
                     .story
-                    .value(&QualifiedName::from(self.bookmark.namespace(), &var))
+                    .value(&QualifiedName::from(self.bookmark.namespace(), var))
                 {
                     Ok(value)
                 } else {
@@ -216,7 +212,7 @@ impl<'a> Validator<'a> {
 
     fn validate_goto(&self, passage_name: &str) -> Result<()> {
         self.story.passage(&QualifiedName::from(
-            &self.bookmark.namespace(),
+            self.bookmark.namespace(),
             passage_name,
         ))?;
         Ok(())
@@ -227,13 +223,13 @@ impl<'a> Validator<'a> {
         for (key, choice) in choices {
             match choice {
                 RawChoice::Target(ChoiceTarget::PassageName(passage_name)) => {
-                    self.validate_goto(&passage_name)?
+                    self.validate_goto(passage_name)?
                 }
                 RawChoice::Conditional(conditional) => {
                     for (_choice_name, passage_name_opt) in conditional {
                         self.validate_conditional(key)?;
                         if let ChoiceTarget::PassageName(passage_name) = passage_name_opt {
-                            self.validate_goto(&passage_name)?;
+                            self.validate_goto(passage_name)?;
                         }
                     }
                 }

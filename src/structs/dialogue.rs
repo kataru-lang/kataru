@@ -12,7 +12,7 @@ pub struct Dialogue {
 
 impl Dialogue {
     pub fn from_map(map: &Map<String, String>, story: &Story, bookmark: &Bookmark) -> Result<Self> {
-        for (name, text) in map {
+        if let Some((name, text)) = map.iter().next() {
             return Self::from(name, text, story, bookmark);
         }
         Ok(Self::default())
@@ -20,7 +20,7 @@ impl Dialogue {
 
     pub fn from(name: &str, text: &str, story: &Story, bookmark: &Bookmark) -> Result<Self> {
         let (attributes, text) =
-            AttributeExtractor::extract_attr(&text, bookmark.namespace(), story)?;
+            AttributeExtractor::extract_attr(text, bookmark.namespace(), story)?;
 
         // For local characters, append the namespace to their name.
         let name = bookmark.qualified_character_name(story, name)?;
@@ -28,7 +28,7 @@ impl Dialogue {
         Ok(Self {
             name,
             text: replace_vars(&text, bookmark),
-            attributes: attributes,
+            attributes,
         })
     }
 }

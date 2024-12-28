@@ -181,6 +181,12 @@ impl<'story> RunnerState<'story> {
         Ok(())
     }
 
+    /// Clears the stack.
+    #[allow(dead_code)]
+    pub fn clear_stack(&mut self) {
+        self.bookmark.stack.clear();
+    }
+
     /// Set the bookmark and goto that passage. Run the first line and return.
     /// This clears the stack.
     pub fn run(&mut self, passage_name: String) -> Result<Line> {
@@ -226,7 +232,7 @@ impl<'story> RunnerState<'story> {
                         let choices = self.load_choices(raw_choices)?;
                         // If no choices, call the default.
                         if choices.is_empty() {
-                            self.call_default(&raw_choices)?
+                            self.call_default(raw_choices)?
                         } else {
                             return Ok(Line::Choices(choices));
                         }
@@ -249,7 +255,7 @@ impl<'story> RunnerState<'story> {
                     if input.is_empty() {
                         return Ok(Line::Input(input_cmd.clone()));
                     } else {
-                        for (var, _prompt) in &input_cmd.input {
+                        for var in input_cmd.input.keys() {
                             let mut state = State::new();
                             state.insert(var.clone(), Value::String(input.to_string()));
                             self.bookmark.set_state(&state)?
@@ -411,12 +417,11 @@ impl<'story> RunnerState<'story> {
                 }
                 RawLine::Choices(choices) => {
                     let choices_end = self.lines.len() - 1 + choices.line_len();
-                    let mut load_target = |target: &'story ChoiceTarget| match target {
-                        ChoiceTarget::Lines(lines) => {
+                    let mut load_target = |target: &'story ChoiceTarget| {
+                        if let ChoiceTarget::Lines(lines) = target {
                             self.load_lines(lines);
                             self.lines.push(LineRef::Break(choices_end));
                         }
-                        _ => {}
                     };
                     for (_key, choice) in choices {
                         match choice {
@@ -435,9 +440,8 @@ impl<'story> RunnerState<'story> {
                     }
 
                     // Add the default lines if they exist.
-                    match &choices.default {
-                        ChoiceTarget::Lines(lines) => self.load_lines(lines),
-                        _ => (),
+                    if let ChoiceTarget::Lines(lines) = &choices.default {
+                        self.load_lines(lines)
                     }
                 }
                 _ => (),

@@ -17,12 +17,12 @@ pub enum Value {
 
 impl Value {
     pub fn same_type(&self, rhs: &Self) -> bool {
-        match (self, rhs) {
-            (Value::Bool(_), Value::Bool(_)) => true,
-            (Value::Number(_), Value::Number(_)) => true,
-            (Value::String(_), Value::String(_)) => true,
-            _ => false,
-        }
+        matches!(
+            (self, rhs),
+            (Value::Bool(_), Value::Bool(_))
+                | (Value::Number(_), Value::Number(_))
+                | (Value::String(_), Value::String(_))
+        )
     }
 
     pub fn from_yml_value(yaml_value: serde_yaml::Value) -> Result<Self> {
@@ -36,7 +36,7 @@ impl Value {
 
     /// Parses a single piece of text into a value;
     pub fn from_yml(text: &str) -> Result<Self> {
-        match serde_yaml::from_str(&text) {
+        match serde_yaml::from_str(text) {
             Ok(r) => Self::from_yml_value(r),
             Err(e) => Err(error!("{}", e)),
         }
@@ -58,13 +58,14 @@ impl Value {
     fn extract_conditional_expr(expr: &str) -> &str {
         static IF_PREFIX: &str = "if ";
         static ELIF_PREFIX: &str = "elif ";
-        if expr.starts_with(IF_PREFIX) {
-            &expr[IF_PREFIX.len()..]
-        } else if expr.starts_with(ELIF_PREFIX) {
-            &expr[ELIF_PREFIX.len()..]
-        } else {
-            ""
+
+        if let Some(stripped) = expr.strip_prefix(IF_PREFIX) {
+            return stripped;
         }
+        if let Some(stripped) = expr.strip_prefix(ELIF_PREFIX) {
+            return stripped;
+        }
+        ""
     }
 
     pub fn from_conditional(expr: &str, bookmark: &Bookmark) -> Result<bool> {

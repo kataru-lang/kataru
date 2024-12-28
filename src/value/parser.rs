@@ -38,7 +38,7 @@ impl Value {
     }
 
     /// Evaluates an expression from a `Pair` tree.
-    fn eval_expr<'i>(pair: Pair<'i, Rule>, bookmark: &Bookmark) -> Result<Value> {
+    fn eval_expr(pair: Pair<'_, Rule>, bookmark: &Bookmark) -> Result<Value> {
         // Define lambdas for use by the parser.
         let primary = |pair| Self::eval_expr(pair, bookmark);
         let infix = |lhs: Result<Value>, op: Pair<Rule>, rhs: Result<Value>| match (lhs, rhs) {
@@ -68,9 +68,7 @@ impl Value {
             Rule::Bool | Rule::Number | Rule::QuotedString | Rule::UnquotedString => {
                 Value::from_yml(pair.as_str())
             }
-            _ => {
-                return Ok(Value::Number(0.));
-            }
+            _ => Ok(Value::Number(0.)),
         }
     }
 

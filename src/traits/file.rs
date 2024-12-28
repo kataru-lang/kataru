@@ -51,10 +51,7 @@ fn is_yaml<P: AsRef<Path> + fmt::Debug>(path: P) -> bool {
         return true;
     }
     match path.as_ref().extension() {
-        Some(extension) => match extension.to_str() {
-            Some("yml") | Some("yaml") => true,
-            _ => false,
-        },
+        Some(extension) => matches!(extension.to_str(), Some("yml") | Some("yaml")),
         None => false,
     }
 }
@@ -88,9 +85,9 @@ pub trait SaveMessagePack: Serialize {
             Ok(b) => b,
             Err(e) => return Err(error!("Failed to serialize object: {:?}", e)),
         };
-        match bufwriter(path)?.write(&buffer) {
+        match bufwriter(path)?.write_all(&buffer) {
             Ok(_) => Ok(()),
-            Err(e) => return Err(error!("Error writing MessagePack buffer: {:?}", e)),
+            Err(e) => Err(error!("Error writing MessagePack buffer: {:?}", e)),
         }
     }
 }
@@ -100,7 +97,7 @@ pub trait SaveYaml: Serialize {
     fn save_yml<P: AsRef<Path> + fmt::Debug>(&self, path: P) -> Result<()> {
         match serde_yaml::to_writer(bufwriter(path)?, self) {
             Ok(_) => Ok(()),
-            Err(e) => return Err(error!("Failed to write to file: {:?}", e)),
+            Err(e) => Err(error!("Failed to write to file: {:?}", e)),
         }
     }
 }

@@ -198,7 +198,7 @@ impl<'a> Bookmark {
             if var.starts_with("$passage") {
                 Self::default_passage_expansion(var, val, section, section_state);
             } else {
-                Self::default_val(section_state, &var, &val);
+                Self::default_val(section_state, var, val);
             }
         }
         Self::init_parent_expansions(namespace, story, section, section_state)

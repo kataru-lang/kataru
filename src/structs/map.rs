@@ -39,11 +39,9 @@ impl<V> MoveValues for LinearMap<String, V> {
 impl<V> Merge for Map<String, V> {
     fn merge(&mut self, other: &mut Self) -> Result<()> {
         let keys = copy_keys(other);
-        for key in keys {
-            if !self.contains_key(&key) {
-                let value = other.remove(&key).unwrap();
-                self.insert(key, value);
-            }
+        for key in &keys {
+            self.entry(key.clone())
+                .or_insert_with(|| other.remove(key).unwrap());
         }
         Ok(())
     }

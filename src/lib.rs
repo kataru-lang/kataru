@@ -25,8 +25,8 @@ pub use packer::pack;
 pub use runner::Runner;
 pub use structs::{
     AssignOperator, AttributedSpan, Bookmark, CharacterData, Choices, Command, Config, Dialogue,
-    Input, Line, Map, Operator, Params, Passage, Passages, Position, Section, SetCommand, State,
-    StateMod, Story, GLOBAL,
+    Entry, Input, Line, Map, Operator, Params, Passage, Passages, Position, PositionalCommand,
+    PositionalParams, Return, Section, SetCommand, State, StateMod, Story, GLOBAL,
 };
 pub use tagger::LineTag;
 pub use traits::{

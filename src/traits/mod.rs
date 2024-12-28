@@ -18,5 +18,6 @@ pub trait CopyMerge: Sized + Clone {
 
 /// Trait to move values from one object objects together. Used for maps.
 pub trait MoveValues: Sized {
+    #[allow(dead_code)]
     fn move_values(other: &mut Self) -> Result<Self>;
 }

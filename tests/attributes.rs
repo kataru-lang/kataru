@@ -1,5 +1,4 @@
 use kataru::{AttributedSpan, Bookmark, Dialogue, Line, LoadYaml, Runner, Story, Value};
-#[macro_use]
 extern crate linear_map;
 use maplit::hashmap;
 

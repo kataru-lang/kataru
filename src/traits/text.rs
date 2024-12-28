@@ -1,7 +1,6 @@
 use crate::error::{Error, Result};
 use serde::de::DeserializeOwned;
 
-use serde_yaml;
 /// Trait for parsable expressions.
 pub trait FromYaml: DeserializeOwned + Default {
     fn from_yml(text: &str) -> Result<Self> {
@@ -31,6 +30,7 @@ pub trait FromStr<'a> {
 
 /// Trait for parsable expressions.
 pub trait IntoStr {
+    #[allow(clippy::wrong_self_convention)]
     fn into_str(&self) -> &str;
 }
 

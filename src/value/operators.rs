@@ -63,9 +63,8 @@ impl MulAssign<Self> for Value {
 
 impl MulAssign<f64> for Value {
     fn mul_assign(&mut self, rhs: f64) {
-        match &self {
-            Value::Number(n1) => *self = Self::Number(n1 * rhs),
-            _ => (),
+        if let Value::Number(n1) = &self {
+            *self = Self::Number(n1 * rhs)
         }
     }
 }
@@ -96,17 +95,14 @@ impl DivAssign<Self> for Value {
 
 impl DivAssign<f64> for Value {
     fn div_assign(&mut self, rhs: f64) {
-        match &self {
-            Value::Number(n1) => {
-                *self = {
-                    if rhs == 0. {
-                        Self::Number(0.)
-                    } else {
-                        Self::Number(n1 / rhs)
-                    }
+        if let Value::Number(n1) = &self {
+            *self = {
+                if rhs == 0. {
+                    Self::Number(0.)
+                } else {
+                    Self::Number(n1 / rhs)
                 }
             }
-            _ => (),
         }
     }
 }

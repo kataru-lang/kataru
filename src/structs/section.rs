@@ -34,10 +34,7 @@ impl<'a> QualifiedName<'a> {
                 namespace: explicit_namespace,
                 name: split_name,
             },
-            _ => Self {
-                namespace,
-                name: name,
-            },
+            _ => Self { namespace, name },
         }
     }
 
@@ -89,11 +86,11 @@ impl<'a> Iterator for NamespaceResolver<'a> {
             ResolverState::Start => {
                 // First `next` should just return the namespace.
                 self.state = ResolverState::Iter;
-                Some(&self.namespace)
+                Some(self.namespace)
             }
             ResolverState::Iter => {
                 // All subsequent `next` calls should return the parent namespaces in order.
-                while let Some((i, c)) = self.char_indices.next() {
+                for (i, c) in self.char_indices.by_ref() {
                     if c == ':' {
                         return Some(&self.namespace[0..i]);
                     }
@@ -155,7 +152,7 @@ impl<'a> Section {
     }
 
     #[inline]
-    pub fn namespace(&'a self) -> &str {
+    pub fn namespace(&'a self) -> &'a str {
         &self.config.namespace
     }
 

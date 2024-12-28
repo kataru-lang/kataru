@@ -57,11 +57,11 @@ where
     /// Gets the first entry in the command map.
     /// Command is really a pairing, so the map should only have one value.
     fn get_first(&self) -> Result<(&String, &ParamsT)> {
-        for value in self {
-            return Ok(value);
+        if let Some(value) = self.into_iter().next() {
+            Ok(value)
+        } else {
+            Err(error!("Command was empty"))
         }
-
-        Err(error!("Command was empty"))
     }
 
     /// Checks `story`'s config for default parameters for this command.
@@ -69,6 +69,7 @@ where
     /// If the command is not found, returns None.
     /// If there are no parameters for the command, return reference to
     /// the static empty param map.
+    #[allow(dead_code)]
     fn get_default_params<'s>(
         story: &'s Story,
         bookmark: &Bookmark,
@@ -82,8 +83,8 @@ where
 
     /// Builds a command with an optional character name.
     /// To build a normal command, pass `character_name = ""`.
-    fn build_command_with_character<'s>(
-        story: &'s Story,
+    fn build_command_with_character(
+        story: &Story,
         bookmark: &Bookmark,
         command_name: &str,
         params: &ParamsT,
@@ -140,13 +141,7 @@ where
                 ))
             }
         };
-        Self::build_command_with_character(
-            story,
-            bookmark,
-            command_name,
-            params,
-            character_name,
-        )
+        Self::build_command_with_character(story, bookmark, command_name, params, character_name)
     }
 
     /// Get the vector of qualified commands with default parameters included.

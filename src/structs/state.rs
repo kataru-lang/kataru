@@ -34,7 +34,7 @@ impl<'a> FromStr<'a> for StateMod<'a> {
     }
 }
 
-impl<'a> StateMod<'a> {
+impl StateMod<'_> {
     pub fn apply(&self, lhs: &mut Value, rhs: Value) -> Result<()> {
         match self.op {
             AssignOperator::None => *lhs = rhs.clone(),

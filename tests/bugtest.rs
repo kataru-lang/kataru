@@ -1,5 +1,4 @@
 use kataru::{Bookmark, Choices, Dialogue, Line, LoadYaml, Runner, Story};
-#[macro_use]
 extern crate linear_map;
 
 /// Tests attribute parsing.

@@ -22,7 +22,7 @@ fn truncate_ends(s: &str) -> &str {
 
 /// This is a line with var=${var} and var2=${var2}
 pub fn replace_vars(text: &str, bookmark: &Bookmark) -> String {
-    let vars_replaced = BRACKET_VARS_RE.replace_all(&text, |cap: &Captures| {
+    let vars_replaced = BRACKET_VARS_RE.replace_all(text, |cap: &Captures| {
         let expr = &cap[1];
         if expr == "{{" {
             return Cow::from("{");
@@ -32,7 +32,7 @@ pub fn replace_vars(text: &str, bookmark: &Bookmark) -> String {
         }
         match Value::from_expr(truncate_ends(expr), bookmark) {
             Ok(value) => Cow::from(value.to_string()),
-            Err(_) => Cow::from(format!("{}", expr).to_string()),
+            Err(_) => Cow::from(expr.to_string().to_string()),
         }
     });
 

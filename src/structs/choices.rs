@@ -121,8 +121,10 @@ impl Choices {
         raw: &'r RawChoices,
         bookmark: &Bookmark,
     ) -> Result<Self> {
-        let mut choices = Self::default();
-        choices.timeout = raw.timeout;
+        let mut choices = Self {
+            timeout: raw.timeout,
+            ..Default::default()
+        };
         choices.reserve(raw.len());
 
         // Reset structs.
@@ -130,7 +132,7 @@ impl Choices {
         choice_to_passage.reserve(raw.len());
 
         //  The current passage target.
-        let mut passage: &String = &EMPTY_STRING;
+        let mut passage: &String = EMPTY_STRING;
         let mut line_num = raw.line_len() - raw.default.line_len();
         let mut add_target = |key: &'r str, target: &'r ChoiceTarget| {
             match target {

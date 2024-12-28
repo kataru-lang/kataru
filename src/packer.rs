@@ -22,11 +22,11 @@ pub fn pack(dir: &str, outdir: &str) -> Result<(), Error> {
     let path = Path::new(dir);
     let outpath = Path::new(outdir);
 
-    let story = Story::load_yml(&path.join("story"))?;
+    let story = Story::load_yml(path.join("story"))?;
     dump(&story, &outpath.join("story"))?;
 
     // Copy default configs to bookmark.
-    let mut bookmark = Bookmark::load_yml(&path.join("bookmark.yml"))?;
+    let mut bookmark = Bookmark::load_yml(path.join("bookmark.yml"))?;
     bookmark.init_state(&story);
     dump(&bookmark, &outpath.join("bookmark"))?;
     Ok(())

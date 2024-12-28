@@ -95,9 +95,9 @@ impl<'a> Story {
     /// Get all set commands to be run.
     pub fn get_set_commands(
         &'a self,
-        getter: fn(&'a Section) -> &Option<SetCommand>,
+        getter: fn(&'a Section) -> &'a Option<SetCommand>,
         bookmark: &Bookmark,
-    ) -> Result<Vec<&SetCommand>> {
+    ) -> Result<Vec<&'a SetCommand>> {
         let mut set_commands: Vec<&SetCommand> = Vec::new();
 
         // Collect all set commands to run.
@@ -105,7 +105,7 @@ impl<'a> Story {
         for namespace in qname.resolve() {
             if let Some(section) = self.sections.get(namespace) {
                 if let Some(set_cmd) = getter(section) {
-                    set_commands.push(&set_cmd);
+                    set_commands.push(set_cmd);
                 }
             } else {
                 return Err(error!("Invalid namespace '{}'", namespace));
@@ -117,7 +117,7 @@ impl<'a> Story {
     /// Applies set commands
     pub fn apply_set_commands(
         &'a self,
-        getter: fn(&'a Section) -> &Option<SetCommand>,
+        getter: fn(&'a Section) -> &'a Option<SetCommand>,
         bookmark: &mut Bookmark,
     ) -> Result<()> {
         let set_commands = self.get_set_commands(getter, bookmark)?;
@@ -192,7 +192,7 @@ impl From<Map<String, Section>> for Story {
         Self { sections }
     }
 }
-impl<'a> FromMessagePack for Story {}
+impl FromMessagePack for Story {}
 impl SaveYaml for Story {}
 impl SaveMessagePack for Story {}
 impl Save for Story {}
@@ -231,10 +231,11 @@ impl LoadYaml for Story {
             .into_os_string()
             .into_string()
             .unwrap();
-        for entry in glob(pattern).expect("Failed to read glob pattern") {
-            if let Ok(path) = entry {
-                load_section(&mut story, path)?;
-            }
+        for path in glob(pattern)
+            .expect("Failed to read glob pattern")
+            .flatten()
+        {
+            load_section(&mut story, path)?;
         }
         Ok(story)
     }

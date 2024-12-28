@@ -116,7 +116,7 @@ impl AttributedSpan {
     }
     /// Merges an attribute macro of params into these params.
     fn merge_with_params(&mut self, params: &OptionalParams) {
-        self.params.extend(params.clone().into_iter())
+        self.params.extend(params.clone())
     }
 }
 impl From<SingleAttributedSpan> for AttributedSpan {
@@ -126,7 +126,7 @@ impl From<SingleAttributedSpan> for AttributedSpan {
         Self {
             start: span.start,
             end: span.end,
-            params: params,
+            params,
         }
     }
 }
@@ -161,7 +161,7 @@ impl SingleAttributedSpan {
         }
 
         Ok(Self {
-            start: start,
+            start,
             end: start,
             name: text.to_string(),
             value,
@@ -316,7 +316,7 @@ impl<'a, 'i> AttributeExtractor<'a, 'i> {
 
     /// Constructs an attr type using data from the extractor.
     fn build_attr_type(&self, text: &'i str) -> Result<AttributeType<'i>> {
-        AttributeType::from(text, self.stripped.len(), &self.story, &self.namespace)
+        AttributeType::from(text, self.stripped.len(), self.story, self.namespace)
     }
 
     fn consume_next(&mut self, text: &'i str, i: usize, c: char) -> Result<()> {
