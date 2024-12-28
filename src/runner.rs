@@ -117,6 +117,21 @@ impl Runner {
     pub fn set_state(&mut self, statemod: StateMod, value: Value) -> Result<()> {
         self.with_state_mut(|state| state.set_state(statemod, value))
     }
+
+    /// Public getter for variable state.
+    pub fn get_state(&mut self, varname: &str) -> Result<&Value> {
+        self.with_state_mut(|state| state.get_state(varname))
+    }
+
+    /// Sets the line number in the bookmark.
+    pub fn set_line(&mut self, line_num: usize) {
+        self.with_state_mut(|state| state.bookmark.set_line(line_num));
+    }
+
+    /// Clears the stack.
+    pub fn clear_stack(&mut self) {
+        self.with_state_mut(|state| state.bookmark.stack.clear());
+    }
 }
 
 /// Internal struct used for the flattened array of lines.
@@ -201,18 +216,6 @@ impl<'story> RunnerState<'story> {
         self.load_passage()?;
         self.run_on_enter()?;
         Ok(())
-    }
-
-    /// Sets the line number in the bookmark.
-    #[allow(dead_code)]
-    pub fn set_line(&mut self, line_num: usize) {
-        self.bookmark.set_line(line_num);
-    }
-
-    /// Clears the stack.
-    #[allow(dead_code)]
-    pub fn clear_stack(&mut self) {
-        self.bookmark.stack.clear();
     }
 
     /// Set the bookmark and goto that passage. Run the first line and return.
@@ -346,9 +349,7 @@ impl<'story> RunnerState<'story> {
     pub fn set_state(&mut self, statemod: StateMod, value: Value) -> Result<()> {
         self.bookmark.set_value(statemod, value)
     }
-
     /// Return the state value for the given varname.
-    #[allow(dead_code)]
     pub fn get_state(&mut self, varname: &str) -> Result<&Value> {
         self.bookmark.value(varname)
     }
