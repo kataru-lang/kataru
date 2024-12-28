@@ -82,12 +82,12 @@ impl Runner {
     }
 
     /// Save the story to the given path.
-    pub fn save_story(&mut self, path: &str) -> Result<()> {
+    pub fn save_story(&self, path: &str) -> Result<()> {
         self.story().save(path)
     }
 
     /// Save the bookmark to the given path.
-    pub fn save_bookmark(&mut self, path: &str) -> Result<()> {
+    pub fn save_bookmark(&self, path: &str) -> Result<()> {
         self.bookmark().save(path)
     }
 
@@ -102,9 +102,15 @@ impl Runner {
     pub fn story(&self) -> &Story {
         self.borrow_story()
     }
+
     /// Public getter for the bookmark.
     pub fn bookmark(&self) -> &Bookmark {
         &self.borrow_state().bookmark
+    }
+
+    /// Public getter for the current passage.
+    pub fn passage(&self) -> &str {
+        self.borrow_state().bookmark.passage()
     }
 
     /// Public setter for setting values.
@@ -195,6 +201,12 @@ impl<'story> RunnerState<'story> {
         self.load_passage()?;
         self.run_on_enter()?;
         Ok(())
+    }
+
+    /// Sets the line number in the bookmark.
+    #[allow(dead_code)]
+    pub fn set_line(&mut self, line_num: usize) {
+        self.bookmark.set_line(line_num);
     }
 
     /// Clears the stack.
@@ -330,8 +342,15 @@ impl<'story> RunnerState<'story> {
         }
     }
 
+    /// Set state values.
     pub fn set_state(&mut self, statemod: StateMod, value: Value) -> Result<()> {
         self.bookmark.set_value(statemod, value)
+    }
+
+    /// Return the state value for the given varname.
+    #[allow(dead_code)]
+    pub fn get_state(&mut self, varname: &str) -> Result<&Value> {
+        self.bookmark.value(varname)
     }
 
     /// Reads the current line.
