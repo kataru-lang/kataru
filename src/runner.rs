@@ -108,6 +108,11 @@ impl Runner {
         &self.borrow_state().bookmark
     }
 
+    /// Public getter for the current namespace.
+    pub fn namespace(&self) -> &str {
+        self.borrow_state().bookmark.namespace()
+    }
+
     /// Public getter for the current passage.
     pub fn passage(&self) -> &str {
         self.borrow_state().bookmark.passage()
@@ -126,6 +131,11 @@ impl Runner {
     /// Sets the line number in the bookmark.
     pub fn set_line(&mut self, line_num: usize) {
         self.with_state_mut(|state| state.bookmark.set_line(line_num));
+    }
+
+    /// Gets the line number in the bookmark.
+    pub fn get_line(&self) -> usize {
+        self.with_state(|state| state.bookmark.line())
     }
 
     /// Clears the stack.
