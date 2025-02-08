@@ -134,7 +134,7 @@ impl Runner {
     }
 
     /// Gets the line number in the bookmark.
-    pub fn get_line(&self) -> usize {
+    pub fn line(&self) -> usize {
         self.with_state(|state| state.bookmark.line())
     }
 
