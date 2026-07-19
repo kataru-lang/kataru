@@ -1,11 +1,11 @@
 use crate::{
+    Bookmark, Command, Value,
     error::{Error, Result},
     structs::{
         AssignOperator, AttributeExtractor, Branches, ChoiceTarget, CommandGetters, Map, Params,
         Passage, Passages, QualifiedName, RawChoice, RawChoices, RawLine, State, StateMod, Story,
     },
     traits::FromStr,
-    Bookmark, Command, Value,
 };
 
 pub struct Validator<'a> {
@@ -96,7 +96,7 @@ impl<'a> Validator<'a> {
                 return Err(error!(
                     "Commands can only contain one '.' delimeter, but was '{}'",
                     command.name
-                ))
+                ));
             }
         };
         self.validate_namespace_command(self.bookmark.namespace(), &command_name, &command.params)?;

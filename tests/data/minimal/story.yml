@@ -1,0 +1,12 @@
+---
+namespace: global
+
+characters:
+  Alice:
+  Bob:
+
+---
+
+Start:
+  - Alice: Hello
+  - Bob: Nice to meet you!
