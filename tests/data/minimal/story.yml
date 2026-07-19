@@ -5,8 +5,15 @@ characters:
   Alice:
   Bob:
 
+state:
+  var1: false
 ---
 
 Start:
-  - Alice: Hello
+  - Alice: Hello!
   - Bob: Nice to meet you!
+  - if $var1:
+      - Alice: I shouldn't say this.
+    else:
+      - Alice: I should say this.
+  - Bob: Bye!

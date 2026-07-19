@@ -266,50 +266,25 @@ impl<'story> RunnerState<'story> {
     /// Gets the next dialogue line from the story based on the user's input.
     /// Internally, a single call to `next()` may result in multiple lines being processed,
     /// i.e. when a choice is being made.
-    pub fn next(&mut self, mut input: &str) -> Result<Line> {
+    pub fn next(&mut self, input: &str) -> Result<Line> {
+        // Progress the bookmark until we reach a concrete line.
+        if let Some(line) = self.process_control_flow(input)? {
+            return Ok(line);
+        }
+        // Read back the current line and go to the next line.
+        let line_ref = self.read_line_ref()?;
+        if let Some(line) = self.build_line(line_ref)? {
+            self.bookmark.next_line();
+            return Ok(line);
+        }
+        Ok(Line::End)
+    }
+
+    /// Progress through all control flow until we reach a concrete line.
+    /// When input is empty or when we are at the end of the passage, this will return Some(concrete_line).
+    pub fn process_control_flow(&mut self, mut input: &str) -> Result<Option<Line>> {
         loop {
-            let line_ref = self.read_line_ref()?;
-            // println!("Run L{}: {:#?}", self.bookmark.position().line, line_ref);
-            match line_ref {
-                // When a choice is encountered, it should first be returned for display.
-                // Second time it's encountered, go to the chosen passage.
-                LineRef::Choices(raw_choices) => {
-                    // If empty input, choices are being returned for display.
-                    if input.is_empty() {
-                        let choices = self.load_choices(raw_choices)?;
-                        // If no choices, call the default.
-                        if choices.is_empty() {
-                            self.call_default(raw_choices)?
-                        } else {
-                            return Ok(Line::Choices(choices));
-                        }
-                    } else {
-                        // If should jump to passage.
-                        if let Some(passage_name) = self.choice_to_passage.remove(input) {
-                            self.call_choice(raw_choices, passage_name.to_string())?;
-                        }
-                        // If should jump to line number.
-                        else if let Some(skip_lines) = self.choice_to_line_num.remove(input) {
-                            self.bookmark.skip_lines(skip_lines + 1);
-                        } else {
-                            return Ok(Line::InvalidChoice);
-                        }
-                    }
-                }
-                // When input is encountered, it should first be returned for display.
-                // Second time it's encountered, modify state.
-                LineRef::Input(input_cmd) => {
-                    if input.is_empty() {
-                        return Ok(Line::Input(input_cmd.clone()));
-                    } else {
-                        for var in input_cmd.input.keys() {
-                            let mut state = State::new();
-                            state.insert(var.clone(), Value::String(input.to_string()));
-                            self.bookmark.set_state(&state)?
-                        }
-                        self.bookmark.next_line();
-                    }
-                }
+            match self.read_line_ref()? {
                 LineRef::Branches(branches) => {
                     branches.take(&mut self.bookmark)?;
                 }
@@ -323,59 +298,98 @@ impl<'story> RunnerState<'story> {
                             self.bookmark.set_position(position);
                             self.load_passage()?;
                         }
-                        None => return Ok(Line::End),
+                        None => return Ok(Some(Line::End)),
                     }
                 }
-                LineRef::Break(line_num) => self.bookmark.set_line(line_num),
                 LineRef::SetCommand(set) => {
                     self.bookmark.next_line();
                     self.bookmark.set_state(&set.set)?;
                 }
-                LineRef::Command(_)
-                | LineRef::PositionalCommand(_)
-                | LineRef::Dialogue(_)
-                | LineRef::Text(_) => {
-                    self.bookmark.next_line();
-                    return self.build_line(line_ref);
+                LineRef::Break(line_num) => self.bookmark.set_line(line_num),
+                // Choices behave like control flow if there's input.
+                LineRef::Choices(raw_choices) => {
+                    // If empty input, choices are being returned for display.
+                    if input.is_empty() {
+                        let choices = self.load_choices(raw_choices)?;
+                        // If no choices, call the default.
+                        if choices.is_empty() {
+                            self.call_default(raw_choices)?;
+                        } else {
+                            return Ok(Some(Line::Choices(choices)));
+                        }
+                    } else {
+                        // If a choice was selected, proceed.
+                        if let Some(passage_name) = self.choice_to_passage.remove(input) {
+                            self.call_choice(raw_choices, passage_name.to_string())?;
+                        }
+                        // If should jump to line number.
+                        else if let Some(skip_lines) = self.choice_to_line_num.remove(input) {
+                            self.bookmark.skip_lines(skip_lines + 1);
+                        } else {
+                            return Ok(Some(Line::InvalidChoice));
+                        }
+                    }
                 }
-            };
-            input = "";
+                // Similarly, input behaves like control flow if there's input.
+                LineRef::Input(input_cmd) => {
+                    if input.is_empty() {
+                        return Ok(Some(Line::Input(input_cmd.clone())));
+                    } else {
+                        for var in input_cmd.input.keys() {
+                            let mut state = State::new();
+                            state.insert(var.clone(), Value::String(input.to_string()));
+                            self.bookmark.set_state(&state)?
+                        }
+                        self.bookmark.next_line();
+                    }
+                }
+                _ => return Ok(None),
+            }
+            input = ""
         }
     }
 
     /// Reads the current line.
+    /// If the line is a control flow, then we proceed through all
+    /// control flow lines until we reach a concrete line.
     pub fn read_line(&mut self) -> Result<Line> {
+        if let Some(end) = self.process_control_flow("")? {
+            return Ok(end);
+        }
         let line_ref = self.read_line_ref()?;
-        self.build_line(line_ref)
+        if let Some(line) = self.build_line(line_ref)? {
+            return Ok(line);
+        }
+        Err(Error::Generic(format!(
+            "Attempted to build line from intermediate lineref: {:?}",
+            line_ref
+        )))
     }
 
     /// Build a single line from a line ref.
-    pub fn build_line(&mut self, line_ref: LineRef<'story>) -> Result<Line> {
-        match line_ref {
-            LineRef::Choices(raw_choices) => Ok(Line::Choices(self.load_choices(raw_choices)?)),
-            LineRef::Command(raw_command) => Ok(Line::Command(
+    fn build_line(&mut self, line_ref: LineRef<'story>) -> Result<Option<Line>> {
+        Ok(match line_ref {
+            LineRef::Choices(raw_choices) => Some(Line::Choices(self.load_choices(raw_choices)?)),
+            LineRef::Command(raw_command) => Some(Line::Command(
                 raw_command.build_command(self.story, &self.bookmark)?,
             )),
-            LineRef::PositionalCommand(positional_command) => Ok(Line::Command(
+            LineRef::PositionalCommand(positional_command) => Some(Line::Command(
                 positional_command.build_command(self.story, &self.bookmark)?,
             )),
             LineRef::Dialogue(map) => {
                 let dialogue = Dialogue::from_map(map, self.story, &self.bookmark)?;
                 self.speaker = dialogue.name.clone();
-                Ok(Line::Dialogue(dialogue))
+                Some(Line::Dialogue(dialogue))
             }
-            LineRef::Text(text) => Ok(Line::Dialogue(Dialogue::from(
+            LineRef::Text(text) => Some(Line::Dialogue(Dialogue::from(
                 &self.speaker,
                 text,
                 self.story,
                 &self.bookmark,
             )?)),
-            LineRef::Return => Ok(Line::End),
-            _ => Err(Error::Generic(format!(
-                "Attempted to build line from intermediate lineref: {:?}",
-                line_ref
-            ))),
-        }
+            LineRef::Input(input_cmd) => Some(Line::Input(input_cmd.clone())),
+            _ => None,
+        })
     }
 
     /// Set state values.
