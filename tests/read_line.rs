@@ -14,15 +14,6 @@ fn test_read_line() {
     let mut runner = Runner::init(bookmark, story, true).unwrap();
 
     assert_eq!(
-        runner.read_line().unwrap(),
-        Line::Dialogue(Dialogue {
-            name: "Alice".to_string(),
-            text: "Hello!".to_string(),
-            ..Dialogue::default()
-        }),
-    );
-    println!("Line: {}", runner.bookmark().line());
-    assert_eq!(
         runner.next("").unwrap(),
         Line::Dialogue(Dialogue {
             name: "Alice".to_string(),
@@ -30,7 +21,14 @@ fn test_read_line() {
             ..Dialogue::default()
         }),
     );
-    println!("Line: {}", runner.bookmark().line());
+    assert_eq!(
+        runner.read_line().unwrap(),
+        Line::Dialogue(Dialogue {
+            name: "Alice".to_string(),
+            text: "Hello!".to_string(),
+            ..Dialogue::default()
+        }),
+    );
     assert_eq!(
         runner.next("").unwrap(),
         Line::Dialogue(Dialogue {
@@ -39,14 +37,12 @@ fn test_read_line() {
             ..Dialogue::default()
         }),
     );
-    println!("Line: {}", runner.bookmark().line());
     assert_eq!(
-        runner.read_line().unwrap(),
+        runner.next("").unwrap(),
         Line::Dialogue(Dialogue {
             name: "Alice".to_string(),
             text: "I should say this.".to_string(),
             ..Dialogue::default()
         }),
     );
-    println!("Line: {}", runner.bookmark().line());
 }

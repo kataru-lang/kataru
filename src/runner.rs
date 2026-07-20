@@ -274,14 +274,18 @@ impl<'story> RunnerState<'story> {
     /// Internally, a single call to `next()` may result in multiple lines being processed,
     /// i.e. when a choice is being made.
     pub fn next(&mut self, input: &str) -> Result<Line> {
+        if let Some(next_line) = self.bookmark.next_line {
+            self.bookmark.set_line(next_line);
+        }
         // Progress the bookmark until we reach a concrete line.
         if let Some(line) = self.process_control_flow(input)? {
+            self.bookmark.next_line = Some(self.bookmark.line());
             return Ok(line);
         }
         // Read back the current line and go to the next line.
         let line_ref = self.read_line_ref()?;
         if let Some(line) = self.build_line(line_ref)? {
-            self.bookmark.next_line();
+            self.bookmark.next_line = Some(self.bookmark.line() + 1);
             return Ok(line);
         }
         Ok(Line::End)
@@ -310,7 +314,7 @@ impl<'story> RunnerState<'story> {
                 }
             }
             LineRef::SetCommand(set) => {
-                self.bookmark.next_line();
+                self.bookmark.increment_line();
                 self.bookmark.set_state(&set.set)?;
                 ControlFlow::Continue
             }
@@ -355,7 +359,7 @@ impl<'story> RunnerState<'story> {
                         state.insert(var.clone(), Value::String(input.to_string()));
                         self.bookmark.set_state(&state)?
                     }
-                    self.bookmark.next_line();
+                    self.bookmark.increment_line();
                     ControlFlow::Continue
                 }
             }
@@ -493,7 +497,7 @@ impl<'story> RunnerState<'story> {
     /// Call the configured passage by putting return position on stack.
     /// Goto the passage.
     fn call(&mut self, passage_name: String) -> Result<()> {
-        self.bookmark.next_line();
+        self.bookmark.increment_line();
 
         // Don't push this func onto the stack of the next line is just a return.
         // (Tail call optimization).

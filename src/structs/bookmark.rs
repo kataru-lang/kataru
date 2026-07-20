@@ -35,6 +35,8 @@ pub struct Bookmark {
     pub state: Map<String, State>,
     #[serde(default)]
     pub position: Position,
+    #[serde(skip)]
+    pub next_line: Option<usize>,
     #[serde(default)]
     pub stack: Vec<Position>,
     #[serde(default)]
@@ -65,7 +67,7 @@ impl<'a> Bookmark {
     }
 
     #[inline]
-    pub fn next_line(&mut self) {
+    pub fn increment_line(&mut self) {
         self.position.line += 1
     }
 
@@ -76,7 +78,8 @@ impl<'a> Bookmark {
 
     #[inline]
     pub fn set_line(&mut self, line: usize) {
-        self.position.line = line
+        self.position.line = line;
+        self.next_line = None;
     }
 
     #[inline]
