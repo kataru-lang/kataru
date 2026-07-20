@@ -1,9 +1,9 @@
 use super::{Map, QualifiedName, State, Story};
 use crate::{
+    GLOBAL, Load, LoadMessagePack, Save, SaveYaml, Section, StateMod, Value,
     error::{Error, Result},
     traits::FromStr,
     traits::{FromMessagePack, FromYaml, LoadYaml, SaveMessagePack},
-    Load, LoadMessagePack, Save, SaveYaml, Section, StateMod, Value, GLOBAL,
 };
 use serde::{Deserialize, Serialize};
 use std::{fmt, path::Path};
@@ -34,7 +34,7 @@ pub struct Bookmark {
     #[serde(default)]
     pub state: Map<String, State>,
     #[serde(default)]
-    position: Position,
+    pub position: Position,
     #[serde(default)]
     pub stack: Vec<Position>,
     #[serde(default)]

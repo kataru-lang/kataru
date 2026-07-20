@@ -1,5 +1,5 @@
-use super::{line_len, Bookmark, RawLine};
-use crate::{error::Result, Map, Value};
+use super::{Bookmark, RawLine, line_len};
+use crate::{Map, Value, error::Result};
 use linear_map::LinearMap;
 use serde::{Deserialize, Serialize};
 
@@ -35,7 +35,7 @@ pub enum RawChoice {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct RawChoices {
-    choices: LinearMap<String, RawChoice>,
+    pub choices: LinearMap<String, RawChoice>,
     #[serde(default)]
     pub timeout: f64,
     #[serde(default)]
