@@ -184,6 +184,13 @@ impl<'story> From<&'story RawLine> for LineRef<'story> {
     }
 }
 
+/// Captures the state of the iterator loop.
+enum ControlFlow {
+    Return(Line),
+    Break,
+    Continue,
+}
+
 /// Internal runner state.
 struct RunnerState<'story> {
     /// Reference to bookmark to mutate as we progress through the story.
@@ -280,73 +287,100 @@ impl<'story> RunnerState<'story> {
         Ok(Line::End)
     }
 
+    /// Get the next control flow line ref.
+    pub fn next_control_flow(&mut self, input: &str) -> Result<ControlFlow> {
+        Ok(match self.read_line_ref()? {
+            LineRef::Branches(branches) => {
+                branches.take(&mut self.bookmark)?;
+                ControlFlow::Continue
+            }
+            LineRef::Call(call) => {
+                self.call(call.passage.clone())?;
+                ControlFlow::Continue
+            }
+            LineRef::Return => {
+                self.run_on_exit()?;
+                match self.bookmark.stack.pop() {
+                    Some(position) => {
+                        self.bookmark.set_position(position);
+                        self.load_passage()?;
+                        ControlFlow::Continue
+                    }
+                    None => ControlFlow::Return(Line::End),
+                }
+            }
+            LineRef::SetCommand(set) => {
+                self.bookmark.next_line();
+                self.bookmark.set_state(&set.set)?;
+                ControlFlow::Continue
+            }
+            LineRef::Break(line_num) => {
+                self.bookmark.set_line(line_num);
+                ControlFlow::Continue
+            }
+            // Choices behave like control flow if there's input.
+            LineRef::Choices(raw_choices) => {
+                // If empty input, choices are being returned for display.
+                if input.is_empty() {
+                    let choices = self.load_choices(raw_choices)?;
+                    // If no choices, call the default.
+                    if choices.is_empty() {
+                        self.call_default(raw_choices)?;
+                        ControlFlow::Continue
+                    } else {
+                        ControlFlow::Return(Line::Choices(choices))
+                    }
+                } else {
+                    // If a choice was selected, proceed.
+                    if let Some(passage_name) = self.choice_to_passage.remove(input) {
+                        self.call_choice(raw_choices, passage_name.to_string())?;
+                        ControlFlow::Continue
+                    }
+                    // If should jump to line number.
+                    else if let Some(skip_lines) = self.choice_to_line_num.remove(input) {
+                        self.bookmark.skip_lines(skip_lines + 1);
+                        ControlFlow::Continue
+                    } else {
+                        ControlFlow::Return(Line::InvalidChoice)
+                    }
+                }
+            }
+            // Similarly, input behaves like control flow if there's input.
+            LineRef::Input(input_cmd) => {
+                if input.is_empty() {
+                    ControlFlow::Return(Line::Input(input_cmd.clone()))
+                } else {
+                    for var in input_cmd.input.keys() {
+                        let mut state = State::new();
+                        state.insert(var.clone(), Value::String(input.to_string()));
+                        self.bookmark.set_state(&state)?
+                    }
+                    self.bookmark.next_line();
+                    ControlFlow::Continue
+                }
+            }
+            _ => ControlFlow::Break,
+        })
+    }
+
     /// Progress through all control flow until we reach a concrete line.
     /// When input is empty or when we are at the end of the passage, this will return Some(concrete_line).
     pub fn process_control_flow(&mut self, mut input: &str) -> Result<Option<Line>> {
         loop {
-            match self.read_line_ref()? {
-                LineRef::Branches(branches) => {
-                    branches.take(&mut self.bookmark)?;
+            match self.next_control_flow(input)? {
+                ControlFlow::Continue => {
+                    input = "";
+                    continue;
                 }
-                LineRef::Call(call) => {
-                    self.call(call.passage.clone())?;
+                ControlFlow::Break => {
+                    break;
                 }
-                LineRef::Return => {
-                    self.run_on_exit()?;
-                    match self.bookmark.stack.pop() {
-                        Some(position) => {
-                            self.bookmark.set_position(position);
-                            self.load_passage()?;
-                        }
-                        None => return Ok(Some(Line::End)),
-                    }
+                ControlFlow::Return(line) => {
+                    return Ok(Some(line));
                 }
-                LineRef::SetCommand(set) => {
-                    self.bookmark.next_line();
-                    self.bookmark.set_state(&set.set)?;
-                }
-                LineRef::Break(line_num) => self.bookmark.set_line(line_num),
-                // Choices behave like control flow if there's input.
-                LineRef::Choices(raw_choices) => {
-                    // If empty input, choices are being returned for display.
-                    if input.is_empty() {
-                        let choices = self.load_choices(raw_choices)?;
-                        // If no choices, call the default.
-                        if choices.is_empty() {
-                            self.call_default(raw_choices)?;
-                        } else {
-                            return Ok(Some(Line::Choices(choices)));
-                        }
-                    } else {
-                        // If a choice was selected, proceed.
-                        if let Some(passage_name) = self.choice_to_passage.remove(input) {
-                            self.call_choice(raw_choices, passage_name.to_string())?;
-                        }
-                        // If should jump to line number.
-                        else if let Some(skip_lines) = self.choice_to_line_num.remove(input) {
-                            self.bookmark.skip_lines(skip_lines + 1);
-                        } else {
-                            return Ok(Some(Line::InvalidChoice));
-                        }
-                    }
-                }
-                // Similarly, input behaves like control flow if there's input.
-                LineRef::Input(input_cmd) => {
-                    if input.is_empty() {
-                        return Ok(Some(Line::Input(input_cmd.clone())));
-                    } else {
-                        for var in input_cmd.input.keys() {
-                            let mut state = State::new();
-                            state.insert(var.clone(), Value::String(input.to_string()));
-                            self.bookmark.set_state(&state)?
-                        }
-                        self.bookmark.next_line();
-                    }
-                }
-                _ => return Ok(None),
             }
-            input = ""
         }
+        Ok(None)
     }
 
     /// Reads the current line.
